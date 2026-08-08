@@ -1,0 +1,81 @@
+# Publish site/ to GitHub Pages, but only after proving the committed tree is what the
+# code produces right now.
+#
+# site/ is tracked in git rather than being a pure build artifact, so the risk this
+# workflow exists to close is publishing a stale copy. `chalkline check` rebuilds all
+# three artifacts in memory from the vendored sources under data/source/ and compares
+# them byte-for-byte with what is committed, and the rebuild that follows writes the same
+# bytes to disk and fails if git sees any difference at all. Either way a stale site/
+# fails the job instead of reaching the web.
+#
+# No network and no secrets. The build reads only committed inputs, which is the same
+# property CI relies on: scripts/fetch_sources.py is the only code here that opens a
+# socket and it is never run from a build.
+#
+# Every action is pinned to the full 40-char commit SHA of its tag, resolved 2026-08-07
+# via `gh api repos/OWNER/REPO/git/matching-refs/tags`, per
+# SECURITY-AND-SUPPLY-CHAIN-STANDARD §6.
+#
+# Before the first deploy can succeed, Pages has to be told to take its source from this
+# workflow: Settings > Pages > Build and deployment > Source > GitHub Actions.
+name: publish-site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          version: ">=0.11.0"
+          python-version: "3.12"
+
+      # The same gate `make verify` ends on, run here so publication depends on it too.
+      - name: The committed site/ must be byte-for-byte what the code produces
+        run: make check
+
+      - name: Rebuild it on disk, and publish only if nothing moved
+        run: |
+          make build
+          if [ -n "$(git status --porcelain -- site)" ]; then
+            git status --porcelain -- site
+            echo "the rebuilt site/ differs from the commit: run 'make build' and commit it" >&2
+            exit 1
+          fi
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # The two scopes the Pages deployment API needs, on the one job that needs them. The
+    # build job, which is the job that runs repository code, holds neither.
+    permissions:
+      pages: write # create the Pages deployment
+      id-token: write # mint the OIDC token that deployment is authenticated with
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
