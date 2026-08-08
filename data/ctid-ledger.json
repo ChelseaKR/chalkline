@@ -79,7 +79,11 @@
     "TC10|District Intern PK-3 Early Childhood Education Specialist Instruction Credential|R10C": "ce-9a5da2a2-1ce4-40ed-9be7-f49f932685ab",
     "TC10|District Intern Single Subject|R9": "ce-3a06ca6a-db15-4a17-855d-a1947332e6aa",
     "TC13|Short-Term Staff Permit (Multiple Subject)|R2M": "ce-25c7bd9a-250f-4dee-bdb9-f522d5ad8da0",
+    "TC13|Short-Term Staff Permit (Single Subject)|R1S, R1F, R1GS, R1WL": "ce-b8759f44-6290-4d40-b49d-20b0ccc68f18",
+    "TC13|Short-Term Staff Permit (Special Education)|": "ce-b93524e6-0c18-447b-9efb-b52fccaed35b",
     "TC14|Provisional Internship Permit (Multiple Subject)|R2M": "ce-2f1fbba2-53af-4f84-84ca-bd1aa2a2b91f",
+    "TC14|Provisional Internship Permit (Single Subject)|R1S, R1F, R1GS, R1WL": "ce-d907982d-35bb-4770-b8c0-c0ba07156da6",
+    "TC14|Provisional Internship Permit (Special Education)|": "ce-7592a90c-aa47-4bfb-b161-b567f27c3d30",
     "TC15|Emergency Specialist Teaching Permit in Early Childhood Education|R3EP": "ce-98cd34a1-a144-452c-945a-5704c8f10967",
     "TC1|Introductory Supplementary Authorization (TC1)|R1B": "ce-50bde875-a7f2-4e3a-a0e3-b18be8fde3a2",
     "TC1|Limited English Learner Authorization|ELAS": "ce-d65cf222-e46a-4f34-bda2-72cacc34c26e",
@@ -123,9 +127,13 @@
     "TC3S|Education Specialist Instruction Credential|SEEC": "ce-7d7d89ec-ae0c-468d-9d05-4d02dde4eef0",
     "TC3S|Limited English Learner Authorization|ELAE": "ce-5aad4910-6af1-440f-83df-ff08c6cabb24",
     "TC4S|Designated Subjects Special Subjects Credential|R4C": "ce-e72599c8-254e-416d-a7fa-9a1ddc630250",
+    "TC7|Exchange Certificated Employee Teaching Credential|R1S": "ce-78f78e05-360c-433f-b865-bc5d668cabd8",
     "TC7|Exchange Certificated Employee Teaching Credential|R2M": "ce-78335bc5-de9c-45c5-9fdc-5c0df35fe1da",
+    "TLA1|General Education Single Subject Limited Assignment Teaching Permit|R1S, R1F, R1GS, R1WL": "ce-e4362b57-d27c-46aa-b8af-93cf2bf7b326",
     "TLA2|General Education Multiple Subject Limited Assignment Teaching Permit|R2M": "ce-25a9350e-24c2-4153-90b7-a55fd166d481",
+    "TLA3|Special Education Limited Assignment Teaching Permit|": "ce-6af45e8b-8aed-4cb6-bb3c-7067aaf5fa12",
     "TPSL|Teaching Permit for Statutory Leave (Multiple Subject)|R2M": "ce-58f6b236-9b15-49fa-83c1-eb046ec1ee33",
+    "TPSL|Teaching Permit for Statutory Leave (Single Subject)|R1S": "ce-f13e10c5-e935-4d93-abc6-ccf209767899",
     "organization|Commission on Teacher Credentialing": "ce-58d1aa00-cd57-4d91-9639-49bc92c5e96e"
   }
 }

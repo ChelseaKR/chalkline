@@ -40,20 +40,193 @@ def test_published_none_is_a_statement_not_a_gap() -> None:
     assert catalog.exclusions == ()
 
 
-def test_scope_deferred_to_another_credential_is_excluded() -> None:
+DEFERS_SUBJECTS = "Subject Codes Same as on Single Subject Teaching Credential"
+DEFERS_EVERYTHING = (
+    "Authorization and Subject Codes Same as on Education Specialist Instruction Credential"
+)
+
+
+def test_a_deferred_scope_is_resolved_from_the_credential_the_note_names() -> None:
+    """The note points at rows in this same table, and those rows supply the subjects."""
     catalog = catalog_from(
+        row(subject_code="ART", subject="Art", notes=("Academic Subject",)),
+        row(subject_code="MUS", subject="Music"),
         row(
+            document="TC13",
+            title="Short-Term Staff Permit",
             subject_code="",
             subject="",
-            notes=("Subject Codes Same as on Single Subject Teaching Credential",),
-        )
+            notes=(DEFERS_SUBJECTS,),
+        ),
     )
-    assert catalog.authorizations == ()
+    assert catalog.exclusions == ()
+    permit = catalog.authorizations[1]
+    assert permit.title == "Short-Term Staff Permit"
+    assert [(s.code, s.name) for s in permit.subjects] == [("ART", "Art"), ("MUS", "Music")]
+    resolution = permit.resolved_from
+    assert resolution is not None
+    assert resolution.note == DEFERS_SUBJECTS
+    assert resolution.credential == "Single Subject Teaching Credential"
+    assert resolution.document_title == "TC1"
+    assert resolution.defers_authorization_codes is False
+    assert resolution.subjects_supplied == 2
+
+
+def test_the_referenced_rows_notes_do_not_travel_with_the_subjects() -> None:
+    """The Commission said the subject codes are the same; its row notes are not that claim."""
+    catalog = catalog_from(
+        row(subject_code="ART", subject="Art", notes=("Pursuant to Title 5 80004(c)",)),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
+    )
+    source, permit = catalog.authorizations
+    assert source.subjects[0].notes == ("Pursuant to Title 5 80004(c)",)
+    assert permit.subjects[0].notes == ()
+
+
+def test_the_cross_reference_note_does_not_become_a_description() -> None:
+    catalog = catalog_from(
+        row(subject_code="ART", subject="Art"),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
+    )
+    assert catalog.authorizations[1].shared_notes == ()
+
+
+def test_a_note_deferring_the_codes_too_takes_the_referenced_credentials_codes() -> None:
+    catalog = catalog_from(
+        row(
+            document="TC3S",
+            title="Education Specialist Instruction Credential",
+            code="R3MN",
+            subject_code="MN",
+            subject="Mild to Moderate Support Needs",
+        ),
+        row(
+            document="TC3S",
+            title="Education Specialist Instruction Credential",
+            code="SEEC",
+            subject_code="NONE",
+            subject="Early Childhood Added Authorization",
+        ),
+        row(
+            document="TLA3",
+            title="Special Education Limited Assignment Teaching Permit",
+            code="",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_EVERYTHING,),
+        ),
+    )
+    permit = catalog.authorizations[-1]
+    assert permit.authorization_code == ""
+    assert permit.authorization_codes == ("R3MN", "SEEC")
+    assert [s.code for s in permit.subjects] == ["MN"]
+    resolution = permit.resolved_from
+    assert resolution is not None
+    assert resolution.defers_authorization_codes is True
+    assert [(s.authorization_code, s.subjects_supplied) for s in resolution.sources] == [
+        ("R3MN", 1),
+        ("SEEC", 0),
+    ]
+    assert resolution.sources[1].declares_no_subject_codes is True
+
+
+def test_a_reference_to_a_credential_the_table_does_not_publish_stays_excluded() -> None:
+    catalog = catalog_from(
+        row(subject_code="ART", subject="Art"),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=("Subject Codes Same as on Nonexistent Credential",),
+        ),
+    )
     (exclusion,) = catalog.exclusions
-    assert exclusion.reason == model.REASON_DEFERRED
-    assert exclusion.published_notes == (
-        "Subject Codes Same as on Single Subject Teaching Credential",
+    assert "no row in the table publishes the Authorization Title" in exclusion.reason
+    assert "Subject Codes Same as on Nonexistent Credential" in exclusion.reason
+
+
+def test_a_reference_that_lands_on_two_documents_stays_excluded() -> None:
+    catalog = catalog_from(
+        row(document="TC1", subject_code="ART", subject="Art"),
+        row(document="TC2", subject_code="MUS", subject="Music"),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
     )
+    (exclusion,) = catalog.exclusions
+    assert "more than one document" in exclusion.reason
+
+
+def test_a_reference_to_a_code_the_named_credential_does_not_carry_stays_excluded() -> None:
+    catalog = catalog_from(
+        row(code="R1S", subject_code="ART", subject="Art"),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            code="R1F",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
+    )
+    (exclusion,) = catalog.exclusions
+    assert "publishes no rows under the Authorization Code(s) R1F" in exclusion.reason
+
+
+def test_a_circular_reference_stays_excluded() -> None:
+    """A credential that defers its own scope is not an end point for somebody else's."""
+    catalog = catalog_from(
+        row(subject_code="", subject="", notes=("Subject Codes Same as on Another Credential",)),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
+    )
+    reasons = [e.reason for e in catalog.exclusions]
+    assert any("does not end at published subjects" in reason for reason in reasons)
+
+
+def test_a_reference_to_rows_that_publish_only_none_stays_excluded() -> None:
+    catalog = catalog_from(
+        row(subject_code="NONE", subject=""),
+        row(
+            document="TC13",
+            title="Short-Term Staff Permit",
+            subject_code="",
+            subject="",
+            notes=(DEFERS_SUBJECTS,),
+        ),
+    )
+    (exclusion,) = catalog.exclusions
+    assert "publishes no subject codes under the referenced rows" in exclusion.reason
+
+
+def test_an_unrecognised_note_is_not_treated_as_a_cross_reference() -> None:
+    catalog = catalog_from(
+        row(subject_code="", subject="", notes=("See the Special Education Assignment Chart",))
+    )
+    (exclusion,) = catalog.exclusions
+    assert exclusion.reason == model.REASON_UNPUBLISHED
 
 
 def test_scope_on_the_issued_document_is_excluded() -> None:

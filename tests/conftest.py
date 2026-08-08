@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from chalkline.attachment import Attachment, attach
 from chalkline.model import Catalog, build_catalog
 from chalkline.sources import leaflets, sort_table
 
@@ -56,3 +57,11 @@ def leaflet_index(
     real_leaflets: tuple[leaflets.Leaflet, ...],
 ) -> dict[str, leaflets.Leaflet]:
     return leaflets.index_by_title(real_leaflets)
+
+
+@pytest.fixture(scope="session")
+def real_attachments(
+    real_catalog: Catalog, leaflet_index: dict[str, leaflets.Leaflet]
+) -> dict[str, Attachment]:
+    """Every leaflet this project attaches to the vendored catalog, read once."""
+    return attach(real_catalog, leaflet_index)

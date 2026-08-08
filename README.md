@@ -19,15 +19,20 @@ of California educator credentials yet. This repository is one worked example of
 representation could look like if it existed, built only from what the Commission already
 publishes.
 
-From the Commission's Authorization Sort Table, retrieved 2026-08-07:
+From the Commission's Authorization Sort Table and ten of its credential leaflets, all
+retrieved 2026-08-07:
 
 | | |
 |---|---|
-| Rows published | 553 |
+| Rows published in the sort table | 553 |
 | Authorizations in those rows | 136 |
-| Modeled as `ceterms:License` | 125 |
-| Excluded, each with a recorded reason | 11 |
-| Subject alignments emitted | 476 |
+| Modeled as `ceterms:License` | 133 |
+| Excluded, each with a recorded reason | 3 |
+| Subject alignments emitted | 1,014 |
+| Of those, supplied by following a published cross-reference | 538 |
+| Authorizations carrying `ceterms:description` | 51 |
+| Authorizations carrying requirements or renewal terms | 20 |
+| `ceterms:ConditionProfile` nodes emitted | 22 |
 
 Output lives in [`site/`](site/): [`credentials.jsonld`](site/credentials.jsonld) is the
 graph, [`coverage.json`](site/coverage.json) is a coverage statement counted from that graph
@@ -45,10 +50,14 @@ becomes a `ceterms:CredentialAlignmentObject` under `ceterms:subject`, carrying 
 Commission's subject code, subject name, and row notes. California rides
 `ceterms:regulatedIn` as a `ceterms:JurisdictionProfile`. The Commission's own document and
 authorization codes ride `ceterms:identifier`, because `ceterms:codedNotation` turns out not
-to be in the domain of `ceterms:License`.
+to be in the domain of `ceterms:License`. Where a leaflet states requirements or renewal
+terms under a heading this project can classify, they ride `ceterms:requires` and
+`ceterms:renewal` as `ceterms:ConditionProfile` nodes named with the Commission's own heading.
 
 Every class choice, every rejected alternative, and one apparent gap in CTDL itself are
-written up in [docs/MODELING.md](docs/MODELING.md).
+written up in [docs/MODELING.md](docs/MODELING.md). The `@id` host does not resolve, and
+[docs/IDENTIFIERS.md](docs/IDENTIFIERS.md) lays out what that costs and what the options are;
+nothing has been registered or deployed.
 
 ## Two things a CTDL reader will want to check first
 
@@ -69,14 +78,34 @@ on, and the value fits the declared range. That domain check is not decorative. 
 caught `ceterms:codedNotation` on a License, and a range check caught `ceterms:postalCode`
 being written as a language map when the schema gives it `xsd:string`.
 
-## Exclusions
+## Scope, and the three exclusions left
 
 An authorization is modeled only where its scope can be read from the sort table itself. The
 Subject Code column says one of three things, and all three are read literally: a subject
 code, the literal string `NONE` (which is a statement that the authorization is not
-subject-coded, not a gap), or nothing at all. The third case is the only cause of an
-exclusion, and there are 11. All 11 are listed with per-item reasons in
-[PROVENANCE.md](PROVENANCE.md). No authorization is excluded for want of a name.
+subject-coded, not a gap), or nothing at all.
+
+Eight rows in the third case carry a Commission note pointing at another credential's rows in
+the same table. All eight references were followed, code by code, against the vendored
+artifact, which is what took the modeled count from 125 to 133 and added 538 subject
+alignments. Exactly which rows supplied which subjects is recorded in
+[PROVENANCE.md](PROVENANCE.md) and printed on the browsable page beside each resolved
+credential. A reference this project could not follow would stay excluded with a reason
+naming what was found.
+
+Three authorizations remain unmodeled: two publish "Indicated on Document" and one publishes
+nothing at all. No authorization is excluded for want of a name.
+
+## Leaflets
+
+Only 18 of the 133 authorizations have a Commission leaflet attached, and that is the point.
+A leaflet is attached on title equality alone: an exact title match, or a title match with one
+trailing parenthesised qualifier removed. Its prose is then read only if the leaflet page's own
+heading states the code and the title the Commission's index gave it, which one leaflet fails.
+Nine leaflet pages were read; sixteen authorizations carry prose from one. Every near miss
+that was left unmatched, and every heading that stopped or was skipped during reading, is
+named and counted in [PROVENANCE.md](PROVENANCE.md) and in
+[`site/coverage.json`](site/coverage.json).
 
 ## Usage
 
@@ -90,6 +119,14 @@ uv run chalkline mint-ctids   # assign CTIDs to any authorization lacking one
 Nothing above touches the network. `scripts/fetch_sources.py` is the only code in this
 repository that opens a socket, it is run by hand, and a test asserts that no module under
 `src/chalkline/` imports a networking library at all.
+
+```bash
+python scripts/fetch_sources.py                     # the four base artifacts
+python scripts/fetch_sources.py leaflets cl-858     # one leaflet page, named explicitly
+```
+
+The leaflet mode takes explicit codes rather than walking the Commission's index, so the
+request count equals the number of documents actually used.
 
 ```bash
 make verify   # lint, format check, typecheck, tests with coverage, build check

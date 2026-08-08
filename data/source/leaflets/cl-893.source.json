@@ -1,0 +1,13 @@
+{
+  "file": "cl-893.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-893/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-893/",
+  "retrieved": "2026-08-07",
+  "http_status": 200,
+  "bytes": 86939,
+  "sha256": "ff04bc217a77d4adf0f533552c37c6965bf25d6c8f51db8b7490ec24ed8437e3",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "American Indian Languages Credential",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-893`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+}

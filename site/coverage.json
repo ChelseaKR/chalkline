@@ -7,39 +7,61 @@
   },
   "entities": {
     "ceterms:CredentialOrganization": 1,
-    "ceterms:License": 125,
-    "ceterms:CredentialAlignmentObject": 476
+    "ceterms:License": 133,
+    "ceterms:CredentialAlignmentObject": 1014,
+    "ceterms:ConditionProfile": 22
   },
   "authorizations": {
     "published_in_source": 136,
-    "modeled": 125,
-    "excluded": 11,
-    "with_subject_codes": 59,
-    "published_as_not_subject_coded": 66
+    "modeled": 133,
+    "excluded": 3,
+    "with_subject_codes": 67,
+    "published_as_not_subject_coded": 66,
+    "scope_resolved_by_cross_reference": 8,
+    "subject_alignments_from_a_cross_reference": 538
   },
   "license_properties": {
-    "ceterms:name": 125,
-    "ceterms:description": 37,
-    "ceterms:inLanguage": 125,
-    "ceterms:subjectWebpage": 125,
-    "ceterms:ownedBy": 125,
-    "ceterms:regulatedIn": 125,
-    "ceterms:identifier": 125,
-    "ceterms:subject": 59
+    "ceterms:name": 133,
+    "ceterms:description": 51,
+    "ceterms:inLanguage": 133,
+    "ceterms:subjectWebpage": 133,
+    "ceterms:ownedBy": 133,
+    "ceterms:regulatedIn": 133,
+    "ceterms:identifier": 133,
+    "ceterms:requires": 13,
+    "ceterms:renewal": 7,
+    "ceterms:subject": 67
   },
   "leaflets": {
-    "rule": "a leaflet is attached only where its published title equals the authorization's published title after case and punctuation normalization",
-    "authorizations_with_a_leaflet": 12,
-    "authorizations_without_a_leaflet": 113
+    "rule": "a leaflet is attached only where its published title equals the authorization's published title after case and punctuation normalization, or equals that title with one trailing parenthesised qualifier removed; and its prose is read only where the leaflet page's own heading states the code and the title the index gave it",
+    "leaflets_in_the_commission_index": 81,
+    "authorizations_with_a_leaflet": 18,
+    "authorizations_without_a_leaflet": 115,
+    "matched_by_rule": {
+      "exact title": 12,
+      "named family, qualifier in parentheses": 6
+    },
+    "leaflet_pages_read": 9,
+    "leaflet_pages_refused": 1,
+    "authorizations_with_leaflet_prose": 16,
+    "refused_by_reason": {
+      "cl-893: the index lists this leaflet as 'American Indian Languages Credential' and the page titles itself 'American Indian Languages-Culture Credential'; a page whose own title is not the title it was matched under is not evidence about the authorization it was matched to": 2
+    },
+    "headings_read_past_but_not_classified": {
+      "Commission-Approved Staff Development Agencies:": 1,
+      "Education Specialist:": 6,
+      "Multiple Subject:": 6,
+      "Single Subject:": 6
+    }
   },
   "excluded_by_reason": {
-    "the sort table does not enumerate this authorization's subjects; it refers the reader to another credential's subject list, and this project has not verified that the two lists match row by row": 8,
     "the sort table publishes no subject code, no subject, and no note describing the scope for this authorization": 1,
     "the sort table states that the subjects are indicated on the issued document, so the scope is not published in any machine-readable source this project reads": 2
   },
   "not_modeled": {
     "ceterms:occupationType": "the sort table publishes no occupation codes, and aligning a credential to an SOC occupation would be this project's judgement rather than the Commission's statement",
     "ceterms:audienceLevelType": "grade ranges appear as prose in the Notes column; mapping that prose onto CTDL's audience level concept scheme would be an interpretation the Commission has not published",
-    "competency_framework": "the sort table publishes subject names, not competency statements, and CTDL's targetCompetency is not in the domain of ceterms:License; modeling subjects as competencies would require writing skill statements the Commission never wrote"
+    "competency_framework": "the sort table publishes subject names, not competency statements, and CTDL's targetCompetency is not in the domain of ceterms:License; modeling subjects as competencies would require writing skill statements the Commission never wrote",
+    "leaflet_sections_this_project_cannot_classify": "a leaflet section whose heading is not one of the kinds this project recognises is never read, and reading stops entirely at the first heading that names another document, so a leaflet describing several credentials contributes only the part it is titled for"
   }
 }

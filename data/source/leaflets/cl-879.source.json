@@ -1,0 +1,13 @@
+{
+  "file": "cl-879.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-879/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-879/",
+  "retrieved": "2026-08-07",
+  "http_status": 200,
+  "bytes": 119415,
+  "sha256": "a92e6307bbfc4ecfedd60e575061002845fff7ef66fe6dd43ad9f758b1b83bca",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Speech-Language Pathology Services Credential",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-879`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+}

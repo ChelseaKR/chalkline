@@ -1,0 +1,13 @@
+{
+  "file": "cl-625.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-625/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-625/",
+  "retrieved": "2026-08-07",
+  "http_status": 200,
+  "bytes": 94052,
+  "sha256": "90892ef026eaf7b8da6b0b2a0d1b1934c89c95b59ee393fa9110838930e387db",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Resource Specialist Added Authorization",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-625`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+}

@@ -19,7 +19,9 @@ Four checks, in the order a reader would ask them:
 4. **Range admits the value.** A property whose range is CTDL classes takes either a nested
    node of one of those classes or a string IRI referencing one. A property whose range is a
    literal type takes a value of the matching JSON shape, with ``rdf:langString`` written as
-   the language map the context declares.
+   the language map the context declares. A language tag may carry one string or a list of
+   strings; both are JSON-LD's ``@container: @language``, and the list form is what a
+   property defined as a *single* condition needs in order to state several of them.
 
 Findings are returned, not raised, so a caller can report all of them at once. The export
 raises on any finding.
@@ -83,14 +85,29 @@ def _class_ranges(
     ]
 
 
+def _language_map_texts_ok(entry: Any) -> bool:
+    """One language tag's value: a string, or a list of strings.
+
+    JSON-LD's ``@container: @language`` admits both, and CTDL needs the list form for a
+    property like ``ceterms:condition``, whose definition is a *single* constraint and which
+    is therefore written once per constraint under the same language tag.
+    """
+    if isinstance(entry, str):
+        return True
+    return isinstance(entry, list) and bool(entry) and all(isinstance(x, str) for x in entry)
+
+
 def _check_language_map(term: str, value: Any, path: str, findings: list[str]) -> None:
-    """A language-mapped term takes ``{language tag: text}`` and nothing else."""
+    """A language-mapped term takes ``{language tag: text or texts}`` and nothing else."""
     if not isinstance(value, Mapping):
         findings.append(
             f"{path}: {term} is a language map in the context, got {type(value).__name__}"
         )
-    elif not all(isinstance(text, str) for text in value.values()):
-        findings.append(f"{path}: {term} language map holds a non-string value")
+    elif not all(_language_map_texts_ok(entry) for entry in value.values()):
+        findings.append(
+            f"{path}: {term} language map holds something other than a string or a "
+            "non-empty list of strings"
+        )
 
 
 def _check_item(

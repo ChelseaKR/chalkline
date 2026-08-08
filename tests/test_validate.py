@@ -55,7 +55,32 @@ def test_a_language_map_written_as_a_bare_string_is_caught() -> None:
 
 def test_a_language_map_holding_a_non_string_is_caught() -> None:
     entity = valid_license() | {"ceterms:name": {"en-US": 7}}
-    assert any("non-string" in f for f in findings(entity))
+    assert any("string or a non-empty list of strings" in f for f in findings(entity))
+
+
+def test_a_language_map_may_hold_a_list_of_strings() -> None:
+    """CTDL writes a repeated single-value property once per value under one language tag."""
+    entity = valid_license() | {
+        "ceterms:requires": [
+            {
+                "@type": "ceterms:ConditionProfile",
+                "ceterms:name": {"en-US": "Requirements"},
+                "ceterms:condition": {"en-US": ["Hold a degree.", "Pass an exam."]},
+            }
+        ]
+    }
+    assert findings(entity) == []
+
+
+def test_an_empty_list_in_a_language_map_is_caught() -> None:
+    """An empty list says nothing, and a property that says nothing should not be emitted."""
+    entity = valid_license() | {"ceterms:name": {"en-US": []}}
+    assert any("string or a non-empty list of strings" in f for f in findings(entity))
+
+
+def test_a_language_map_holding_a_list_with_a_non_string_is_caught() -> None:
+    entity = valid_license() | {"ceterms:name": {"en-US": ["ok", 7]}}
+    assert any("string or a non-empty list of strings" in f for f in findings(entity))
 
 
 def test_a_literal_where_a_language_map_belongs_is_caught() -> None:

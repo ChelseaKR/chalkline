@@ -1,0 +1,13 @@
+{
+  "file": "cl-909.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-909/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-909/",
+  "retrieved": "2026-08-07",
+  "http_status": 200,
+  "bytes": 88526,
+  "sha256": "ddbd722eaac8b0c5499687aa5be21eea1647f8d9b60e93be2d50c929eda9131e",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Emergency Specialist Teaching Permit in Early Childhood Education",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-909`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+}
