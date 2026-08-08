@@ -11,6 +11,10 @@ page.
 > could look like. **Nothing here has been published to the Credential Registry**, in
 > production or in a sandbox, and the CTIDs in this repository are not Registry-assigned.
 
+**Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations and ten
+credential leaflets are modeled, tested, and published as JSON-LD. This is one worked example,
+not a complete representation of California educator credentials.
+
 ## What this is
 
 The Commission on Teacher Credentialing publishes its credential authorizations as an HTML
