@@ -1,0 +1,16 @@
+title = "chalkline"
+
+[extend]
+useDefault = true
+
+# data/ctid-ledger.json holds CTIDs: "ce-" followed by a standard UUID v4, per
+# https://credreg.net/ctdl/ctid. They are public demonstration identifiers for public
+# credential types, deliberately committed so that re-export is reproducible. Their entropy
+# reads as a generic API key to the default ruleset, and it is not one.
+#
+# The compensating control is stronger than a scanner heuristic: chalkline.ctid.load_ledger
+# rejects the file outright unless every value matches the CTID grammar, so a credential
+# cannot be stored here even by accident. tests/test_ctid.py exercises that on every run.
+[allowlist]
+description = "CTIDs in the committed identifier ledger are not secrets"
+paths = ['''data/ctid-ledger\.json''']
