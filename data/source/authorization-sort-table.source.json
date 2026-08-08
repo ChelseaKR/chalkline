@@ -1,0 +1,13 @@
+{
+  "file": "authorization-sort-table.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/assignment-resources/authorization-sort-table",
+  "final_url": "https://www.ctc.ca.gov/employers/assignment-resources/resources/authorization-sort-table/",
+  "retrieved": "2026-08-07",
+  "http_status": 200,
+  "bytes": 257373,
+  "sha256": "75d6cdde70f155ace692f86ae092daca6cd8955d998d625f7235aaf9897eb83e",
+  "publisher": "California Commission on Teacher Credentialing",
+  "access": "Public web page, retrieved with a single unauthenticated GET. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "scope_statement_published_on_page": "This table contains credential authorizations and subjects that the Commission currently authorizes. This list does not include credential authorizations that the Commission no longer issues.",
+  "purpose": "The page exactly as served, so the parser is exercised against the real artifact and the sha256 above is the hash of what CTC published rather than of a reshaped copy."
+}
