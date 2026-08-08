@@ -53,10 +53,19 @@ TARGETS: tuple[tuple[str, Path], ...] = (
 
 
 def fetch(url: str, destination: Path) -> int:
-    """Retrieve one source and report what to write into its provenance sidecar."""
-    # Every URL in TARGETS is https, asserted in main() before any request is made.
+    """Retrieve one source and report what to write into its provenance sidecar.
+
+    The scheme is re-checked here, immediately before the request, rather than relying on
+    the check in :func:`main`. ``urllib`` honours ``file://``, so a URL that reached this
+    function by some other path could otherwise read a local file and write it into
+    ``data/source/`` as though a public site had served it.
+    """
+    if not url.startswith("https://"):
+        raise ValueError(f"refusing to fetch {url!r}: only https sources are retrieved")
+    # nosemgrep: dynamic-urllib-use-detected - scheme is pinned to https on the line above
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310
     try:
+        # nosemgrep: dynamic-urllib-use-detected - scheme is pinned to https above
         with urllib.request.urlopen(request, timeout=90) as response:  # noqa: S310
             final_url = response.geturl()
             payload = response.read()
