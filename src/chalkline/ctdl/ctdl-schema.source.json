@@ -1,0 +1,9 @@
+{
+  "file": "ctdl-schema.json",
+  "source_url": "https://credreg.net/ctdl/schema/encoding/json",
+  "retrieved": "2026-08-07",
+  "bytes": 1052234,
+  "sha256": "a2dd28cb08f9e5e0324fe155e7381c276d70e69cb95521dab120f042cc538776",
+  "publisher": "Credential Engine (credreg.net)",
+  "purpose": "Vendored CTDL schema encoding: class definitions, property definitions, schema:domainIncludes, schema:rangeIncludes and meta:domainFor. The export validates every emitted class and every class/property pairing against this file, so a property used on a class the schema does not admit fails the build instead of shipping."
+}
