@@ -7,10 +7,11 @@ import re
 from html.parser import HTMLParser
 
 from chalkline import ctid as ctid_module
+from chalkline.attachment import Attachment
 from chalkline.model import Catalog, build_catalog
 from chalkline.site import render
+from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
-from chalkline.sources import sort_table
 from tests.conftest import row, table
 
 VOID = {"meta", "br", "hr", "img", "input", "link", "source", "area", "col"}
@@ -39,11 +40,11 @@ def rendered(catalog: Catalog) -> str:
 
 
 def test_the_page_is_balanced_html(
-    real_catalog: Catalog, leaflet_index: dict[str, leaflets_module.Leaflet]
+    real_catalog: Catalog, real_attachments: dict[str, Attachment]
 ) -> None:
     ctids = ctid_module.load_ledger()
     parser = _Balance()
-    parser.feed(render(real_catalog, ctids, leaflet_index))
+    parser.feed(render(real_catalog, ctids, real_attachments))
     assert parser.unbalanced == []
     assert parser.stack == []
 
@@ -88,15 +89,106 @@ def test_a_not_subject_coded_credential_says_so() -> None:
     assert "not subject-coded" in rendered(catalog)
 
 
-def test_a_leaflet_link_appears_when_one_matched() -> None:
-    catalog = build_catalog(sort_table.parse(table(row(title="School Nurse Services Credential"))))
+def attached(
+    catalog: Catalog, page: leaflet_pages.LeafletPage | None, refusal: str | None
+) -> dict[str, Attachment]:
     leaflet = leaflets_module.Leaflet(
         code="cl-380", title="School Nurse Services Credential", url="https://example.gov/380"
     )
+    match = leaflets_module.Match(leaflet=leaflet, rule=leaflets_module.MATCH_EXACT_TITLE)
+    return {
+        a.key: Attachment(match=match, page=page, refusal=refusal) for a in catalog.authorizations
+    }
+
+
+def test_a_leaflet_link_appears_when_one_matched() -> None:
+    catalog = build_catalog(sort_table.parse(table(row(title="School Nurse Services Credential"))))
     ctids = {a.key: ctid_module.mint() for a in catalog.authorizations}
-    page = render(catalog, ctids, {leaflets_module.normalize_title(leaflet.title): leaflet})
+    page = render(catalog, ctids, attached(catalog, None, "not read, for this test"))
     assert "https://example.gov/380" in page
     assert "Leaflet CL-380" in page
+    assert "not read, for this test" in page
+
+
+def test_leaflet_prose_and_conditions_are_shown() -> None:
+    catalog = build_catalog(sort_table.parse(table(row(title="School Nurse Services Credential"))))
+    ctids = {a.key: ctid_module.mint() for a in catalog.authorizations}
+    leaflet_page = leaflet_pages.LeafletPage(
+        code="cl-380",
+        page_title="School Nurse Services Credential",
+        lead=("What this credential is.",),
+        sections=(
+            leaflet_pages.Section(
+                heading="Requirements",
+                level=2,
+                kind=leaflet_pages.REQUIREMENTS,
+                blocks=("Hold a licence.",),
+            ),
+            leaflet_pages.Section(
+                heading="Term of the Credential",
+                level=2,
+                kind=leaflet_pages.VALIDITY,
+                blocks=("Five years.",),
+            ),
+        ),
+        stopped_at=None,
+        skipped_headings=(),
+    )
+    rendered_page = render(catalog, ctids, attached(catalog, leaflet_page, None))
+    assert "What this credential is." in rendered_page
+    assert "Description from leaflet CL-380." in rendered_page
+    assert "Requirements: Requirements" in rendered_page
+    assert "Renewal and validity: Term of the Credential" in rendered_page
+    assert "Five years." in rendered_page
+
+
+def test_a_section_with_no_text_renders_nothing() -> None:
+    """The same rule the export applies: an empty section is not a requirement."""
+    catalog = build_catalog(sort_table.parse(table(row(title="School Nurse Services Credential"))))
+    ctids = {a.key: ctid_module.mint() for a in catalog.authorizations}
+    empty = leaflet_pages.LeafletPage(
+        code="cl-380",
+        page_title="School Nurse Services Credential",
+        lead=(),
+        sections=(
+            leaflet_pages.Section(
+                heading="Requirements", level=2, kind=leaflet_pages.REQUIREMENTS, blocks=()
+            ),
+        ),
+        stopped_at=None,
+        skipped_headings=(),
+    )
+    page = render(catalog, ctids, attached(catalog, empty, None))
+    assert "No requirements or renewal terms" in page
+    assert "Requirements: Requirements" not in page
+
+
+def test_absence_is_stated_rather_than_hidden() -> None:
+    catalog = build_catalog(sort_table.parse(table(row(subject_code="ART", subject="Art"))))
+    page = rendered(catalog)
+    assert "No description." in page
+    assert "No requirements or renewal terms" in page
+
+
+def test_a_resolved_scope_names_the_rows_it_came_from() -> None:
+    catalog = build_catalog(
+        sort_table.parse(
+            table(
+                row(subject_code="ART", subject="Art"),
+                row(
+                    document="TC13",
+                    title="Short-Term Staff Permit",
+                    subject_code="",
+                    subject="",
+                    notes=("Subject Codes Same as on Single Subject Teaching Credential",),
+                ),
+            )
+        )
+    )
+    page = rendered(catalog)
+    assert "Subject Codes Same as on Single Subject Teaching Credential" in page
+    assert "Single Subject Teaching Credential" in page
+    assert "<b>1</b><span>scopes resolved by following a cross-reference</span>" in page
 
 
 def test_singular_and_plural_subject_counts() -> None:

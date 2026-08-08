@@ -18,11 +18,14 @@ from chalkline.sources import leaflets, sort_table
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+LEAFLET_SNAPSHOTS = tuple(sorted((REPO_ROOT / "data" / "source" / "leaflets").glob("*.html")))
+
 VENDORED = (
     REPO_ROOT / "data" / "source" / "authorization-sort-table.html",
     REPO_ROOT / "data" / "source" / "credential-leaflets.html",
     REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-context.json",
     REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-schema.json",
+    *LEAFLET_SNAPSHOTS,
 )
 
 
@@ -70,6 +73,30 @@ def test_the_published_scope_statement_is_still_on_the_page() -> None:
     page = VENDORED[0].read_text(encoding="utf-8")
     quoted = str(sidecar(VENDORED[0])["scope_statement_published_on_page"])
     assert quoted in " ".join(page.split())
+
+
+def test_every_leaflet_snapshot_is_one_the_commission_index_links() -> None:
+    """No snapshot is here that the Commission's own index does not publish."""
+    published = {leaflet.code: leaflet for leaflet in leaflets.load()}
+    assert LEAFLET_SNAPSHOTS, "the repository should hold leaflet snapshots"
+    for path in LEAFLET_SNAPSHOTS:
+        meta = sidecar(path)
+        assert path.stem in published, f"{path.stem} is not in the Commission's leaflet index"
+        assert meta["final_url"] == published[path.stem].url
+        assert meta["index_title"] == published[path.stem].title
+
+
+def test_every_leaflet_snapshot_is_one_an_authorization_matched(
+    real_catalog: object, leaflet_index: object
+) -> None:
+    """Nothing was retrieved speculatively: each snapshot serves a modeled authorization."""
+    from chalkline.attachment import attach
+    from chalkline.model import Catalog
+
+    assert isinstance(real_catalog, Catalog)
+    attachments = attach(real_catalog, leaflet_index)  # type: ignore[arg-type]
+    needed = {attachment.leaflet.code for attachment in attachments.values()}
+    assert {path.stem for path in LEAFLET_SNAPSHOTS} == needed
 
 
 def test_no_module_in_the_package_opens_a_socket() -> None:

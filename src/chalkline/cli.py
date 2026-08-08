@@ -19,6 +19,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from chalkline import ctid as ctid_module
+from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
 from chalkline.ctdl import validate as validate_module
 from chalkline.model import Catalog, build_catalog
@@ -37,16 +38,17 @@ def _catalog() -> Catalog:
 
 def _artifacts(catalog: Catalog) -> dict[str, str]:
     """The three published files, as text, without writing anything."""
-    leaflet_index = leaflets_module.index_by_title(leaflets_module.load())
+    published = leaflets_module.load()
+    attachments = attach(catalog, leaflets_module.index_by_title(published))
     ctids = ctid_module.load_ledger()
-    document = export_module.project_graph(catalog, ctids, leaflet_index)
+    document = export_module.project_graph(catalog, ctids, attachments)
     validate_module.check(document)
-    statement = export_module.coverage(document, catalog, leaflet_index)
-    export_module.check_coverage(statement, document, catalog, leaflet_index)
+    statement = export_module.coverage(document, catalog, attachments, len(published))
+    export_module.check_coverage(statement, document, catalog, attachments, len(published))
     return {
         export_module.GRAPH_FILENAME: export_module.serialize(document),
         export_module.COVERAGE_FILENAME: export_module.serialize(statement),
-        PAGE_FILENAME: render(catalog, ctids, leaflet_index),
+        PAGE_FILENAME: render(catalog, ctids, attachments),
     }
 
 

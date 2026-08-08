@@ -14,6 +14,16 @@ is to transcribe by hand and label the result, not to ask again in a costume.
 
 After a successful fetch, update the ``retrieved``, ``bytes``, and ``sha256`` fields in the
 ``.source.json`` beside each file (this script prints them), then rebuild and review the diff.
+
+Two modes::
+
+    python scripts/fetch_sources.py                       # the four base artifacts
+    python scripts/fetch_sources.py leaflets cl-858 ...   # one leaflet landing page each
+
+The leaflet mode takes explicit leaflet codes rather than walking the whole index. Only the
+leaflets this project can attach to an authorization by a verifiable identity rule are worth
+retrieving, and naming them at the call site keeps the request count equal to the number of
+documents actually used.
 """
 
 from __future__ import annotations
@@ -91,10 +101,33 @@ def fetch(url: str, destination: Path) -> int:
     return 0
 
 
-def main() -> int:
-    if not all(url.startswith("https://") for url, _ in TARGETS):  # pragma: no cover
+LEAFLET_DIR = REPO_ROOT / "data" / "source" / "leaflets"
+
+LEAFLET_BASE = "https://www.ctc.ca.gov/credentials/leaflets/"
+
+
+def leaflet_targets(codes: list[str]) -> list[tuple[str, Path]]:
+    """The landing page for each named leaflet, and where its snapshot belongs.
+
+    The code is taken straight from the vendored index's own link path, so this cannot
+    fabricate a URL for a leaflet the Commission does not publish.
+    """
+    return [(f"{LEAFLET_BASE}{code}/", LEAFLET_DIR / f"{code}.html") for code in codes]
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = sys.argv[1:] if argv is None else argv
+    if arguments and arguments[0] == "leaflets":
+        codes = arguments[1:]
+        if not codes:  # pragma: no cover - operator error path
+            print("usage: fetch_sources.py leaflets CODE [CODE ...]", file=sys.stderr)
+            return 2
+        targets = leaflet_targets(codes)
+    else:
+        targets = list(TARGETS)
+    if not all(url.startswith("https://") for url, _ in targets):  # pragma: no cover
         raise ValueError("every source must be fetched over https")
-    return max(fetch(url, destination) for url, destination in TARGETS)
+    return max(fetch(url, destination) for url, destination in targets)
 
 
 if __name__ == "__main__":

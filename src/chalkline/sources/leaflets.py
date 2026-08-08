@@ -1,21 +1,36 @@
 """Read CTC's credential leaflet index, and match leaflets to authorizations conservatively.
 
-A leaflet is attached to an authorization on one rule and one rule only: the leaflet's
-published title and the authorization's published title are the same string after case
-folding and punctuation normalization. Nothing else. No prefix matching, no keyword overlap,
-no reasoning from a document code to a leaflet number.
+A leaflet is attached to an authorization on two rules, both of them equalities between
+published titles. Nothing else. No prefix matching, no keyword overlap, no reasoning from a
+document code to a leaflet number, and no similarity score.
 
-The rule is deliberately strict, and it leaves most authorizations without a leaflet. That
-is the intended outcome: a leaflet link asserts "this Commission document describes this
-authorization", and a near-miss title is not evidence for that claim. The count of matched
-and unmatched authorizations is derived from the data at build time and recorded in the
-coverage statement, so the strictness is visible rather than hidden.
+1. **Exact title.** The leaflet's published title and the authorization's published title
+   are the same string after case folding and punctuation normalization.
+2. **Named family.** The authorization's published title is a leaflet title followed by a
+   parenthesised qualifier, and the part before the qualifier equals that leaflet's title
+   under the same normalization. ``Short-Term Staff Permit (Single Subject)`` and
+   ``Short-Term Staff Permit (Special Education)`` are two of the Commission's variants of
+   one named permit, and the Commission publishes exactly one leaflet titled
+   ``Short-Term Staff Permit``.
+
+Rule 2 is an equality too: the qualifier is removed as a whole parenthesised unit and the
+remainder must match character for character after normalization. It is not a prefix rule.
+``Education Specialist Instruction Credential Requirements for Teachers Prepared Outside of
+California`` still matches nothing, because dropping a trailing parenthetical is not what
+separates it from ``Education Specialist Instruction Credential``.
+
+Both rules are deliberately strict, and they leave most authorizations without a leaflet.
+That is the intended outcome: a leaflet link asserts "this Commission document describes this
+authorization", and a near-miss title is not evidence for that claim. The counts of matched
+and unmatched authorizations, and of which rule matched, are derived from the data at build
+time and recorded in the coverage statement, so the strictness is visible rather than hidden.
 """
 
 from __future__ import annotations
 
 import html
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -33,6 +48,11 @@ _LINK_RE: Final = re.compile(
 _TAG_RE: Final = re.compile(r"<[^>]+>")
 _SPACE_RE: Final = re.compile(r"\s+")
 _NON_ALNUM_RE: Final = re.compile(r"[^a-z0-9]+")
+_QUALIFIED_RE: Final = re.compile(r"^(?P<base>.+?)\s*\((?P<qualifier>[^()]+)\)$")
+"""An authorization title ending in one parenthesised qualifier, and the title without it."""
+
+MATCH_EXACT_TITLE: Final = "exact title"
+MATCH_NAMED_FAMILY: Final = "named family, qualifier in parentheses"
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +62,16 @@ class Leaflet:
     code: str
     title: str
     url: str
+
+
+@dataclass(frozen=True, slots=True)
+class Match:
+    """A leaflet attached to an authorization, and the rule that attached it."""
+
+    leaflet: Leaflet
+    rule: str
+    qualifier: str | None = None
+    """The parenthesised text rule 2 set aside, kept so the match can be re-read later."""
 
 
 def normalize_title(title: str) -> str:
@@ -102,3 +132,25 @@ def index_by_title(leaflets: tuple[Leaflet, ...]) -> dict[str, Leaflet]:
         for leaflet in leaflets
         if counts[normalize_title(leaflet.title)] == 1
     }
+
+
+def match_title(title: str, index: Mapping[str, Leaflet]) -> Match | None:
+    """The leaflet an authorization title identifies, and which rule identified it.
+
+    Rule 1 is tried first and rule 2 only where rule 1 finds nothing, so an authorization
+    that has a leaflet of its own is never attributed to the family leaflet above it.
+    """
+    exact = index.get(normalize_title(title))
+    if exact is not None:
+        return Match(leaflet=exact, rule=MATCH_EXACT_TITLE)
+    qualified = _QUALIFIED_RE.fullmatch(title.strip())
+    if qualified is None:
+        return None
+    family = index.get(normalize_title(qualified.group("base")))
+    if family is None:
+        return None
+    return Match(
+        leaflet=family,
+        rule=MATCH_NAMED_FAMILY,
+        qualifier=qualified.group("qualifier").strip(),
+    )

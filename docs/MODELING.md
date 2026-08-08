@@ -81,13 +81,60 @@ quality assurance relationship.
 | Property | Why |
 |---|---|
 | `ceterms:name` | The Authorization Title, verbatim. |
-| `ceterms:description` | Emitted only where every row of an authorization carries the same Notes list, meaning the Commission wrote prose about the authorization rather than about one of its subjects. 37 of 125 qualify. The sort table publishes no free-text description of a credential, and this project does not compose one. |
+| `ceterms:description` | The matched leaflet's own prose where there is one, otherwise the sort table's Notes column where every row of the authorization carries the same list. 51 of 133 qualify. Neither source is composed or paraphrased, and where neither says anything the property is absent. |
 | `ceterms:subjectWebpage` | The matched leaflet where one exists, otherwise the sort table. |
 | `ceterms:ownedBy` | "Agent with an enforceable claim or legal title to the resource." A state licensing body has exactly that over the credentials it confers. `ceterms:offeredBy` ("Agent that offers the resource") would be true too but says less. |
 | `ceterms:regulatedIn` | "Region or political jurisdiction such as a state, province or locale in which the credential ... is regulated." This is precisely the Commission's relationship to these documents. `ceterms:recognizedIn` says something weaker and different (publicly recommended or endorsed), and the broader `ceterms:jurisdiction` would drop the regulatory fact the source establishes. |
 | `ceterms:identifier` | The Commission's Document Title codes and Authorization Codes, as `ceterms:IdentifierValue` nodes naming both the code and its scheme. |
+| `ceterms:requires` | "Requirement or set of requirements for this resource", range including `ceterms:ConditionProfile`. One profile per leaflet section headed "Requirements…", named with the Commission's own heading. |
+| `ceterms:renewal` | "Entity describing the constraints, prerequisites, entry conditions, or requirements necessary to maintenance and renewal of an awarded credential", range `ceterms:ConditionProfile` only. One profile per leaflet section headed with a renewal wording, "Period of Validity", or "Term of the Credential". |
 | `ceterms:subject` | Each authorized subject as a `ceterms:CredentialAlignmentObject`, pointing into the sort table as its framework. |
 | `ceterms:inLanguage` | `en-US`. The Commission publishes these descriptions in English. |
+
+### Requirements as condition profiles, and why they passed the test the competencies failed
+
+The competency framework was rejected in the first milestone because the sort table publishes
+subject names and `ceasn:competencyText` needs a statement of what a person knows or can do.
+The leaflets are the other case. Under a heading the Commission wrote as "Requirements for
+Issuance", it writes "Possession of a baccalaureate degree or higher from a
+regionally-accredited college or university." That is a requirement, stated as one, by the
+body that imposes it, and `ceterms:requires` is defined as "Requirement or set of requirements
+for this resource" with `ceterms:License` in its domain. Nothing has to be invented for the
+property to be true.
+
+The same test rules out three things that were considered:
+
+- **`ceterms:renewalFrequency`.** Its range is `schema:Duration`. The leaflets say "issued for
+  five calendar years and must be renewed", which is a sentence, and turning it into `P5Y`
+  would be this project parsing prose into a datatype the Commission never wrote. The
+  sentence rides `ceterms:renewal` verbatim.
+- **The leaflets' "Authorization" sections as structured scope.** They say what a holder may
+  be assigned to teach, which is the gap named at the end of this document. CTDL has no
+  property for it, so the prose rides `ceterms:description`, which is honestly what it is: an
+  "account of the entity". It is not decomposed into anything.
+- **Sections under headings this project does not recognise.** They are skipped rather than
+  guessed at. `cl-858`'s "Single Subject:" and "Education Specialist:" are almost certainly
+  the per-variant requirements for the Single Subject and Special Education Short-Term Staff
+  Permits, and "almost certainly" is the whole problem. See `PROVENANCE.md`.
+
+`ceterms:condition` is defined as a "Single constraint, prerequisite, entry condition,
+requirement, or cost", singular, so each of the Commission's paragraphs and bullets is one
+condition rather than the section being one blob. The context declares the property
+`@container: @language`, and JSON-LD admits a list of strings under a language tag, which is
+what several conditions in one language look like. The validator was extended to accept that
+shape and to keep rejecting everything else, including an empty list.
+
+### Reading a leaflet page: identity before content
+
+A leaflet's prose is used only where the page confirms the identity it was matched under. The
+`<h1>` reads `"<title> (<CODE>)"`, and both halves have to agree with the Commission's index.
+
+This is not decorative either. `cl-893` is listed in the index as "American Indian Languages
+Credential", which is character-for-character an authorization title in the sort table, and
+the page itself is titled "American Indian Languages-Culture Credential". Under an
+index-only rule this project would have published a page's requirements against a credential
+whose name the page does not use. The two affected authorizations keep the Commission's own
+link and get no prose, and the refusal is printed in the coverage statement.
 
 ### Two findings a reader of this repo should know about
 
@@ -137,20 +184,42 @@ has this concept, and modeling it as topicality loses the part that matters to a
 checking an assignment. This looks like a genuine schema gap rather than a modeling error,
 and it is the kind of thing worth raising in the CTDL Advisory Group.
 
-## Exclusions
+## Scope, cross-references, and exclusions
 
 An authorization is modeled only where its scope can be read from the sort table. The
 Subject Code column says one of three things and this project reads all three literally:
 
-1. **A subject code.** Becomes a subject alignment. 59 authorizations.
+1. **A subject code.** Becomes a subject alignment. 59 authorizations directly.
 2. **The literal string `NONE`.** A statement, not a gap: the authorization is not
    subject-coded. Becomes an absence of subject alignments plus a recorded flag. 66
    authorizations.
 3. **Nothing at all.** The scope lives somewhere this table does not reproduce.
 
-Case 3 is the only cause of an exclusion, and there are 11 of them. Their names are all
-published and unambiguous, so no authorization is excluded for want of a name. See
-[PROVENANCE.md](../PROVENANCE.md) for the list and per-item reasons.
+Case 3 splits. Eight of those rows carry a Commission note pointing at another credential's
+rows **in this same table**, and following that pointer is reading the source, not inferring
+past it. All eight resolve, adding 538 subject alignments and taking the modeled count from
+125 to 133.
+
+The two published wordings say different things and are handled differently. "Subject Codes
+Same as on X" defers the subject list only, and the deferring row publishes its own
+Authorization Code, so each of its codes is looked up under X and that code's subjects are
+taken. "Authorization and Subject Codes Same as on X" defers both, and those rows publish no
+Authorization Code at all, so X's codes come across with its subjects.
+
+The lookup is exact equality on the published Authorization Title, and it refuses rather than
+choosing whenever the reference does not identify one credential: a title no row publishes, a
+title published on more than one document, an Authorization Code the named credential does not
+carry, or a credential that defers its own scope in turn. A note whose wording is neither of
+the two published forms is not treated as a cross-reference at all, so a new wording upstream
+leaves the authorization excluded rather than resolved against the wrong rows.
+
+**The referenced rows' Notes do not travel.** The Commission's statement is about subject
+codes. Its remark on one credential's row is not a remark about another's.
+
+Three authorizations remain excluded, and none of them for a deferred scope. Two publish
+"Indicated on Document" and one publishes nothing at all. Their names are all published and
+unambiguous, so no authorization is excluded for want of a name. See
+[PROVENANCE.md](../PROVENANCE.md) for the row-by-row record of what supplied what.
 
 ## Identifiers
 
@@ -158,3 +227,8 @@ See the module docstring in `src/chalkline/ctid.py`. Short version: CTIDs here a
 UUIDv4s as the published grammar requires, minted once by `chalkline mint-ctids` and
 committed to `data/ctid-ledger.json`. Stability comes from the ledger being in version
 control, not from deriving the identifier. None of them is Registry-assigned.
+
+The `@id` URIs those CTIDs sit inside point at a host that does not resolve. What that costs,
+what CTDL and the Registry actually do with `@id` and CTID, and what the options are is
+[docs/IDENTIFIERS.md](IDENTIFIERS.md). It is a recommendation, not a change: resolving the
+host means publishing, and that is the owner's decision.

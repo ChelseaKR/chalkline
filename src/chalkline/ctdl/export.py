@@ -20,14 +20,17 @@ The graph
   describes the assessments behind these documents rather than the documents themselves.
 * Nested profiles carry the detail: ``ceterms:CredentialAlignmentObject`` for each subject,
   ``ceterms:JurisdictionProfile`` and ``ceterms:Place`` for California,
-  ``ceterms:IdentifierValue`` for the Commission's own codes. None of these is a published
-  resource in its own right, so none carries a CTID; the schema agrees, listing ``ctid`` in
-  none of their domains.
+  ``ceterms:ConditionProfile`` for the requirements and renewal terms a matched leaflet
+  states, ``ceterms:IdentifierValue`` for the Commission's own codes. None of these is a
+  published resource in its own right, so none carries a CTID; the schema agrees, listing
+  ``ctid`` in none of their domains.
 
-Absence is meaningful throughout. A property appears only where the sort table supports it:
-no description where the Commission published no prose, no subject alignments where it
-published ``NONE``, no occupation or grade-level alignment at all (see ``docs/MODELING.md``
-for why those two would require inventing a mapping the Commission never wrote).
+Absence is meaningful throughout. A property appears only where a source supports it: no
+description where neither a leaflet nor the Notes column published prose, no subject
+alignments where the Commission published ``NONE``, no requirements where no leaflet was read
+or where the leaflet states them under a heading this project does not classify, no
+occupation or grade-level alignment at all (see ``docs/MODELING.md`` for why those two would
+require inventing a mapping the Commission never wrote).
 """
 
 from __future__ import annotations
@@ -39,8 +42,10 @@ from pathlib import Path
 from typing import Any, Final
 
 from chalkline import ctid as ctid_module
+from chalkline.attachment import Attachment
 from chalkline.model import Authorization, Catalog
 from chalkline.sources import leaflets as leaflets_module
+from chalkline.sources.leaflet_pages import Section
 from chalkline.sources.sort_table import SOURCE_URL as SORT_TABLE_URL
 
 CTDL_CONTEXT_URL: Final = "https://credreg.net/ctdl/schema/context/json"
@@ -215,20 +220,58 @@ def _subjects(authorization: Authorization) -> list[dict[str, Any]]:
     return alignments
 
 
+def _conditions(sections: Sequence[Section], webpage: str) -> list[dict[str, Any]]:
+    """A leaflet's classified sections as ``ceterms:ConditionProfile`` nodes.
+
+    ``ceterms:condition`` is "Single constraint, prerequisite, entry condition, requirement,
+    or cost", singular, so one of the Commission's paragraphs or bullets is one condition
+    rather than the whole section being one blob. The profile keeps the Commission's own
+    heading as its name and carries the leaflet URL, because the leaflet states more about
+    these conditions than this project reads from it.
+    """
+    return [
+        {
+            "@type": "ceterms:ConditionProfile",
+            "ceterms:name": _lang(section.heading),
+            "ceterms:condition": {LANG: list(section.blocks)},
+            "ceterms:subjectWebpage": webpage,
+        }
+        for section in sections
+        if section.blocks
+    ]
+
+
+def description_of(authorization: Authorization, attachment: Attachment | None) -> tuple[str, ...]:
+    """The prose this export publishes as ``ceterms:description``, and where it came from.
+
+    A matched leaflet's own prose is preferred over the sort table's Notes column, because
+    the leaflet describes the credential and the Notes describe rows of a table. Where the
+    leaflet yields nothing the Notes stand, and where neither yields anything the property
+    is absent: this project composes no description of its own.
+    """
+    if attachment is not None and attachment.description:
+        return attachment.description
+    return authorization.shared_notes
+
+
 def project_license(
     authorization: Authorization,
     ctid: str,
     organization_iri: str,
-    webpage: str,
+    attachment: Attachment | None,
 ) -> dict[str, Any]:
     """One authorization as one ``ceterms:License``.
 
     ``ceterms:ownedBy`` names the Commission: "Agent with an enforceable claim or legal
     title to the resource" is what a state licensing body has over the credentials it
-    confers. ``ceterms:description`` appears only where every row of the authorization
-    carries the same note list, meaning the Commission wrote prose about the authorization
-    rather than about one of its subjects; the sort table publishes no free-text description
-    of a credential, and this project does not compose one.
+    confers.
+
+    ``ceterms:requires`` and ``ceterms:renewal`` appear only where a matched leaflet heads a
+    section this project can classify. Both are in the domain of ``ceterms:License`` and
+    both take a ``ceterms:ConditionProfile``; ``ceterms:renewal`` is defined as the
+    conditions "necessary to maintenance and renewal of an awarded credential", which is
+    what the Commission's Period of Validity, Term of the Credential, and Renewal sections
+    state. Nothing is emitted from a section this project did not classify.
     """
     entity: dict[str, Any] = {
         "@type": "ceterms:License",
@@ -236,38 +279,44 @@ def project_license(
         "ceterms:ctid": ctid,
         "ceterms:name": _lang(authorization.title),
     }
-    if authorization.shared_notes:
-        entity["ceterms:description"] = _lang("\n".join(authorization.shared_notes))
+    description = description_of(authorization, attachment)
+    if description:
+        entity["ceterms:description"] = _lang("\n".join(description))
     entity["ceterms:inLanguage"] = [LANG]
-    entity["ceterms:subjectWebpage"] = webpage
+    entity["ceterms:subjectWebpage"] = webpage_for(attachment)
     entity["ceterms:ownedBy"] = [organization_iri]
     entity["ceterms:regulatedIn"] = [california_jurisdiction()]
     identifiers = _identifiers(authorization)
     if identifiers:
         entity["ceterms:identifier"] = identifiers
+    if attachment is not None:
+        requires = _conditions(attachment.requirements, attachment.leaflet.url)
+        if requires:
+            entity["ceterms:requires"] = requires
+        renewal = _conditions(attachment.renewal, attachment.leaflet.url)
+        if renewal:
+            entity["ceterms:renewal"] = renewal
     subjects = _subjects(authorization)
     if subjects:
         entity["ceterms:subject"] = subjects
     return entity
 
 
-def webpage_for(
-    authorization: Authorization, leaflet_index: Mapping[str, leaflets_module.Leaflet]
-) -> tuple[str, leaflets_module.Leaflet | None]:
-    """The authoritative page for an authorization, and the leaflet behind it if there is one.
+def webpage_for(attachment: Attachment | None) -> str:
+    """The authoritative page for an authorization.
 
-    A leaflet is used only on an exact normalized title match (see
-    :mod:`chalkline.sources.leaflets`). Otherwise the subject webpage is the sort table,
-    which is the page that does describe the authorization, alongside the others.
+    The matched leaflet where the Commission's index named one, and otherwise the sort
+    table, which is the page that does describe the authorization alongside the others. A
+    leaflet whose page could not be read still supplies this link: the index made that
+    association and this project is only declining to read the page's prose.
     """
-    leaflet = leaflet_index.get(leaflets_module.normalize_title(authorization.title))
-    return (leaflet.url if leaflet else SORT_TABLE_URL), leaflet
+    return SORT_TABLE_URL if attachment is None else attachment.leaflet.url
 
 
 def project_graph(
     catalog: Catalog,
     ctids: Mapping[str, str],
-    leaflet_index: Mapping[str, leaflets_module.Leaflet],
+    attachments: Mapping[str, Attachment],
 ) -> dict[str, Any]:
     """The whole export as one JSON-LD graph document.
 
@@ -282,13 +331,12 @@ def project_graph(
     organization_iri = _iri(organization_ctid)
     graph: list[dict[str, Any]] = [project_organization(organization_ctid)]
     for authorization in catalog.authorizations:
-        webpage, _ = webpage_for(authorization, leaflet_index)
         graph.append(
             project_license(
                 authorization,
                 ctid_module.require(authorization.key, ctids),
                 organization_iri,
-                webpage,
+                attachments.get(authorization.key),
             )
         )
     return {"@context": CTDL_CONTEXT_URL, "comment": DISCLAIMER, "@graph": graph}
@@ -302,15 +350,53 @@ LICENSE_PROPERTIES: Final = (
     "ceterms:ownedBy",
     "ceterms:regulatedIn",
     "ceterms:identifier",
+    "ceterms:requires",
+    "ceterms:renewal",
     "ceterms:subject",
 )
 """License properties the coverage statement counts, in emission order."""
+
+LEAFLET_RULE: Final = (
+    "a leaflet is attached only where its published title equals the authorization's "
+    "published title after case and punctuation normalization, or equals that title with "
+    "one trailing parenthesised qualifier removed; and its prose is read only where the "
+    "leaflet page's own heading states the code and the title the index gave it"
+)
+
+
+def _leaflet_coverage(catalog: Catalog, attachments: Mapping[str, Attachment]) -> dict[str, Any]:
+    """What the leaflets gave and did not give, counted from the attachments themselves."""
+    attached = [attachments[a.key] for a in catalog.authorizations if a.key in attachments]
+    by_rule: dict[str, int] = {}
+    for attachment in attached:
+        by_rule[attachment.match.rule] = by_rule.get(attachment.match.rule, 0) + 1
+    refusals: dict[str, int] = {}
+    for attachment in attached:
+        if attachment.refusal is not None:
+            refusals[attachment.refusal] = refusals.get(attachment.refusal, 0) + 1
+    skipped: dict[str, int] = {}
+    for attachment in attached:
+        for heading in attachment.page.skipped_headings if attachment.page else ():
+            skipped[heading] = skipped.get(heading, 0) + 1
+    return {
+        "rule": LEAFLET_RULE,
+        "leaflets_in_the_commission_index": None,
+        "authorizations_with_a_leaflet": len(attached),
+        "authorizations_without_a_leaflet": len(catalog.authorizations) - len(attached),
+        "matched_by_rule": dict(sorted(by_rule.items())),
+        "leaflet_pages_read": len({a.leaflet.code for a in attached if a.page is not None}),
+        "leaflet_pages_refused": len({a.leaflet.code for a in attached if a.page is None}),
+        "authorizations_with_leaflet_prose": sum(1 for a in attached if a.description),
+        "refused_by_reason": dict(sorted(refusals.items())),
+        "headings_read_past_but_not_classified": dict(sorted(skipped.items())),
+    }
 
 
 def coverage(
     document: Mapping[str, Any],
     catalog: Catalog,
-    leaflet_index: Mapping[str, leaflets_module.Leaflet],
+    attachments: Mapping[str, Attachment],
+    leaflets_published: int,
 ) -> dict[str, Any]:
     """The coverage statement published beside the export, counted from the export itself.
 
@@ -323,14 +409,18 @@ def coverage(
     licenses = [e for e in graph if e.get("@type") == "ceterms:License"]
     organizations = [e for e in graph if e.get("@type") == "ceterms:CredentialOrganization"]
     alignments = [a for e in licenses for a in e.get("ceterms:subject", [])]
-    matched = [
-        a
-        for a in catalog.authorizations
-        if leaflets_module.normalize_title(a.title) in leaflet_index
+    conditions = [
+        c
+        for e in licenses
+        for term in ("ceterms:requires", "ceterms:renewal")
+        for c in e.get(term, [])
     ]
+    resolved = [a for a in catalog.authorizations if a.resolved_from is not None]
     reasons: dict[str, int] = {}
     for exclusion in catalog.exclusions:
         reasons[exclusion.reason] = reasons.get(exclusion.reason, 0) + 1
+    leaflet_counts = _leaflet_coverage(catalog, attachments)
+    leaflet_counts["leaflets_in_the_commission_index"] = leaflets_published
     return {
         "note": DISCLAIMER,
         "source": {
@@ -342,6 +432,7 @@ def coverage(
             "ceterms:CredentialOrganization": len(organizations),
             "ceterms:License": len(licenses),
             "ceterms:CredentialAlignmentObject": len(alignments),
+            "ceterms:ConditionProfile": len(conditions),
         },
         "authorizations": {
             "published_in_source": len(catalog.authorizations) + len(catalog.exclusions),
@@ -351,18 +442,13 @@ def coverage(
             "published_as_not_subject_coded": sum(
                 1 for a in catalog.authorizations if a.declares_no_subject_codes
             ),
+            "scope_resolved_by_cross_reference": len(resolved),
+            "subject_alignments_from_a_cross_reference": sum(len(a.subjects) for a in resolved),
         },
         "license_properties": {
             term: sum(1 for e in licenses if term in e) for term in LICENSE_PROPERTIES
         },
-        "leaflets": {
-            "rule": (
-                "a leaflet is attached only where its published title equals the "
-                "authorization's published title after case and punctuation normalization"
-            ),
-            "authorizations_with_a_leaflet": len(matched),
-            "authorizations_without_a_leaflet": len(catalog.authorizations) - len(matched),
-        },
+        "leaflets": leaflet_counts,
         "excluded_by_reason": dict(sorted(reasons.items())),
         "not_modeled": {
             "ceterms:occupationType": (
@@ -381,6 +467,12 @@ def coverage(
                 "subjects as competencies would require writing skill statements the "
                 "Commission never wrote"
             ),
+            "leaflet_sections_this_project_cannot_classify": (
+                "a leaflet section whose heading is not one of the kinds this project "
+                "recognises is never read, and reading stops entirely at the first heading "
+                "that names another document, so a leaflet describing several credentials "
+                "contributes only the part it is titled for"
+            ),
         },
     }
 
@@ -389,10 +481,11 @@ def coverage_problems(
     statement: Mapping[str, Any],
     document: Mapping[str, Any],
     catalog: Catalog,
-    leaflet_index: Mapping[str, leaflets_module.Leaflet],
+    attachments: Mapping[str, Attachment],
+    leaflets_published: int,
 ) -> list[str]:
     """Every figure in a coverage statement that the export beside it contradicts."""
-    expected = coverage(document, catalog, leaflet_index)
+    expected = coverage(document, catalog, attachments, leaflets_published)
     return [
         f"{key}: says {statement.get(key)!r}, the export gives {expected[key]!r}"
         for key in expected
@@ -404,10 +497,11 @@ def check_coverage(
     statement: Mapping[str, Any],
     document: Mapping[str, Any],
     catalog: Catalog,
-    leaflet_index: Mapping[str, leaflets_module.Leaflet],
+    attachments: Mapping[str, Attachment],
+    leaflets_published: int,
 ) -> None:
     """Refuse to publish a coverage statement the export contradicts."""
-    problems = coverage_problems(statement, document, catalog, leaflet_index)
+    problems = coverage_problems(statement, document, catalog, attachments, leaflets_published)
     if problems:
         raise ValueError(
             "coverage statement does not describe the export beside it: " + "; ".join(problems)
@@ -440,13 +534,15 @@ def write(
 
     A failed check leaves no partial output to mistake for a good one.
     """
+    from chalkline.attachment import attach
     from chalkline.ctdl import validate as validate_module
 
-    leaflet_index = leaflets_module.index_by_title(tuple(leaflets))
-    document = project_graph(catalog, ctids, leaflet_index)
+    published = tuple(leaflets)
+    attachments = attach(catalog, leaflets_module.index_by_title(published))
+    document = project_graph(catalog, ctids, attachments)
     validate_module.check(document)
-    statement = coverage(document, catalog, leaflet_index)
-    check_coverage(statement, document, catalog, leaflet_index)
+    statement = coverage(document, catalog, attachments, len(published))
+    check_coverage(statement, document, catalog, attachments, len(published))
 
     output_dir.mkdir(parents=True, exist_ok=True)
     document_path = output_dir / GRAPH_FILENAME

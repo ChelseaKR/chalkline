@@ -16,9 +16,9 @@ import html
 from collections.abc import Mapping
 from typing import Final
 
-from chalkline.ctdl.export import DISCLAIMER_BODY, DISCLAIMER_LEAD
+from chalkline.attachment import Attachment
+from chalkline.ctdl.export import DISCLAIMER_BODY, DISCLAIMER_LEAD, description_of
 from chalkline.model import Authorization, Catalog
-from chalkline.sources import leaflets as leaflets_module
 from chalkline.sources.sort_table import SOURCE_URL as SORT_TABLE_URL
 
 TITLE: Final = "Chalkline: California educator credential authorizations as CTDL"
@@ -49,13 +49,16 @@ a { color: var(--accent); }
 .meta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem;
   color: var(--muted); margin: 0 0 0.5rem; }
 .meta code { background: var(--panel); padding: 0.1rem 0.35rem; border-radius: 3px; }
-.note { color: var(--muted); font-size: 0.9rem; margin: 0.4rem 0; white-space: pre-line; }
+.note { font-size: 0.92rem; margin: 0.4rem 0; white-space: pre-line; }
+.from { color: var(--muted); font-size: 0.82rem; margin: 0.35rem 0; }
 details { margin-top: 0.5rem; font-size: 0.9rem; }
 summary { cursor: pointer; color: var(--muted); }
 .subjects { margin: 0.6rem 0 0; padding: 0; list-style: none;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 0.3rem; }
 .subjects li { border-left: 2px solid var(--rule); padding-left: 0.6rem; font-size: 0.88rem; }
 .subjects code { color: var(--muted); }
+.conditions { margin: 0.6rem 0 0; padding-left: 1.1rem; }
+.conditions li { margin-bottom: 0.3rem; }
 .wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.88rem; margin-top: 0.5rem; }
 th, td { text-align: left; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--rule);
@@ -71,23 +74,89 @@ def _e(text: str) -> str:
     return html.escape(text, quote=True)
 
 
-def _counts_block(catalog: Catalog, alignments: int, with_leaflet: int) -> str:
+def _counts_block(catalog: Catalog, tallies: Mapping[str, int]) -> str:
     published = len(catalog.authorizations) + len(catalog.exclusions)
     items = [
         (catalog.source_rows, "rows published in the sort table"),
         (published, "authorizations in those rows"),
         (len(catalog.authorizations), "modeled as ceterms:License"),
         (len(catalog.exclusions), "excluded, with reasons below"),
-        (alignments, "subject alignments emitted"),
-        (with_leaflet, "linked to a CTC leaflet"),
+        (tallies["alignments"], "subject alignments emitted"),
+        (tallies["resolved"], "scopes resolved by following a cross-reference"),
+        (tallies["leaflets"], "linked to a CTC leaflet"),
+        (tallies["descriptions"], "carrying a description"),
+        (tallies["conditions"], "carrying requirements or renewal terms"),
     ]
     cells = "".join(f"<li><b>{value}</b><span>{_e(label)}</span></li>" for value, label in items)
     return f'<ul class="counts">{cells}</ul>'
 
 
+def _resolution_block(authorization: Authorization) -> str:
+    """Where a resolved authorization's subjects came from, row by row."""
+    resolution = authorization.resolved_from
+    if resolution is None:
+        return ""
+    rows = ", ".join(
+        f"<code>{_e(source.authorization_code)}</code> ({source.subjects_supplied})"
+        for source in resolution.sources
+    )
+    return (
+        '<p class="from">The Commission publishes no subjects on this authorization\'s own '
+        f"rows. Its note reads &ldquo;{_e(resolution.note)}&rdquo;, and the subjects below "
+        f"are the ones the table publishes for <b>{_e(resolution.credential)}</b> on document "
+        f"<code>{_e(resolution.document_title)}</code>, under these authorization codes "
+        f"(subjects supplied in brackets): {rows}.</p>"
+    )
+
+
+def _conditions_block(attachment: Attachment | None) -> str:
+    """Requirements and renewal terms, quoted from the leaflet that states them."""
+    if attachment is None:
+        return ""
+    parts: list[str] = []
+    for label, sections in (
+        ("Requirements", attachment.requirements),
+        ("Renewal and validity", attachment.renewal),
+    ):
+        for section in sections:
+            if not section.blocks:
+                continue
+            items = "".join(f"<li>{_e(block)}</li>" for block in section.blocks)
+            parts.append(
+                f"<details><summary>{_e(label)}: {_e(section.heading)}</summary>"
+                f'<ul class="conditions">{items}</ul></details>'
+            )
+    return "".join(parts)
+
+
+def _description_block(authorization: Authorization, attachment: Attachment | None) -> str:
+    """The prose, or a plain statement that the Commission published none."""
+    description = description_of(authorization, attachment)
+    if description:
+        source = (
+            f"leaflet {attachment.leaflet.code.upper()}"
+            if attachment is not None and attachment.description
+            else "the sort table's Notes column"
+        )
+        return (
+            f'<p class="note">{_e(chr(10).join(description))}</p>'
+            f'<p class="from">Description from {_e(source)}.</p>'
+        )
+    if attachment is not None and attachment.refusal is not None:
+        return (
+            '<p class="from">No description. The Commission\'s leaflet index links '
+            f"{_e(attachment.leaflet.code.upper())} to this title, and this project did not "
+            f"read that page: {_e(attachment.refusal)}</p>"
+        )
+    return (
+        '<p class="from">No description. The Commission published no prose that applies to '
+        "this authorization as a whole, and this project does not compose one.</p>"
+    )
+
+
 def _credential_block(
     authorization: Authorization,
-    leaflet: leaflets_module.Leaflet | None,
+    attachment: Attachment | None,
     ctid: str,
 ) -> str:
     parts: list[str] = ['<article class="cred">']
@@ -99,8 +168,8 @@ def _credential_block(
     meta.append(f"CTID <code>{_e(ctid)}</code>")
     parts.append(f'<p class="meta">{" &middot; ".join(meta)}</p>')
 
-    if authorization.shared_notes:
-        parts.append(f'<p class="note">{_e(chr(10).join(authorization.shared_notes))}</p>')
+    parts.append(_description_block(authorization, attachment))
+    parts.append(_resolution_block(authorization))
 
     if authorization.subjects:
         rows = "".join(
@@ -115,13 +184,24 @@ def _credential_block(
         )
     else:
         parts.append(
-            '<p class="note">The Commission publishes <code>NONE</code> in the Subject Code '
+            '<p class="from">The Commission publishes <code>NONE</code> in the Subject Code '
             "column for this authorization: it is not subject-coded.</p>"
         )
 
+    conditions = _conditions_block(attachment)
+    parts.append(
+        conditions
+        or '<p class="from">No requirements or renewal terms: none were read from a '
+        "Commission leaflet for this authorization.</p>"
+    )
+
     links = [f'<a href="{_e(SORT_TABLE_URL)}">Authorization Sort Table</a>']
-    if leaflet is not None:
-        links.append(f'<a href="{_e(leaflet.url)}">Leaflet {_e(leaflet.code.upper())}</a>')
+    if attachment is not None:
+        leaflet = attachment.leaflet
+        links.append(
+            f'<a href="{_e(leaflet.url)}">Leaflet {_e(leaflet.code.upper())}</a> '
+            f"({_e(attachment.match.rule)})"
+        )
     parts.append(f'<p class="meta">{" &middot; ".join(links)}</p>')
     parts.append("</article>")
     return "".join(parts)
@@ -147,17 +227,21 @@ def _exclusions_table(catalog: Catalog) -> str:
 def render(
     catalog: Catalog,
     ctids: Mapping[str, str],
-    leaflet_index: Mapping[str, leaflets_module.Leaflet],
+    attachments: Mapping[str, Attachment],
 ) -> str:
     """The whole page, as one HTML document."""
     blocks: list[str] = []
-    alignments = 0
-    with_leaflet = 0
+    tallies = dict.fromkeys(("alignments", "leaflets", "descriptions", "conditions", "resolved"), 0)
     for authorization in catalog.authorizations:
-        leaflet = leaflet_index.get(leaflets_module.normalize_title(authorization.title))
-        alignments += len(authorization.subjects)
-        with_leaflet += 1 if leaflet is not None else 0
-        blocks.append(_credential_block(authorization, leaflet, ctids[authorization.key]))
+        attachment = attachments.get(authorization.key)
+        tallies["alignments"] += len(authorization.subjects)
+        tallies["leaflets"] += attachment is not None
+        tallies["descriptions"] += bool(description_of(authorization, attachment))
+        tallies["conditions"] += bool(
+            attachment is not None and (attachment.requirements or attachment.renewal)
+        )
+        tallies["resolved"] += authorization.resolved_from is not None
+        blocks.append(_credential_block(authorization, attachment, ctids[authorization.key]))
 
     return f"""<!doctype html>
 <html lang="en">
@@ -175,18 +259,25 @@ def render(
 <a href="{_e(SORT_TABLE_URL)}">Authorization Sort Table</a>, retrieved 2026-08-07, and
 projected into <a href="https://credreg.net/ctdl/handbook">CTDL</a> as a
 <code>ceterms:License</code> with its authorized subjects as
-<code>ceterms:CredentialAlignmentObject</code> alignments. The machine-readable output is
+<code>ceterms:CredentialAlignmentObject</code> alignments. Descriptions, requirements, and
+renewal terms come from the Commission's own
+<a href="https://www.ctc.ca.gov/credentials/leaflets/">credential leaflets</a>, retrieved
+2026-08-07, where a leaflet's published title identifies the authorization and the leaflet
+page states the code and title the index gave it. The machine-readable output is
 <a href="credentials.jsonld">credentials.jsonld</a>, and the counted coverage statement is
 <a href="coverage.json">coverage.json</a>.</p>
-{_counts_block(catalog, alignments, with_leaflet)}
+<p>Where a credential below says it has no description, no requirements, or no subject
+codes, that is the state of the published source and not an omission being smoothed over.
+Nothing on this page is composed by this project.</p>
+{_counts_block(catalog, tallies)}
 <h2>Modeled credentials</h2>
 {"".join(blocks)}
 <h2>Not modeled, and why</h2>
 <p>An authorization is modeled only where the sort table lets its scope be read from the
-table itself, either as subject codes or as the Commission's published
-<code>NONE</code>. These are the authorizations whose scope the table points to somewhere
-else. Their names are published and unambiguous; it is the scope that this project has not
-verified, so they are recorded here rather than guessed at.</p>
+table itself: as subject codes, as the Commission's published <code>NONE</code>, or through
+a cross-reference that this project can follow to another credential's published rows.
+These are the ones left. Their names are published and unambiguous; it is the scope that
+this project cannot read, so they are recorded here rather than guessed at.</p>
 {_exclusions_table(catalog)}
 <footer>
 <p>Chalkline is an independent demonstration by Chelsea Kelly-Reif. It is not affiliated
