@@ -67,3 +67,18 @@ All notable changes to this project are documented here. The format follows
 - The browsable page shows descriptions, requirements, and renewal terms where present, names
   where each description came from, prints the cross-reference behind every resolved scope,
   and states plainly where a description or a condition is absent.
+- Every `uv run` in the Makefile is now `uv run --locked`, and `make install` is
+  `uv sync --locked`. Regenerating the lockfile is `make lock`, and nothing else does it.
+- Dependabot's Python updates move from the `pip` ecosystem to `uv`, so that a dependency
+  change arrives as a manifest edit and a lockfile edit in the same pull request.
+
+### Fixed
+
+- `uv.lock` recorded dependency specifiers that `pyproject.toml` no longer stated
+  (`pip-audit>=2.7`, `pytest>=8.0`, `pytest-cov>=5.0`, `pytest-xdist>=3.6` and
+  `ruff>=0.15.0`, against a manifest asking for `>=2.10.1`, `>=9.1.1`, `>=7.1.0`, `>=3.8.0`
+  and `>=0.16.1`). `uv lock --check` exited 1 on `main` while all four CI jobs were green,
+  because a bare `uv run` repairs the lockfile in place before running anything and never
+  reports that it did. `make verify` now runs `lock-check` first, so a lockfile that
+  disagrees with the manifest fails the gate instead of being quietly rewritten by it. No
+  resolved package version changed; only the five specifier lines the lockfile records.

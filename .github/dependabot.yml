@@ -1,6 +1,11 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  # `uv`, not `pip`. Under `pip` every dependency update this repo has received edited
+  # pyproject.toml and left uv.lock untouched — PRs #6, #8, #9, #10 and #11 are all merged
+  # one-file diffs — because that ecosystem does not maintain a uv lockfile. `uv` is the
+  # ecosystem identifier that updates the lockfile alongside the manifest. Confirm on the
+  # next scheduled run that the PRs it opens carry both files.
+  - package-ecosystem: uv
     directory: /
     schedule:
       interval: weekly
