@@ -61,7 +61,10 @@ terms under a heading this project can classify, they ride `ceterms:requires` an
 Every class choice, every rejected alternative, and one apparent gap in CTDL itself are
 written up in [docs/MODELING.md](docs/MODELING.md). The `@id` host does not resolve, and
 [docs/IDENTIFIERS.md](docs/IDENTIFIERS.md) lays out what that costs and what the options are;
-nothing has been registered or deployed.
+nothing has been registered, and the `@id` namespace itself is not served anywhere.
+
+The decisions themselves are recorded as numbered, superseded-not-edited records in
+[docs/adr/](docs/adr/), which cite those two documents rather than restating them.
 
 ## Two things a CTDL reader will want to check first
 

@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you refer to this work, please cite it as below."
+title: "Chalkline: California educator credential authorizations, modeled onto CTDL"
+abstract: >-
+  An unofficial worked example of California educator credential authorizations
+  expressed in the Credential Transparency Description Language, built only from
+  what the California Commission on Teacher Credentialing already publishes on its
+  public Authorization Sort Table and credential leaflets. 133 authorizations are
+  modeled as ceterms:License with their authorized subjects as subject alignments,
+  validated against a vendored CTDL schema encoding with a recorded retrieval hash.
+  Not affiliated with, endorsed by, or published by the Commission or by Credential
+  Engine, and nothing in it has been published to the Credential Registry.
+authors:
+  - family-names: Kelly-Reif
+    given-names: Chelsea
+license: Apache-2.0
+repository-code: "https://github.com/ChelseaKR/chalkline"
+url: "https://chelseakr.github.io/chalkline/"
+type: software
+keywords:
+  - CTDL
+  - credential-transparency
+  - JSON-LD
+  - linked-data
+  - educator-credentials
+  - open-data
