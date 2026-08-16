@@ -31,10 +31,16 @@ reports is a branch nothing can merge to.
 The full profile in `CI-CD-STANDARD.md` §5 has three more rules, and each is left out for a
 stated reason rather than an oversight:
 
-- **`required_signatures`.** No commit on `main` is signed by the maintainer today; the
-  history is Dependabot commits, which GitHub signs, plus unsigned local work. Turning this
-  on before commit signing is set up locally would lock the maintainer out of her own
-  repository. It is the right end state and it needs the signing key first.
+- **`required_signatures`.** Left out as an ordering choice, not because of a lockout risk.
+  Re-measured against the API on 2026-08-15: of the 23 commits on `main`, 19 report
+  `verification.verified: true` and 4 report `unsigned`. All four unsigned ones are dated
+  2026-08-08 and are the oldest on the branch; every maintainer commit after that date is
+  signed, as is every Dependabot commit. The rule governs commits being pushed rather than
+  history already merged, so enabling it would not lock the maintainer out. An earlier draft
+  of this bullet said no maintainer commit was signed. That came from reading `git log %G?`
+  locally, which reports `N` for every SSH-signed commit while `gpg.ssh.allowedSignersFile`
+  is unset, and it is unset on this workstation. Local `N` and GitHub `verified` answer
+  different questions. Whether to turn the rule on is still the owner's call.
 - **`required_linear_history`.** `main` already contains merge commits from PRs #1 and #2.
   The rule only governs future merges, so this is safe to add alongside
   `allowed_merge_methods` of squash and rebase, but it is a workflow decision rather than a
