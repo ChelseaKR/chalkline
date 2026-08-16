@@ -133,8 +133,12 @@ The leaflet mode takes explicit codes rather than walking the Commission's index
 request count equals the number of documents actually used.
 
 ```bash
-make verify   # lint, format check, typecheck, tests with coverage, build check
+make verify   # lockfile check, lint, format check, typecheck, tests with coverage, build check
+make lock     # regenerate uv.lock after changing a dependency; nothing else rewrites it
 ```
+
+Every target runs `uv run --locked`, so a `uv.lock` that no longer agrees with
+`pyproject.toml` fails the gate rather than being silently repaired by it.
 
 ## Provenance
 
