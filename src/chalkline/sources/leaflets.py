@@ -113,8 +113,24 @@ def parse(markup: str) -> tuple[Leaflet, ...]:
 
 
 def load(path: Path | None = None) -> tuple[Leaflet, ...]:
-    """Parse the vendored leaflet index (or another copy, for tests)."""
-    return parse((path or SOURCE_PATH).read_text(encoding="utf-8"))
+    """Parse the vendored leaflet index (or another copy, for tests).
+
+    An index that yields nothing is refused here rather than returned. `parse` is allowed to
+    find no leaflets, because markup holding only the index's own self-link genuinely lists
+    none; a whole index artifact holding none is a page this parser can no longer read.
+    `sort_table.load` has always refused its artifact on the same grounds, and the leaflet
+    side did not: it returned `()`, and the entire pipeline succeeded on that. Nothing
+    attached, descriptions and conditions dropped out of the graph, the coverage statement
+    published the smaller figures as fact, and every gate stayed green. `_LINK_RE` needs a
+    path-relative href, so a CMS switching to absolute URLs is all it would take.
+    """
+    leaflets = parse((path or SOURCE_PATH).read_text(encoding="utf-8"))
+    if not leaflets:
+        raise ValueError(
+            f"the leaflet index at {path or SOURCE_PATH} links no leaflet pages; the page "
+            "structure changed and an unreadable index is not an empty one"
+        )
+    return leaflets
 
 
 def index_by_title(leaflets: tuple[Leaflet, ...]) -> dict[str, Leaflet]:

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from chalkline.sources import leaflets
 
 
@@ -63,3 +67,21 @@ def test_load_reads_the_vendored_path_by_default() -> None:
 
 def test_a_link_with_no_code_segment_is_skipped() -> None:
     assert leaflets.parse('<a href="/credentials/leaflets/#top">Anchor</a>') == ()
+
+
+def test_an_index_artifact_linking_no_leaflets_is_refused(tmp_path: Path) -> None:
+    """An unreadable index must not be reported as an index of nothing.
+
+    `_LINK_RE` matches a path-relative href, so the Commission switching to absolute URLs is
+    an ordinary CMS change. It used to yield zero leaflets, zero attachments, a graph with
+    the descriptions and conditions silently gone, and a coverage statement publishing the
+    smaller counts as fact, with every gate still green.
+    """
+    index = tmp_path / "credential-leaflets.html"
+    index.write_text(
+        '<a href="https://www.ctc.ca.gov/credentials/leaflets/cl-380/">School Nurse</a>',
+        encoding="utf-8",
+    )
+    assert leaflets.parse(index.read_text(encoding="utf-8")) == ()
+    with pytest.raises(ValueError, match="links no leaflet pages"):
+        leaflets.load(index)
