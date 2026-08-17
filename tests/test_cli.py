@@ -37,10 +37,33 @@ def test_check_fails_when_output_is_stale(tmp_path: Path) -> None:
 
 
 def test_mint_is_a_no_op_once_the_ledger_is_complete(
-    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert cli.mint_ctids(None) == 0
+    """Against a copy, because a minting test must never write to the committed ledger.
+
+    This used to pass ``None``, which resolves to ``data/ctid-ledger.json`` and saves in
+    place. It was a no-op only while the ledger was already complete: with one key missing,
+    running pytest minted a fresh UUIDv4 into a tracked artifact and left it modified in the
+    working tree, which is precisely what ``chalkline.ctid`` says can never happen as a side
+    effect. The assertion is the same; it just no longer has the repository as its subject.
+    """
+    committed = ctid_module.LEDGER_PATH.read_text(encoding="utf-8")
+    ledger = tmp_path / "ledger.json"
+    ledger.write_text(committed, encoding="utf-8")
+
+    assert cli.mint_ctids(ledger) == 0
     assert "minted 0 this run" in capsys.readouterr().out
+    assert ledger.read_text(encoding="utf-8") == committed
+
+
+def test_the_committed_ledger_covers_every_key_the_export_requires() -> None:
+    """What the test above was really asserting, said directly and without writing anything."""
+    from chalkline.ctdl.export import ORGANIZATION_KEY
+
+    catalog = cli._catalog()
+    required = {ORGANIZATION_KEY, *(a.key for a in catalog.authorizations)}
+    assert required, "the catalog should require at least one CTID"
+    assert required - set(ctid_module.load_ledger()) == set()
 
 
 def test_mint_fills_an_empty_ledger(tmp_path: Path) -> None:

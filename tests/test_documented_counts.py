@@ -35,19 +35,38 @@ from chalkline.sources import leaflets as leaflets_module
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-_ROW_RE = re.compile(r"^\|\s*(?P<label>.+?)\s*\|\s*(?P<count>[\d,]+)\s*\|\s*$", re.MULTILINE)
+_ROW_RE = re.compile(r"^\|(?P<label>[^|]*)\|(?P<value>[^|]*)\|$")
+_RULE_RE = re.compile(r":?-{2,}:?")
+_COUNT_RE = re.compile(r"\d[\d,]*")
 
 
-def documented(path: Path, heading: str) -> dict[str, int]:
-    """Every ``| label | number |`` row of the table under one heading."""
+def documented(path: Path, heading: str) -> dict[str, str]:
+    """Every ``| label | value |`` data row of the table under one heading, values as written.
+
+    The value comes back unparsed on purpose. This used to capture ``[\\d,]+``, so a row the
+    pattern could not read simply was not returned, and a figure written ``~9,999`` or
+    ``about 9`` vanished from the comparison instead of failing it. Six labels appear in both
+    tables, so the orphan check below still found them published and the whole thing stayed
+    green while checking one row less. The row that cannot be read as a number is precisely
+    the row that has to survive as far as an assertion.
+    """
     text = path.read_text(encoding="utf-8")
     start = text.index(heading)
     end = text.find("\n## ", start + len(heading))
-    section = text[start : end if end != -1 else len(text)]
-    return {
-        match.group("label"): int(match.group("count").replace(",", ""))
-        for match in _ROW_RE.finditer(section)
-    }
+    lines = text[start : end if end != -1 else len(text)].splitlines()
+
+    cells = [
+        (match.group("label").strip(), match.group("value").strip())
+        for line in lines
+        if (match := _ROW_RE.fullmatch(line.strip()))
+    ]
+    rows: dict[str, str] = {}
+    for index, (label, value) in enumerate(cells):
+        following = cells[index + 1][1] if index + 1 < len(cells) else ""
+        if _RULE_RE.fullmatch(value) or _RULE_RE.fullmatch(following):
+            continue  # the rule itself, and the header row sitting on top of it
+        rows[label] = value
+    return rows
 
 
 def figures(statement: dict[str, Any]) -> dict[str, int]:
@@ -123,7 +142,16 @@ def test_every_documented_count_is_the_count_the_build_produces(
         f"{path.name} publishes figures nothing checks: {unknown}. Add each one to "
         "figures() with the coverage-statement value it quotes, or it can drift."
     )
-    wrong = {label: (count, known[label]) for label, count in rows.items() if count != known[label]}
+    unreadable = {label: value for label, value in rows.items() if not _COUNT_RE.fullmatch(value)}
+    assert unreadable == {}, (
+        f"{path.name} publishes figures that are not numbers: {unreadable}. A row this "
+        "cannot read is a row it cannot check, so it fails here rather than being skipped."
+    )
+    wrong = {
+        label: (value, known[label])
+        for label, value in rows.items()
+        if int(value.replace(",", "")) != known[label]
+    }
     assert wrong == {}, f"{path.name} says (documented, built): {wrong}"
 
 

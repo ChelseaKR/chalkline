@@ -160,9 +160,16 @@ def test_the_classification_vocabulary_is_the_published_one(heading: str, kind: 
 def test_every_vendored_leaflet_either_parses_or_says_why(
     real_leaflets: tuple[leaflets.Leaflet, ...],
 ) -> None:
-    """No vendored snapshot fails in a way this project has not accounted for."""
+    """No vendored snapshot fails in a way this project has not accounted for.
+
+    The refusal branch ends in ``continue``, so every assertion after it is skippable. With
+    no count of how many snapshots actually reached them, a parser that refused all ten
+    would go green exactly like one that read all ten. The Commission's index refuses
+    exactly one page (cl-893, on a title mismatch), so nine is the number that has to parse.
+    """
     index = {leaflet.code: leaflet for leaflet in real_leaflets}
     assert leaflet_pages.available(), "the repository should hold leaflet snapshots"
+    read = 0
     for code in leaflet_pages.available():
         assert code in index, f"{code} is not a leaflet the Commission's index publishes"
         try:
@@ -172,6 +179,8 @@ def test_every_vendored_leaflet_either_parses_or_says_why(
             continue
         assert parsed.code == code
         assert parsed.lead or parsed.sections
+        read += 1
+    assert read == 9, f"only {read} snapshots parsed, so the assertions above ran {read} times"
 
 
 def test_available_is_empty_when_there_is_no_snapshot_directory(tmp_path: Path) -> None:
