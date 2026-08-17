@@ -74,6 +74,17 @@ class Attachment:
             return ()
         return self.page.of_kind(leaflet_pages.RENEWAL, leaflet_pages.VALIDITY)
 
+    @property
+    def stated_conditions(self) -> tuple[leaflet_pages.Section, ...]:
+        """The requirement and renewal sections the Commission put text under.
+
+        A heading with nothing beneath it is a heading. The export emits a condition profile
+        only for a section with blocks, and the page prints one only for a section with
+        blocks, so anything counting conditions has to apply the same rule or it will publish
+        a total that neither the graph nor the page can show.
+        """
+        return tuple(section for section in self.requirements + self.renewal if section.blocks)
+
 
 def read_leaflet(
     leaflet: leaflets.Leaflet, directory: Path | None = None

@@ -35,7 +35,7 @@ retrieved 2026-08-07:
 | Subject alignments emitted | 1,014 |
 | Of those, supplied by following a published cross-reference | 538 |
 | Authorizations carrying `ceterms:description` | 51 |
-| Authorizations carrying requirements or renewal terms | 20 |
+| Authorizations carrying requirements or renewal terms | 13 |
 | `ceterms:ConditionProfile` nodes emitted | 22 |
 
 Output lives in [`site/`](site/): [`credentials.jsonld`](site/credentials.jsonld) is the

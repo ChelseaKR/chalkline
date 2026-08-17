@@ -237,9 +237,7 @@ def render(
         tallies["alignments"] += len(authorization.subjects)
         tallies["leaflets"] += attachment is not None
         tallies["descriptions"] += bool(description_of(authorization, attachment))
-        tallies["conditions"] += bool(
-            attachment is not None and (attachment.requirements or attachment.renewal)
-        )
+        tallies["conditions"] += bool(attachment is not None and attachment.stated_conditions)
         tallies["resolved"] += authorization.resolved_from is not None
         blocks.append(_credential_block(authorization, attachment, ctids[authorization.key]))
 

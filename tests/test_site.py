@@ -161,6 +161,11 @@ def test_a_section_with_no_text_renders_nothing() -> None:
     page = render(catalog, ctids, attached(catalog, empty, None))
     assert "No requirements or renewal terms" in page
     assert "Requirements: Requirements" not in page
+    # And the headline count says the same thing the credential below it says. A heading the
+    # Commission put no text under is a heading, not a requirement, and counting it here
+    # would have the page contradict itself in two places at once.
+    assert "<b>0</b><span>carrying requirements or renewal terms</span>" in page
+    assert "<b>1</b><span>carrying requirements or renewal terms</span>" not in page
 
 
 def test_absence_is_stated_rather_than_hidden() -> None:

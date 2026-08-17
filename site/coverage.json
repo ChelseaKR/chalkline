@@ -16,11 +16,13 @@
     "modeled": 133,
     "excluded": 3,
     "with_subject_codes": 67,
+    "with_requirements_or_renewal_terms": 13,
     "published_as_not_subject_coded": 66,
     "scope_resolved_by_cross_reference": 8,
     "subject_alignments_from_a_cross_reference": 538
   },
   "license_properties": {
+    "ceterms:ctid": 133,
     "ceterms:name": 133,
     "ceterms:description": 51,
     "ceterms:inLanguage": 133,

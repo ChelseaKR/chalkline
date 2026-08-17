@@ -176,6 +176,68 @@ def test_coverage_is_counted_from_the_graph(
     assert sum(leaflets_counted["matched_by_rule"].values()) == len(real_attachments)
 
 
+def test_the_census_counts_every_property_the_export_emits(
+    document: dict[str, object],
+) -> None:
+    """No property lands on a License without the coverage statement counting it."""
+    assert export.census_problems(document) == []
+    emitted = {term for e in licenses(document) for term in e if not term.startswith("@")}
+    assert emitted, "the export should put properties on a License"
+    assert emitted <= set(export.LICENSE_PROPERTIES)
+
+
+def test_a_property_the_census_does_not_count_is_refused(
+    document: dict[str, object],
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+) -> None:
+    """The check the tautological one could not make: the statement's shape has gone stale.
+
+    A statement counted from the same inputs always agrees with itself, so a property added
+    to the export and not to :data:`export.LICENSE_PROPERTIES` would ship uncounted. This is
+    what makes that a build failure.
+    """
+    graph: list[dict[str, object]] = document["@graph"]  # type: ignore[assignment]
+    extended = dict(document)
+    first, *rest = graph
+    extended["@graph"] = [{**first, "ceterms:availableOnlineAt": "https://example.gov/"}, *rest]
+
+    problems = export.census_problems(extended)
+    assert problems == []  # the organization is not a License, so its properties are not counted
+
+    licensed = next(e for e in graph if e.get("@type") == "ceterms:License")
+    extended["@graph"] = [
+        {**e, "ceterms:availableOnlineAt": "https://example.gov/"} if e is licensed else e
+        for e in graph
+    ]
+    assert export.census_problems(extended) == [
+        "license_properties does not count ceterms:availableOnlineAt, "
+        "which the export emits on a License"
+    ]
+    statement = export.coverage(extended, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    with pytest.raises(ValueError, match="ceterms:availableOnlineAt"):
+        export.check_coverage(
+            statement, extended, real_catalog, real_attachments, LEAFLETS_PUBLISHED
+        )
+
+
+def test_requirements_and_renewal_are_counted_as_a_union_not_a_sum(
+    document: dict[str, object],
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+) -> None:
+    """An authorization carrying both is one authorization, not two."""
+    statement = export.coverage(document, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    counted = statement["authorizations"]["with_requirements_or_renewal_terms"]
+    both = [e for e in licenses(document) if "ceterms:requires" in e and "ceterms:renewal" in e]
+    assert both, "the fixture should hold an authorization carrying both"
+    assert counted == len(
+        [e for e in licenses(document) if "ceterms:requires" in e or "ceterms:renewal" in e]
+    )
+    properties = statement["license_properties"]
+    assert counted < properties["ceterms:requires"] + properties["ceterms:renewal"]
+
+
 def test_a_coverage_statement_the_export_contradicts_is_refused(
     document: dict[str, object],
     real_catalog: Catalog,

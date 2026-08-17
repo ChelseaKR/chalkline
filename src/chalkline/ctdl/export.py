@@ -343,6 +343,7 @@ def project_graph(
 
 
 LICENSE_PROPERTIES: Final = (
+    "ceterms:ctid",
     "ceterms:name",
     "ceterms:description",
     "ceterms:inLanguage",
@@ -354,7 +355,12 @@ LICENSE_PROPERTIES: Final = (
     "ceterms:renewal",
     "ceterms:subject",
 )
-"""License properties the coverage statement counts, in emission order."""
+"""License properties the coverage statement counts, in emission order.
+
+Hand-kept, and therefore checked: :func:`census_problems` fails the build if the export
+emits a property on a licence that this tuple does not name, because a census that quietly
+stops counting a property is worse than no census.
+"""
 
 LEAFLET_RULE: Final = (
     "a leaflet is attached only where its published title equals the authorization's "
@@ -439,6 +445,12 @@ def coverage(
             "modeled": len(catalog.authorizations),
             "excluded": len(catalog.exclusions),
             "with_subject_codes": sum(1 for a in catalog.authorizations if a.subjects),
+            # The union, not the sum. Some authorizations carry both, so adding the two
+            # property counts together counts those twice, and this is the figure the page
+            # prints under "carrying requirements or renewal terms".
+            "with_requirements_or_renewal_terms": sum(
+                1 for e in licenses if "ceterms:requires" in e or "ceterms:renewal" in e
+            ),
             "published_as_not_subject_coded": sum(
                 1 for a in catalog.authorizations if a.declares_no_subject_codes
             ),
@@ -477,6 +489,28 @@ def coverage(
     }
 
 
+def census_problems(document: Mapping[str, Any]) -> list[str]:
+    """Every property the export puts on a License that the census does not count.
+
+    :data:`LICENSE_PROPERTIES` is the one hand-kept list left in the coverage statement, and
+    a hand-kept list of what the code emits is exactly the thing that goes quietly out of
+    date. Adding a property to :func:`project_license` without adding it here would leave
+    the published census silently short by one, so this makes that a build failure.
+    """
+    graph: Sequence[Any] = document.get("@graph", [])
+    emitted = {
+        term
+        for entity in graph
+        if isinstance(entity, Mapping) and entity.get("@type") == "ceterms:License"
+        for term in entity
+        if not term.startswith("@")
+    }
+    return [
+        f"license_properties does not count {term}, which the export emits on a License"
+        for term in sorted(emitted - set(LICENSE_PROPERTIES))
+    ]
+
+
 def coverage_problems(
     statement: Mapping[str, Any],
     document: Mapping[str, Any],
@@ -484,9 +518,17 @@ def coverage_problems(
     attachments: Mapping[str, Attachment],
     leaflets_published: int,
 ) -> list[str]:
-    """Every figure in a coverage statement that the export beside it contradicts."""
+    """Every way a coverage statement fails to describe the export beside it.
+
+    Two different questions, and only the census has teeth at build time.
+    :func:`census_problems` asks whether the statement's shape still covers what the export
+    emits, which does not depend on where the statement came from. The figure-by-figure
+    comparison that follows it asks whether a statement written elsewhere agrees with a
+    freshly counted one, which catches a stale committed statement but is a tautology when
+    the caller has just produced the statement from these same inputs.
+    """
     expected = coverage(document, catalog, attachments, leaflets_published)
-    return [
+    return census_problems(document) + [
         f"{key}: says {statement.get(key)!r}, the export gives {expected[key]!r}"
         for key in expected
         if statement.get(key) != expected[key]
