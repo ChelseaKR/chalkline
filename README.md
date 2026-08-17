@@ -197,6 +197,30 @@ along with every exclusion and every property deliberately not emitted. The Comm
 pages were retrieved with single unauthenticated GETs; robots.txt permits both paths, no bot
 protection was encountered, and none was circumvented.
 
+## Standards Conformance
+
+This repository is held to a shared set of portfolio engineering standards. Every standard
+gets a row, whether it applies or not, and a row that is an obligation rather than a passing
+result says so instead of being left out.
+
+| Standard | State | Evidence |
+|---|---|---|
+| Responsible-Tech Framework | Applies — the unofficial status, the fact that nothing has been published to the Credential Registry, and the refusal to circumvent bot protection or access controls are stated at the top of this README, in the generated page, and in [SECURITY.md](SECURITY.md). **Not yet written:** there is no separate responsible-technology audit document. | [PROVENANCE.md](PROVENANCE.md) records every source, every exclusion with its reason, and every property deliberately not emitted. |
+| Code Quality | Applies | `make verify` is the gate and CI runs that exact target: `uv lock --check --offline`, ruff lint and format check, mypy over `src tests scripts`, pytest with a 90% coverage floor, and the build-output check. Floors are pinned in `pyproject.toml`: Python >= 3.12, ruff >= 0.16.2, mypy >= 2.3.0, complexity <= 10. Every invocation is `uv run --locked`, so a drifted lockfile fails rather than being silently repaired. |
+| Security & Supply-Chain | Applies | [SECURITY.md](SECURITY.md) names the private reporting channel and the real risk surface. CI runs gitleaks over full history, Semgrep, and `pip-audit --strict`. There are no runtime dependencies; dev dependencies are locked in `uv.lock` and updated by Dependabot with a cooldown, and every GitHub Action is pinned to a full commit SHA. |
+| CI/CD | Applies | `.github/workflows/ci.yml` runs `make verify` byte for byte with the local target, plus separate audit, secret-scan, and SAST jobs; `pages.yml` republishes only when the committed `site/` still matches what the code produces. Every workflow declares a top-level least-privilege `permissions:` block. |
+| Release & Versioning | Applies — no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. |
+| Observability | Applies — the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml` |
+| Performance | Applies — the published output is three static files served from GitHub Pages, with no client-side data fetch and no runtime. **Not yet enforced:** no performance budget is measured and none is gated. | [`site/`](site/) |
+| Accessibility | Applies — the published page is human-facing, so it is in scope. **Not met:** there is no automated accessibility gate in CI, and no manual review of the generated page has been performed. This row is a declared obligation, not a passing result. | none yet |
+| Internationalization | Applies — English only today. The source material is the Commission's English-language publications and credential names are quoted verbatim rather than translated. **Not yet built:** no catalog, no scope declaration, and no EN/ES parity. | none yet |
+| AI Evaluation | N/A — deterministic parsing and CTDL modelling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
+| Documentation | Applies | This README, [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CITATION.cff](CITATION.cff), [PROVENANCE.md](PROVENANCE.md), the modelling notes in `docs/MODELING.md` and `docs/IDENTIFIERS.md`, and five ADRs in [docs/adr/](docs/adr/). |
+| Quality & Metrics | Applies — the merge-blocking gate is `make verify` with a 90% coverage floor, and the coverage statement the build publishes is counted from the graph at build time rather than asserted by hand. **Not yet written:** there is no separate metrics ledger document. | `pyproject.toml`, [`site/coverage.json`](site/coverage.json) |
+| AI Development Measurement | Applies — no AI-development baseline is recorded in this repository, and no activity counter (sessions, tokens, lines changed, percent AI-generated) is tracked or gated. The gates that do exist are outcome-side: `make verify` on every change. | `Makefile`, `.github/workflows/ci.yml` |
+| Incident Response | Applies — the private reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
+| Data Governance | Applies — every input is public information published by a California state agency, and there is no personal data anywhere in this repository. Source snapshots are committed and hash-checked, so a change to one is visible in review. | [PROVENANCE.md](PROVENANCE.md) records each source URL, retrieval date, byte count, and sha256; CTIDs come from a committed ledger rather than being minted per build ([ADR 0003](docs/adr/0003-uuidv4-ctids-from-a-committed-ledger.md)). |
+
 ## License
 
 Apache 2.0. The credential data reproduced here is factual information published by a

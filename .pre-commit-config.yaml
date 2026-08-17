@@ -1,0 +1,28 @@
+# Local hooks run through `uv run --locked`, so the tool versions come from uv.lock and
+# match `make lint` / `make typecheck` / CI exactly, with no separately pinned mirror that
+# can drift away from the lockfile. Install with: uvx pre-commit install
+#
+# These hooks are a fast pre-flight, not the gate. `make verify` is the gate.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --locked ruff format
+        language: system
+        types: [python]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --locked ruff check --fix
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy (strict)
+        entry: uv run --locked mypy src tests scripts
+        language: system
+        types: [python]
+        pass_filenames: false
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
