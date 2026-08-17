@@ -6,9 +6,9 @@ snapshot is refreshed without updating its sidecar, or edited by hand, these tes
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
-import re
 from pathlib import Path
 
 import pytest
@@ -99,16 +99,69 @@ def test_every_leaflet_snapshot_is_one_an_authorization_matched(
     assert {path.stem for path in LEAFLET_SNAPSHOTS} == needed
 
 
+NETWORKING = ("urllib", "http", "socket", "ssl", "ftplib", "requests", "httpx", "aiohttp")
+"""Top-level modules that can open a socket, or that exist to."""
+
+
+def networking_imports(source: str) -> list[str]:
+    """Every networking module a source file imports, however the import is written.
+
+    Parsed rather than pattern-matched. A regex anchored on ``import <name>`` reads
+    ``import json, socket`` as an import of ``json`` and says nothing about the second name,
+    which is the one that matters; the syntax tree has both. Nothing here is a claim about
+    dynamic imports, which no module in this package uses and which this cannot see.
+    """
+    found: set[str] = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            found.add(node.module)
+    return sorted(name for name in found if name.split(".")[0] in NETWORKING or name in NETWORKING)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "import socket",
+        "import json, socket",
+        "import urllib.request",
+        "import urllib.request as fetch",
+        "from urllib import request",
+        "from http.client import HTTPSConnection",
+        "import requests",
+        "def f():\n    import httpx\n",
+    ],
+)
+def test_the_networking_scan_sees_every_shape_of_import(source: str) -> None:
+    """The scan is only worth running if it catches the import forms a module could use."""
+    assert networking_imports(source) != []
+
+
+@pytest.mark.parametrize(
+    "source",
+    ["import json", "from pathlib import Path", "from chalkline.sources import leaflets", ""],
+)
+def test_the_networking_scan_passes_ordinary_imports(source: str) -> None:
+    assert networking_imports(source) == []
+
+
 def test_no_module_in_the_package_opens_a_socket() -> None:
     """Only scripts/fetch_sources.py may reach the network, and it is not importable code."""
     package = REPO_ROOT / "src" / "chalkline"
-    networking = re.compile(
-        r"^\s*(?:import|from)\s+(urllib|http|socket|ssl|ftplib|requests|httpx|aiohttp)\b",
-        re.MULTILINE,
-    )
-    offenders = [
-        str(path.relative_to(REPO_ROOT))
-        for path in sorted(package.rglob("*.py"))
-        if networking.search(path.read_text(encoding="utf-8"))
-    ]
-    assert offenders == []
+    modules = sorted(package.rglob("*.py"))
+    # An empty scan produces the same empty list as a clean one. Say how many files were
+    # read, so a moved package cannot pass this by giving the check nothing to look at.
+    assert len(modules) >= 10, f"scanned {len(modules)} modules under {package}"
+    offenders = {
+        str(path.relative_to(REPO_ROOT)): imported
+        for path in modules
+        if (imported := networking_imports(path.read_text(encoding="utf-8")))
+    }
+    assert offenders == {}
+
+
+def test_the_one_module_allowed_to_reach_the_network_does() -> None:
+    """The scan is pointed at code that would fail it if it were in the package."""
+    fetcher = REPO_ROOT / "scripts" / "fetch_sources.py"
+    assert networking_imports(fetcher.read_text(encoding="utf-8")) != []
