@@ -37,14 +37,11 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Final
 
 from chalkline import ctid as ctid_module
 from chalkline.attachment import Attachment
 from chalkline.model import Authorization, Catalog
-from chalkline.sources import leaflets as leaflets_module
 from chalkline.sources.leaflet_pages import Section
 from chalkline.sources.sort_table import SOURCE_URL as SORT_TABLE_URL
 
@@ -553,49 +550,3 @@ def check_coverage(
 def serialize(document: Mapping[str, Any]) -> str:
     """One canonical serialization, so determinism is a property rather than a habit."""
     return json.dumps(document, ensure_ascii=False, indent=2) + "\n"
-
-
-@dataclass(frozen=True, slots=True)
-class ExportReport:
-    """What one export run produced, for the CLI to say out loud."""
-
-    licenses: int
-    excluded: int
-    alignments: int
-    document_path: Path
-    coverage_path: Path
-
-
-def write(
-    catalog: Catalog,
-    ctids: Mapping[str, str],
-    leaflets: Sequence[leaflets_module.Leaflet],
-    output_dir: Path,
-) -> ExportReport:
-    """Project ``catalog`` into ``output_dir``, checking everything before writing anything.
-
-    A failed check leaves no partial output to mistake for a good one.
-    """
-    from chalkline.attachment import attach
-    from chalkline.ctdl import validate as validate_module
-
-    published = tuple(leaflets)
-    attachments = attach(catalog, leaflets_module.index_by_title(published))
-    document = project_graph(catalog, ctids, attachments)
-    validate_module.check(document)
-    statement = coverage(document, catalog, attachments, len(published))
-    check_coverage(statement, document, catalog, attachments, len(published))
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    document_path = output_dir / GRAPH_FILENAME
-    coverage_path = output_dir / COVERAGE_FILENAME
-    document_path.write_text(serialize(document), encoding="utf-8")
-    coverage_path.write_text(serialize(statement), encoding="utf-8")
-    entities: dict[str, int] = statement["entities"]
-    return ExportReport(
-        licenses=entities["ceterms:License"],
-        excluded=len(catalog.exclusions),
-        alignments=entities["ceterms:CredentialAlignmentObject"],
-        document_path=document_path,
-        coverage_path=coverage_path,
-    )

@@ -263,18 +263,6 @@ def test_projection_is_byte_for_byte_deterministic(
     assert first == second
 
 
-def test_write_produces_both_files(real_catalog: Catalog, tmp_path: object) -> None:
-    from pathlib import Path
-
-    assert isinstance(tmp_path, Path)
-    report = export.write(real_catalog, CTIDS, leaflets_module.load(), tmp_path)
-    assert report.document_path.exists()
-    assert report.coverage_path.exists()
-    assert report.licenses == len(real_catalog.authorizations)
-    assert report.excluded == len(real_catalog.exclusions)
-    assert report.alignments == sum(len(a.subjects) for a in real_catalog.authorizations)
-
-
 def attachment_with(*sections: leaflet_pages.Section) -> Attachment:
     leaflet = leaflets_module.Leaflet(
         code="cl-1", title="A Thing", url="https://www.ctc.ca.gov/credentials/leaflets/cl-1/"
