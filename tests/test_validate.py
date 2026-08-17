@@ -78,6 +78,21 @@ def test_an_empty_list_in_a_language_map_is_caught() -> None:
     assert any("string or a non-empty list of strings" in f for f in findings(entity))
 
 
+def test_a_language_map_with_no_language_tags_is_caught() -> None:
+    """``all()`` over zero tags is True, so this was the one shape of a name nothing saw."""
+    entity = valid_license() | {"ceterms:name": {}}
+    assert any("no language tags" in f for f in findings(entity))
+
+
+@pytest.mark.parametrize(
+    "term", ["ceterms:ownedBy", "ceterms:regulatedIn", "ceterms:subject", "ceterms:requires"]
+)
+def test_a_property_present_with_an_empty_list_is_caught(term: str) -> None:
+    """The empty-denominator shape: every value check loops, and a loop over nothing passes."""
+    entity = valid_license() | {term: []}
+    assert any("empty list, which asserts nothing" in f for f in findings(entity))
+
+
 def test_a_language_map_holding_a_list_with_a_non_string_is_caught() -> None:
     entity = valid_license() | {"ceterms:name": {"en-US": ["ok", 7]}}
     assert any("string or a non-empty list of strings" in f for f in findings(entity))
@@ -116,6 +131,28 @@ def test_a_wrong_literal_shape_is_caught() -> None:
 def test_an_iri_reference_is_accepted_where_a_class_is_expected() -> None:
     entity = valid_license() | {"ceterms:ownedBy": ["https://example.org/org/1"]}
     assert findings(entity) == []
+
+
+def test_a_blank_node_reference_is_accepted_where_a_class_is_expected() -> None:
+    """JSON-LD's own spelling for "a node in this document that carries no IRI"."""
+    entity = valid_license() | {"ceterms:ownedBy": ["_:organization"]}
+    assert findings(entity) == []
+
+
+def test_a_bare_label_where_a_class_is_expected_is_caught() -> None:
+    """The other half of the IRI-reference rule, and the half that was missing.
+
+    Only the accepting case above was covered, so the string branch accepted anything at
+    all: an organization's *name* sat in ``ceterms:ownedBy`` as happily as its IRI, and the
+    module docstring's promise that such a string "references one" was unenforced.
+    """
+    entity = valid_license() | {"ceterms:ownedBy": ["Commission on Teacher Credentialing"]}
+    assert any("not an absolute IRI or a blank node" in f for f in findings(entity))
+
+
+def test_an_empty_string_where_a_class_is_expected_is_caught() -> None:
+    entity = valid_license() | {"ceterms:ownedBy": [""]}
+    assert any("not an absolute IRI or a blank node" in f for f in findings(entity))
 
 
 def test_a_node_without_a_type_is_caught() -> None:

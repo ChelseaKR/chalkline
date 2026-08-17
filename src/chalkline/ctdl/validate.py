@@ -30,12 +30,22 @@ raises on any finding.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final
 
 SCHEMA_PATH: Final = Path(__file__).parent / "ctdl-schema.json"
 CONTEXT_PATH: Final = Path(__file__).parent / "ctdl-context.json"
+
+NODE_REFERENCE_RE: Final = re.compile(r"^(?:[A-Za-z][A-Za-z0-9+.-]*:|_:)")
+"""What a string standing in for a node has to look like: an absolute IRI, or a blank node.
+
+A property whose range is CTDL classes may carry a string instead of a nested node, and that
+string is a reference to such a node. Accepting *any* string there means a bare label sails
+through in place of a reference nothing can follow, which is the same class of mistake this
+module exists to catch on the other three checks. RFC 3986 makes the scheme the part that
+tells an absolute IRI from a label, and JSON-LD adds ``_:`` for blank nodes."""
 
 _LITERAL_SHAPES: Final = {
     "xsd:string": (str,),
@@ -103,6 +113,11 @@ def _check_language_map(term: str, value: Any, path: str, findings: list[str]) -
         findings.append(
             f"{path}: {term} is a language map in the context, got {type(value).__name__}"
         )
+    elif not value:
+        # ``all()`` over no language tags is True, so without this an empty map is the one
+        # shape of this property the check cannot see. A name nobody can read in any
+        # language is not a name.
+        findings.append(f"{path}: {term} is a language map with no language tags")
     elif not all(_language_map_texts_ok(entry) for entry in value.values()):
         findings.append(
             f"{path}: {term} language map holds something other than a string or a "
@@ -129,7 +144,14 @@ def _check_item(
             )
         return
     if class_ranges and isinstance(item, str):
-        # A string where a class is expected is an IRI reference to such a node.
+        # A string where a class is expected is an IRI reference to such a node, so it has
+        # to be one. A bare label here is a reference that resolves to nothing.
+        if not NODE_REFERENCE_RE.match(item):
+            findings.append(
+                f"{where}: {term} holds {item!r}, which is not an absolute IRI or a blank "
+                f"node; a string standing in for a {sorted(class_ranges)} node has to "
+                "reference one"
+            )
         return
     allowed = tuple(shape for literal in ranges for shape in _LITERAL_SHAPES.get(literal, ()))
     if allowed and not isinstance(item, allowed):
@@ -206,6 +228,12 @@ def _check_property(
             f"{path}: {term} is not in the domain of {declared} "
             f"(schema:domainIncludes has {len(domain)} classes, none of them this one)"
         )
+    if isinstance(value, list) and not value:
+        # Every check below walks the values, and walking none of them says nothing while
+        # reporting no finding. A property present with an empty list asserts less than the
+        # same property left out, which is the shape this export never means to emit.
+        findings.append(f"{path}: {term} is an empty list, which asserts nothing")
+        return
     _check_range(term, definition, value, f"{path}.{term}", schema, context, findings)
 
     # Recurse only where the range actually admits a nested node. A language map or any
