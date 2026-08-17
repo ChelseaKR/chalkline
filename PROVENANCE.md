@@ -25,13 +25,13 @@ Plus ten leaflet pages under `data/source/leaflets/`, each retrieved 2026-08-07 
 | `cl-380` | School Nurse Services Credential | 92,774 | `62973ee1…f8dc99` |
 | `cl-562` | Teacher Librarian Services Credential | 92,744 | `e363620f…785e56` |
 | `cl-625` | Resource Specialist Added Authorization | 94,052 | `90892ef0…e387db` |
-| `cl-812` | Reading and Literacy Added Authorization | 88,048 | `b5d2e33c…2204d9` |
-| `cl-824` | Certificate of Completion of Staff Development | 84,613 | `970801b3…3013a6` |
+| `cl-812` | Reading and Literacy Added Authorization | 88,048 | `b5d2e33c…204d5e` |
+| `cl-824` | Certificate of Completion of Staff Development | 84,613 | `970801b3…013a6b` |
 | `cl-856` | Provisional Internship Permit | 97,856 | `b5d411d2…c78992` |
 | `cl-858` | Short-Term Staff Permit | 96,347 | `53362652…9bcebc` |
-| `cl-879` | Speech-Language Pathology Services Credential | 119,415 | `a92e6307…1b83ca` |
+| `cl-879` | Speech-Language Pathology Services Credential | 119,415 | `a92e6307…b83bca` |
 | `cl-893` | American Indian Languages Credential | 86,939 | `ff04bc21…8437e3` |
-| `cl-909` | Emergency Specialist Teaching Permit in Early Childhood Education | 88,526 | `ddbd722e…9131e0` |
+| `cl-909` | Emergency Specialist Teaching Permit in Early Childhood Education | 88,526 | `ddbd722e…a9131e` |
 
 Those ten are the only leaflets retrieved. Each one is a leaflet a published title identifies
 with an authorization this project models; nothing was fetched speculatively, and a test

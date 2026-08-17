@@ -109,10 +109,11 @@ Only 18 of the 133 authorizations have a Commission leaflet attached, and that i
 A leaflet is attached on title equality alone: an exact title match, or a title match with one
 trailing parenthesised qualifier removed. Its prose is then read only if the leaflet page's own
 heading states the code and the title the Commission's index gave it, which one leaflet fails.
-Nine leaflet pages were read; sixteen authorizations carry prose from one. Every near miss
-that was left unmatched, and every heading that stopped or was skipped during reading, is
-named and counted in [PROVENANCE.md](PROVENANCE.md) and in
-[`site/coverage.json`](site/coverage.json).
+Nine leaflet pages were read; sixteen authorizations carry prose from one.
+[`site/coverage.json`](site/coverage.json) counts the headings that were read past without
+being classified, and the refusals with their reasons. The near misses left unmatched, and
+the headings that stopped a read, are named in [PROVENANCE.md](PROVENANCE.md); neither is
+counted in the coverage statement.
 
 ## Usage
 
@@ -140,8 +141,10 @@ make verify   # lockfile check, lint, format check, typecheck, tests with covera
 make lock     # regenerate uv.lock after changing a dependency; nothing else rewrites it
 ```
 
-Every target runs `uv run --locked`, so a `uv.lock` that no longer agrees with
-`pyproject.toml` fails the gate rather than being silently repaired by it.
+Every target that runs a tool runs it through `uv run --locked`, and `make verify` opens with
+`uv lock --check --offline`, so a `uv.lock` that no longer agrees with `pyproject.toml` fails
+the gate rather than being silently repaired by it. `make lock` is the one target allowed to
+rewrite the lockfile.
 
 ## Provenance
 

@@ -79,8 +79,13 @@ Counted, not asserted:
 
 - **134 `@id` values do not dereference** (133 licenses and one organization). Nested profiles
   carry no `@id` at all, so they are not affected.
-- **No emitted value other than `@id` uses the host.** `ceterms:subjectWebpage` points at
-  ctc.ca.gov on every entity, and the browsable page in `site/` uses relative links.
+- **The host appears in one other place: `ceterms:ownedBy`.** Every one of the 133 licences
+  names the organization by its `@id`, so the host is emitted 267 times, not 134. That is an
+  internal node reference rather than a second external dependency, and it does not
+  dereference for the same reason the `@id` values do not. Every value pointing *outward*
+  goes to ctc.ca.gov: `ceterms:subjectWebpage` on all 134 entities, and the framework and
+  leaflet links beneath them. The browsable page in `site/` uses relative links and does not
+  mention the host at all.
 - **Nothing in the build depends on the host resolving.** No test fetches it, no validation
   requires it, and `chalkline check` is unaffected.
 

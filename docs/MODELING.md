@@ -45,7 +45,7 @@ and must be renewed periodically." Term status `vs:stable`.
 That is what these documents are. The Commission is a state agency, and every entry in the
 table, including the emergency permits and the child development permits, is state-conferred
 legal authority to serve in a California public school position. The class is uniform across
-all 125 modeled authorizations because the source is uniform in this respect.
+all 133 modeled authorizations because the source is uniform in this respect.
 
 **`ceterms:Certification` was considered and rejected.** Its definition is "Time-limited,
 revocable, renewable credential awarded by an authoritative body for demonstrating the

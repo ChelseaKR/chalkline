@@ -9,6 +9,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,60 @@ def test_each_artifact_records_a_source_and_a_date(path: Path) -> None:
     assert isinstance(meta["retrieved"], str) and len(meta["retrieved"]) == 10
 
 
+PROVENANCE = REPO_ROOT / "PROVENANCE.md"
+
+_PROVENANCE_ROW_RE = re.compile(
+    r"^\|\s*`(?P<name>[^`]+)`\s*\|.*?\|\s*(?P<bytes>[\d,]+)\s*\|\s*"
+    r"`(?P<prefix>[0-9a-f]{8})…(?P<suffix>[0-9a-f]+)`\s*\|\s*$",
+    re.MULTILINE,
+)
+"""A row of either sources table: the artifact, its byte count, and its abbreviated sha256."""
+
+
+def _vendored_named(name: str) -> Path:
+    """The artifact a PROVENANCE row names, by path or by leaflet code."""
+    if name.endswith((".html", ".json")):
+        return REPO_ROOT / name
+    return REPO_ROOT / "data" / "source" / "leaflets" / f"{name}.html"
+
+
+def provenance_rows() -> dict[Path, tuple[int, str, str]]:
+    """Every artifact PROVENANCE.md tabulates, with the size and hash it publishes."""
+    text = PROVENANCE.read_text(encoding="utf-8")
+    return {
+        _vendored_named(m.group("name")): (
+            int(m.group("bytes").replace(",", "")),
+            m.group("prefix"),
+            m.group("suffix"),
+        )
+        for m in _PROVENANCE_ROW_RE.finditer(text)
+    }
+
+
+def test_provenance_tabulates_every_vendored_artifact_and_nothing_else() -> None:
+    """The denominator, named. A table that stopped listing files would otherwise pass below."""
+    assert set(provenance_rows()) == set(VENDORED)
+
+
+@pytest.mark.parametrize("path", VENDORED, ids=lambda p: p.name)
+def test_the_hash_provenance_publishes_is_the_hash_on_disk(path: Path) -> None:
+    """PROVENANCE.md transcribes the sidecars by hand, so the transcription is checked too.
+
+    The sidecars were already bound to the bytes. The document a reader actually opens was
+    not, and four of its ten leaflet hashes had the wrong tail: correct eight-character
+    prefix, correct byte count, and a suffix that belonged to no file in the repository.
+    An abbreviation nothing recomputes is a citation, not a checksum.
+    """
+    rows = provenance_rows()
+    assert path in rows, f"PROVENANCE.md publishes no row for {path.name}"
+    published_bytes, prefix, suffix = rows[path]
+    payload = path.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    assert published_bytes == len(payload)
+    assert digest.startswith(prefix), f"{path.name}: PROVENANCE says {prefix}…, file is {digest}"
+    assert digest.endswith(suffix), f"{path.name}: PROVENANCE says …{suffix}, file is {digest}"
+
+
 def test_the_parsers_point_at_the_urls_the_sidecars_record() -> None:
     table_meta = sidecar(VENDORED[0])
     assert table_meta["final_url"] == sort_table.SOURCE_URL
@@ -69,9 +124,15 @@ def test_the_commission_address_is_printed_in_the_vendored_artifact() -> None:
 
 
 def test_the_published_scope_statement_is_still_on_the_page() -> None:
-    """The Commission's own statement of what the table covers, quoted in the sidecar."""
+    """The Commission's own statement of what the table covers, quoted in the sidecar.
+
+    The length guard is the check. ``"" in anything`` is True, and the sidecars are the one
+    artifact class not covered by the hash test above (it hashes the payload, not the file
+    beside it), so blanking this field would have satisfied the containment test in silence.
+    """
     page = VENDORED[0].read_text(encoding="utf-8")
     quoted = str(sidecar(VENDORED[0])["scope_statement_published_on_page"])
+    assert len(quoted) > 40, f"the recorded scope statement is {len(quoted)} characters"
     assert quoted in " ".join(page.split())
 
 
@@ -99,8 +160,33 @@ def test_every_leaflet_snapshot_is_one_an_authorization_matched(
     assert {path.stem for path in LEAFLET_SNAPSHOTS} == needed
 
 
-NETWORKING = ("urllib", "http", "socket", "ssl", "ftplib", "requests", "httpx", "aiohttp")
-"""Top-level modules that can open a socket, or that exist to."""
+NETWORKING = (
+    "urllib",
+    "urllib3",
+    "http",
+    "socket",
+    "socketserver",
+    "ssl",
+    "ftplib",
+    "poplib",
+    "imaplib",
+    "smtplib",
+    "telnetlib",
+    "xmlrpc",
+    "webbrowser",
+    "asyncio",
+    "subprocess",
+    "requests",
+    "httpx",
+    "aiohttp",
+)
+"""Top-level modules that can open a socket, or that exist to, or that can hand the job off.
+
+``subprocess`` earns its place the hard way: the scan is the whole mechanism behind "nothing
+in this package reaches the network", and a list that stopped at the obvious HTTP clients let
+``subprocess.run(["curl", ...])`` through without a word. Reaching the network by asking
+another program to do it is still reaching the network. ``asyncio`` and ``webbrowser`` are
+here for the same reason."""
 
 
 def networking_imports(source: str) -> list[str]:
