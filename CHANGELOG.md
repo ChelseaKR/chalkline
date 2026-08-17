@@ -6,8 +6,70 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The CTDL validator accepted any string where a property's range admits a CTDL class. A
+  string there is a reference to such a node, which is what the module docstring already
+  claimed, but nothing enforced it: an organization's name sat in `ceterms:ownedBy` as
+  happily as its IRI. Strings in that position must now be an absolute IRI or a blank node.
+  Only the accepting half of the rule had a test, which is why the gap survived; both halves
+  have one now.
+- Four of the ten leaflet sha256 abbreviations in `PROVENANCE.md` had the wrong tail
+  (`cl-812`, `cl-824`, `cl-879`, `cl-909`). The prefixes and byte counts were right, so the
+  rows looked correct; the suffixes belonged to no file in the repository.
+- `docs/IDENTIFIERS.md` claimed under "Counted, not asserted" that no emitted value other
+  than `@id` uses the unresolved host. `ceterms:ownedBy` uses it on all 133 licences, so the
+  host appears 267 times rather than 134.
+- `docs/MODELING.md` still said the class is uniform across "125 modeled authorizations";
+  cross-reference resolution took that to 133, as the same document says twice elsewhere.
+- `README.md` said near misses and stopping headings are counted in `site/coverage.json`.
+  The coverage statement counts headings read past without being classified, and refusals
+  with their reasons; the other two are named in `PROVENANCE.md` only.
+- `README.md` said "Every target runs `uv run --locked`". The targets that run a tool do;
+  `install`, `lock`, and `lock-check` are `uv` invocations in their own right.
+- The validator passed a language map with no language tags and any property present with
+  an empty list. `all()` over no entries and `for` over no items are both true of nothing,
+  so `ceterms:name: {}` on every licence validated clean: a graph in which no credential has
+  a name would have shipped. Both shapes are findings now.
+- `chalkline.sources.leaflets.load` returned `()` when the index linked no leaflet pages,
+  where `sort_table.load` refuses. `_LINK_RE` needs a path-relative href, so a CMS switching
+  to absolute URLs was enough to make the whole build succeed with no leaflets at all:
+  nothing attached, descriptions and conditions left the graph, and the coverage statement
+  published the smaller figures as fact with every gate green. `parse` still returns `()`
+  for markup that genuinely lists none; the artifact loader is what refuses.
+- `tests/test_cli.py::test_mint_is_a_no_op_once_the_ledger_is_complete` passed `None` to
+  `cli.mint_ctids`, which resolves to `data/ctid-ledger.json` and saves in place. With any
+  key missing, running pytest minted a fresh UUIDv4 into a tracked artifact, which is the
+  one thing `chalkline.ctid` says cannot happen as a side effect. It now runs against a copy,
+  and a second test states the real invariant without writing anything.
+- The networking scan behind "no module in this package opens a socket" listed only HTTP
+  clients, so `subprocess.run(["curl", ...])` passed it. `subprocess`, `asyncio`,
+  `webbrowser`, `smtplib` and the rest are in the vocabulary now.
+- `tests/test_documented_counts.py` captured figures as `[\d,]+`, so a row it could not read
+  was not returned at all: a README figure written `~9,999` disappeared from the comparison
+  rather than failing it. Values are read as written and a non-numeric one is now a failure.
+- Two guards against a check that passes having measured nothing: the vendored-leaflet test
+  counts how many snapshots reached its assertions (nine; the refusal branch `continue`s, so
+  a parser refusing all ten used to look identical to one reading all ten), and the scope
+  statement test requires the recorded quote to be non-empty (`"" in anything` is true, and
+  the sidecars are the one artifact class the hash test does not cover).
+
+### Removed
+
+- `chalkline.ctdl.export.write` and `ExportReport`. Nothing called them: the CLI builds
+  through `cli._artifacts`, and `write` was a second copy of the validate-then-count-then-
+  write sequence that emitted only the two JSON files and not the page, so anything that had
+  used it would have produced an incomplete `site/`. Its one caller was the test that
+  covered it, which is the arrangement that lets a duplicate path drift out of step with the
+  real one while the coverage figure reports it exercised.
+
 ### Added
 
+- `tests/test_provenance.py` binds both `PROVENANCE.md` sources tables to the bytes on disk:
+  every abbreviated sha256 is recomputed and every byte count re-counted, and the set of
+  tabulated artifacts must equal the set of vendored ones, so a row cannot be dropped to
+  make the check pass. The sidecars were already bound to the bytes; the document a reader
+  opens was not, which is where the four wrong hashes lived.
 - Cross-reference resolution in the domain model. The eight authorizations whose Subject Code
   column is empty and whose Notes defer to another credential are now resolved by following
   that reference row by row against the vendored table. Modeled authorizations go from 125 to
