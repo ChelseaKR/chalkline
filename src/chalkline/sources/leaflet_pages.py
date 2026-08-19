@@ -16,12 +16,31 @@ headings with ``<p>`` paragraphs and ``<ul>``/``<ol>`` items under them.
 Identity is checked, not assumed
 --------------------------------
 
-The ``<h1>`` reads ``"<title> (<CODE>)"``. This module requires both halves to agree with
-the leaflet the index named: the code must be the code, and the title must equal the index
-title under the same normalization the matcher uses. That check is not decorative. CL-893 is
-listed in the Commission's index as "American Indian Languages Credential" and titles itself
-"American Indian Languages-Culture Credential", and a page whose own title is not the title
-under which it was matched is not evidence about the authorization it was matched to.
+The ``<h1>`` reads ``"<title> (<CODE>)"``. **The code must be the code the index named.** A
+snapshot whose page calls itself something other than the document that was asked for is the
+wrong file, and this module refuses it outright: no policy can rescue reading the wrong
+document.
+
+The title is a different question, and this module reports it rather than deciding it. The
+page's title and the index's title are both names the Commission published for the same
+leaflet, and they do not always agree: CL-893 is listed in the index as "American Indian
+Languages Credential" and titles itself "American Indian Languages-Culture Credential", while
+CL-902 is listed as "The Teaching Permit for Statutory Leave (TPSL)" and titles itself
+"Teaching Permit for Statutory Leave". One of those disagreements is a reason to refuse the
+page and the other is what identifies it, and which is which depends on the authorization
+being matched, which this module knows nothing about. So :class:`LeafletPage` carries the
+page's own title and :mod:`chalkline.attachment` decides. That decision used to live here as
+a ``raise``, which is why "The Teaching Permit for Statutory Leave" could not be read at all.
+
+Variant sections
+----------------
+
+Several leaflets state one set of requirements for a named permit and then break them out by
+variant: CL-858 heads "Requirements for Issuance" and then "Single Subject:", "Multiple
+Subject:" and "Education Specialist:". Those sub-headings are not section kinds, so this
+module does not classify them; it records which classified section each one sits inside, and
+the policy layer matches a variant heading against the parenthesised qualifier the
+Commission put in the authorization's own title.
 
 What is in scope, and where reading stops
 -----------------------------------------
@@ -99,6 +118,15 @@ class Section:
     kind: str
     blocks: tuple[str, ...]
 
+    within: str = UNCLASSIFIED
+    """The kind of the nearest classified section this one sits under, by heading level.
+
+    The Commission's leaflets nest: "Single Subject:" at ``h3`` under "Requirements for
+    Issuance" at ``h2`` is part of those requirements, and the same words under a validity
+    heading would not be. Reading the outline is reading the document; guessing from the
+    words alone would not be.
+    """
+
 
 @dataclass(frozen=True, slots=True)
 class LeafletPage:
@@ -120,6 +148,19 @@ class LeafletPage:
 
     def of_kind(self, *kinds: str) -> tuple[Section, ...]:
         return tuple(section for section in self.sections if section.kind in kinds)
+
+    def variants_within(self, kind: str) -> tuple[Section, ...]:
+        """Unclassified sections nested inside a section of ``kind``, with text under them.
+
+        These are the Commission's own breakdown of one statement by variant. They are
+        offered, not attributed: only a caller holding a published qualifier to compare
+        against a heading can say which variant a given section belongs to.
+        """
+        return tuple(
+            section
+            for section in self.sections
+            if section.kind == UNCLASSIFIED and section.within == kind and section.blocks
+        )
 
 
 def _text(fragment: str) -> str:
@@ -182,12 +223,15 @@ def _body(markup: str) -> str:
     return article[: footer.start()]
 
 
-def parse(markup: str, code: str, index_title: str) -> LeafletPage:
+def parse(markup: str, code: str) -> LeafletPage:
     """One leaflet page, read as far as it describes the document it is titled for.
 
-    ``code`` and ``index_title`` are what the Commission's leaflet index says about this
-    document. Both must agree with the page's own ``<h1>`` or this raises: the page is then
-    not evidence about the authorization the index matched it to.
+    ``code`` is the leaflet the caller asked for. The page's ``<h1>`` must name that same
+    code or this raises: a snapshot that calls itself another document is the wrong file.
+
+    The page's own title is returned, not judged. Whether it is close enough to the title an
+    authorization was matched under is a question about that authorization, and it is settled
+    in :mod:`chalkline.attachment`.
     """
     body = _body(markup)
     found = _TITLE_RE.search(body)
@@ -203,12 +247,6 @@ def parse(markup: str, code: str, index_title: str) -> LeafletPage:
             "not the leaflet the index named"
         )
     page_title = parsed.group("title")
-    if normalize_title(page_title) != normalize_title(index_title):
-        raise ValueError(
-            f"{code}: the index lists this leaflet as {index_title!r} and the page titles "
-            f"itself {page_title!r}; a page whose own title is not the title it was matched "
-            "under is not evidence about the authorization it was matched to"
-        )
 
     lead, sections, stopped_at, skipped = _sections(body[found.end() :])
     return LeafletPage(
@@ -219,6 +257,32 @@ def parse(markup: str, code: str, index_title: str) -> LeafletPage:
         stopped_at=stopped_at,
         skipped_headings=skipped,
     )
+
+
+def _closed(
+    heading: str,
+    level: int,
+    blocks: list[str],
+    enclosing: tuple[int, str] | None,
+) -> tuple[Section, tuple[int, str] | None]:
+    """One finished section, and the classified scope that is open after it.
+
+    ``enclosing`` is the innermost classified section still open, as (heading level, kind). A
+    heading at or above that level closes it, which is what "sits inside" means in an outline.
+    Only an unclassified section records a scope: a classified one states its own kind, and
+    that kind is the answer to what it is.
+    """
+    kind = classify(heading)
+    if enclosing is not None and level <= enclosing[0]:
+        enclosing = None
+    section = Section(
+        heading=heading,
+        level=level,
+        kind=kind,
+        blocks=tuple(blocks),
+        within=enclosing[1] if enclosing is not None and kind == UNCLASSIFIED else UNCLASSIFIED,
+    )
+    return section, (enclosing if kind == UNCLASSIFIED else (level, kind))
 
 
 def _sections(
@@ -232,12 +296,16 @@ def _sections(
     level = 0
     blocks: list[str] = []
     stopped_at: str | None = None
+    # The innermost classified section still open, as (heading level, kind). A heading at or
+    # above that level closes it, which is what "sits inside" means in an outline.
+    enclosing: tuple[int, str] | None = None
 
     def close() -> None:
-        if heading is not None:
-            sections.append(
-                Section(heading=heading, level=level, kind=classify(heading), blocks=tuple(blocks))
-            )
+        nonlocal enclosing
+        if heading is None:
+            return
+        section, enclosing = _closed(heading, level, blocks, enclosing)
+        sections.append(section)
 
     for block in _BLOCK_RE.finditer(markup):
         if block.group("heading") is not None:
@@ -272,10 +340,10 @@ def _sections(
     )
 
 
-def load(code: str, index_title: str, directory: Path | None = None) -> LeafletPage:
+def load(code: str, directory: Path | None = None) -> LeafletPage:
     """Parse the vendored snapshot of one leaflet page."""
     path = (directory or SOURCE_DIR) / f"{code}.html"
-    return parse(path.read_text(encoding="utf-8"), code, index_title)
+    return parse(path.read_text(encoding="utf-8"), code)
 
 
 def available(directory: Path | None = None) -> tuple[str, ...]:

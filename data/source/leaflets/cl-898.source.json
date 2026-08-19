@@ -1,0 +1,14 @@
+{
+  "file": "cl-898.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-898/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-898/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 90849,
+  "sha256": "5c51b1e6c0e6b6766ff46d518187b7ad5be6601f4e8d50e1836d4ddd6bfd1962",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Mathematics Instructional Leadership Specialist Credential (MILS) and Mathematics Instructional Added Authorization (MIAA)",
+  "page_title": "Mathematics Instructional MILS and MIAA",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-898`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Attached by document code only. The index title names document 'MILS' in parentheses, which the sort table publishes as a whole Document Title cell. Retrieved to see whether the page's own title identified the authorization; it titles itself 'Mathematics Instructional MILS and MIAA', which is not the authorization's published title and names two documents, so the leaflet supplies its link and no prose."
+}

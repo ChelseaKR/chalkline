@@ -13,7 +13,8 @@ from chalkline.sources import leaflets as leaflets_module
 from tests.conftest import row, table
 
 CTIDS = ctid_module.load_ledger()
-LEAFLETS_PUBLISHED = len(leaflets_module.load())
+INDEX = leaflets_module.load_index()
+VENDORED = leaflet_pages.available()
 
 
 @pytest.fixture(scope="module")
@@ -158,7 +159,7 @@ def test_coverage_is_counted_from_the_graph(
     real_catalog: Catalog,
     real_attachments: dict[str, Attachment],
 ) -> None:
-    statement = export.coverage(document, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    statement = export.coverage(document, real_catalog, real_attachments, INDEX, VENDORED)
     assert statement["entities"]["ceterms:License"] == len(licenses(document))
     assert statement["authorizations"]["modeled"] == len(real_catalog.authorizations)
     assert statement["authorizations"]["excluded"] == len(real_catalog.exclusions)
@@ -214,11 +215,9 @@ def test_a_property_the_census_does_not_count_is_refused(
         "license_properties does not count ceterms:availableOnlineAt, "
         "which the export emits on a License"
     ]
-    statement = export.coverage(extended, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    statement = export.coverage(extended, real_catalog, real_attachments, INDEX, VENDORED)
     with pytest.raises(ValueError, match="ceterms:availableOnlineAt"):
-        export.check_coverage(
-            statement, extended, real_catalog, real_attachments, LEAFLETS_PUBLISHED
-        )
+        export.check_coverage(statement, extended, real_catalog, real_attachments, INDEX, VENDORED)
 
 
 def test_requirements_and_renewal_are_counted_as_a_union_not_a_sum(
@@ -227,7 +226,7 @@ def test_requirements_and_renewal_are_counted_as_a_union_not_a_sum(
     real_attachments: dict[str, Attachment],
 ) -> None:
     """An authorization carrying both is one authorization, not two."""
-    statement = export.coverage(document, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    statement = export.coverage(document, real_catalog, real_attachments, INDEX, VENDORED)
     counted = statement["authorizations"]["with_requirements_or_renewal_terms"]
     both = [e for e in licenses(document) if "ceterms:requires" in e and "ceterms:renewal" in e]
     assert both, "the fixture should hold an authorization carrying both"
@@ -243,16 +242,14 @@ def test_a_coverage_statement_the_export_contradicts_is_refused(
     real_catalog: Catalog,
     real_attachments: dict[str, Attachment],
 ) -> None:
-    statement = export.coverage(document, real_catalog, real_attachments, LEAFLETS_PUBLISHED)
+    statement = export.coverage(document, real_catalog, real_attachments, INDEX, VENDORED)
     statement["entities"] = {"ceterms:License": 1}
     problems = export.coverage_problems(
-        statement, document, real_catalog, real_attachments, LEAFLETS_PUBLISHED
+        statement, document, real_catalog, real_attachments, INDEX, VENDORED
     )
     assert problems
     with pytest.raises(ValueError, match="does not describe the export"):
-        export.check_coverage(
-            statement, document, real_catalog, real_attachments, LEAFLETS_PUBLISHED
-        )
+        export.check_coverage(statement, document, real_catalog, real_attachments, INDEX, VENDORED)
 
 
 def test_projection_is_byte_for_byte_deterministic(

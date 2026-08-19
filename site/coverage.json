@@ -9,14 +9,14 @@
     "ceterms:CredentialOrganization": 1,
     "ceterms:License": 133,
     "ceterms:CredentialAlignmentObject": 1014,
-    "ceterms:ConditionProfile": 22
+    "ceterms:ConditionProfile": 36
   },
   "authorizations": {
     "published_in_source": 136,
     "modeled": 133,
     "excluded": 3,
     "with_subject_codes": 67,
-    "with_requirements_or_renewal_terms": 13,
+    "with_requirements_or_renewal_terms": 15,
     "published_as_not_subject_coded": 66,
     "scope_resolved_by_cross_reference": 8,
     "subject_alignments_from_a_cross_reference": 538
@@ -24,36 +24,54 @@
   "license_properties": {
     "ceterms:ctid": 133,
     "ceterms:name": 133,
-    "ceterms:description": 51,
+    "ceterms:description": 53,
     "ceterms:inLanguage": 133,
     "ceterms:subjectWebpage": 133,
     "ceterms:ownedBy": 133,
     "ceterms:regulatedIn": 133,
     "ceterms:identifier": 133,
-    "ceterms:requires": 13,
-    "ceterms:renewal": 7,
+    "ceterms:requires": 15,
+    "ceterms:renewal": 9,
     "ceterms:subject": 67
   },
   "leaflets": {
-    "rule": "a leaflet is attached only where its published title equals the authorization's published title after case and punctuation normalization, or equals that title with one trailing parenthesised qualifier removed; and its prose is read only where the leaflet page's own heading states the code and the title the index gave it",
+    "rule": "a leaflet is attached only where one of the Commission's own published strings equals the authorization's: a title the leaflet index gives the leaflet, a title the leaflet page gives itself, or a document code the leaflet's title names, each after case and punctuation normalization and each also tried with one trailing parenthesised qualifier removed from the authorization's title; and its prose is read only where the leaflet page's own heading states the code it was asked for and a title that identified this authorization",
     "leaflets_in_the_commission_index": 81,
-    "authorizations_with_a_leaflet": 18,
-    "authorizations_without_a_leaflet": 115,
+    "index_rows_redirecting_a_retired_document_code": 8,
+    "leaflet_pages_vendored": 19,
+    "leaflet_pages_vendored_and_attached_to_nothing": 7,
+    "authorizations_with_a_leaflet": 22,
+    "authorizations_without_a_leaflet": 111,
     "matched_by_rule": {
+      "document code published in the leaflet's own title": 2,
       "exact title": 12,
-      "named family, qualifier in parentheses": 6
+      "named family, qualifier in parentheses": 8
     },
-    "leaflet_pages_read": 9,
-    "leaflet_pages_refused": 1,
-    "authorizations_with_leaflet_prose": 16,
+    "matched_against_a_string_published_by": {
+      "the Commission's document code, not a title": 2,
+      "the Commission's leaflet index": 18,
+      "the leaflet page's own title": 2
+    },
+    "leaflet_pages_read": 10,
+    "leaflet_pages_refused": 2,
+    "authorizations_with_leaflet_prose": 18,
+    "authorizations_with_variant_requirements": 6,
+    "variant_qualifiers_no_heading_states": {
+      "Special Education": 2
+    },
     "refused_by_reason": {
-      "cl-893: the index lists this leaflet as 'American Indian Languages Credential' and the page titles itself 'American Indian Languages-Culture Credential'; a page whose own title is not the title it was matched under is not evidence about the authorization it was matched to": 2
+      "cl-893: the index lists this leaflet as 'American Indian Languages Credential' and the page titles itself 'American Indian Languages-Culture Credential'; a page whose own title is not the title it was matched under is not evidence about the authorization it was matched to": 2,
+      "cl-898: this leaflet was identified by the document code its title names, not by a title, and the page titles itself 'Mathematics Instructional MILS and MIAA', which is not the authorization's published title; a code says which document the leaflet is for and not which of its words describe that document": 2
     },
     "headings_read_past_but_not_classified": {
       "Commission-Approved Staff Development Agencies:": 1,
       "Education Specialist:": 6,
-      "Multiple Subject:": 6,
-      "Single Subject:": 6
+      "How to Apply": 2,
+      "Multiple Subject": 1,
+      "Multiple Subject:": 4,
+      "Single Subject": 1,
+      "Single Subject:": 4,
+      "Special Education": 2
     }
   },
   "excluded_by_reason": {

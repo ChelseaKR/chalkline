@@ -1,0 +1,14 @@
+{
+  "file": "cl-537.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-537/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-537/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 91416,
+  "sha256": "2e058586d1406d568b6310b77df829ae07d2629c5bfcddb83bd27c8169e5f0c3",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Reading and Literacy Leadership Specialist Credential",
+  "page_title": "Reading And Literacy Leadership Specialist Credential",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-537`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. Near miss on the index title ('Reading and Literacy Leadership Specialist Credential' against the authorization's 'Reading and Literacy Leadership Specialist'); the page titles itself the same as the index, so the Commission's own page confirms the two names differ. Kept as the evidence for that finding."
+}

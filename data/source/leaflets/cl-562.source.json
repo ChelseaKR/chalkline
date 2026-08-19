@@ -8,6 +8,7 @@
   "sha256": "e363620f58777f76ab9b0d092852de70f90676ebc0013304c7774c27c5785e56",
   "publisher": "California Commission on Teacher Credentialing",
   "index_title": "Teacher Librarian Services Credential",
+  "page_title": "Teacher Librarian Services Credential",
   "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-562`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
-  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+  "purpose": "Attached. The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
 }

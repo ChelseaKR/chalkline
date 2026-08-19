@@ -147,17 +147,39 @@ def test_every_leaflet_snapshot_is_one_the_commission_index_links() -> None:
         assert meta["index_title"] == published[path.stem].title
 
 
-def test_every_leaflet_snapshot_is_one_an_authorization_matched(
-    real_catalog: object, leaflet_index: object
+def test_every_leaflet_snapshot_is_either_attached_or_a_recorded_non_match(
+    real_catalog: object, leaflet_index: object, real_leaflets: object
 ) -> None:
-    """Nothing was retrieved speculatively: each snapshot serves a modeled authorization."""
+    """Every snapshot is here for a reason, and the reason is written down.
+
+    This used to require every snapshot to be attached, which was true only because a
+    leaflet's page could not be read until after its index title had already matched. A
+    leaflet's own page title is now evidence too, and evidence has to be retrieved before it
+    can be weighed: several of these pages were fetched to see what the Commission calls the
+    document, and the answer was that it calls it something the authorization is not called.
+
+    A snapshot that matched nothing is kept, because a finding nobody can re-read is not a
+    finding. What it must not be is unexplained, so its sidecar has to say which it is.
+    """
     from chalkline.attachment import attach
     from chalkline.model import Catalog
 
     assert isinstance(real_catalog, Catalog)
-    attachments = attach(real_catalog, leaflet_index)  # type: ignore[arg-type]
-    needed = {attachment.leaflet.code for attachment in attachments.values()}
-    assert {path.stem for path in LEAFLET_SNAPSHOTS} == needed
+    attachments = attach(real_catalog, leaflet_index, published=real_leaflets)  # type: ignore[arg-type]
+    attached = {attachment.leaflet.code for attachment in attachments.values()}
+    assert attached <= {path.stem for path in LEAFLET_SNAPSHOTS}, (
+        "an attached leaflet has no vendored snapshot, so its prose was never read"
+    )
+    unattached = {path.stem for path in LEAFLET_SNAPSHOTS} - attached
+    for path in LEAFLET_SNAPSHOTS:
+        purpose = sidecar(path)["purpose"]
+        assert isinstance(purpose, str)
+        expected = "Retrieved and not attached" if path.stem in unattached else "Attached"
+        assert purpose.startswith(expected), (
+            f"{path.stem}: its sidecar opens {purpose[:40]!r}, and it is "
+            f"{'not ' if path.stem in unattached else ''}attached"
+        )
+    assert unattached, "the non-match branch above asserted nothing"
 
 
 NETWORKING = (

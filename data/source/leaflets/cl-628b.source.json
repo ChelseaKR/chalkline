@@ -1,0 +1,14 @@
+{
+  "file": "cl-628b.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-628b/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-628b/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 111123,
+  "sha256": "11a8aab351637fc6cc2af66cab056ce7ebfe7ab4ef4278ea690322780193617e",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Bilingual Authorizations",
+  "page_title": "Bilingual Authorizations",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-628b`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. Near miss on singular against plural ('Bilingual Authorizations' against 'Bilingual Authorization'); the page titles itself the same as the index. Kept as the evidence for that finding."
+}

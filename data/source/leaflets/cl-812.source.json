@@ -8,6 +8,7 @@
   "sha256": "b5d2e33c545252ac166fd02990cf828514467a4b69cfc1729b4da0fcc2204d5e",
   "publisher": "California Commission on Teacher Credentialing",
   "index_title": "Reading and Literacy Added Authorization",
+  "page_title": "Reading and Literacy Added Authorization",
   "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-812`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
-  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+  "purpose": "Attached. The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
 }

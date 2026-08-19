@@ -1,0 +1,14 @@
+{
+  "file": "cl-501.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-501/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-501/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 87821,
+  "sha256": "f48f42738c6fcc06a89cfbab2671bcd31780506f8b07cb9d47383710af2fea30",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Exchange Credential",
+  "page_title": "Exchange Certificated Employee Credential",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-501`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. The index titles it 'Exchange Credential' and the page titles itself 'Exchange Certificated Employee Credential', which is closer to the authorization's 'Exchange Certificated Employee Teaching Credential' but still not equal to it. Kept as the evidence for that finding."
+}

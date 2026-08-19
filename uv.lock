@@ -113,6 +113,7 @@ source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "ctdl-validate" },
     { name = "mypy" },
     { name = "pip-audit" },
     { name = "pytest" },
@@ -125,6 +126,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "ctdl-validate", specifier = "==0.2.1" },
     { name = "mypy", specifier = ">=2.3.0" },
     { name = "pip-audit", specifier = ">=2.10.1" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -300,6 +302,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/7e/37732ea80eebc30e976e4cdab15c190bc42d96959a42e38ddf6f8c60468f/coverage-7.15.4-cp315-cp315t-win_amd64.whl", hash = "sha256:288bde2a2d7ab6b6c2d7252fcde8b524387f2d970bdba9658fc6f8bbcaef0f9b", size = 225895, upload-time = "2026-08-06T13:50:17.928Z" },
     { url = "https://files.pythonhosted.org/packages/c6/08/1e00f7923eaaba45fb3d51dd794125fc766304b1df264f3a9c6557bfb30e/coverage-7.15.4-cp315-cp315t-win_arm64.whl", hash = "sha256:68be5e1de60ff13c9095bbec0e5a7fa45b33b101752215b91345ea1f61c4a278", size = 225213, upload-time = "2026-08-06T13:50:19.981Z" },
     { url = "https://files.pythonhosted.org/packages/b4/d9/e70c286c979378f061d8266e279b686ab0b0b688e1fe0af864684f23a77d/coverage-7.15.4-py3-none-any.whl", hash = "sha256:964730a1e9de9c0cf11be6a1a3c79ce419c34882842abd256086ba4698705e84", size = 214332, upload-time = "2026-08-06T13:50:22.192Z" },
+]
+
+[[package]]
+name = "ctdl-validate"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/7e/4bc3eb54c24e8e0dc6e9f2cb67cbd5eadc0a76773f26b10c721b0a346c80/ctdl_validate-0.2.1.tar.gz", hash = "sha256:0a2db2d50c46afce6c51a51137af0d0b91a424f0aa850bc65c47750261400960", size = 234015, upload-time = "2026-08-16T15:26:53.082Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/a4/105c59e450348e249354542bb2b46a8cfaac71c5d5a4c5d714db5345b7c9/ctdl_validate-0.2.1-py3-none-any.whl", hash = "sha256:d97790f3543cc444c10de0892df6fe464b4b89b2f7fb5a4d8419ad3385f52a37", size = 202478, upload-time = "2026-08-16T15:26:51.479Z" },
 ]
 
 [[package]]

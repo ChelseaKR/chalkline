@@ -17,25 +17,57 @@ to the Credential Registry, in production or in a sandbox.
 | `src/chalkline/ctdl/ctdl-context.json` | <https://credreg.net/ctdl/schema/context/json> | 2026-08-07 | 29,201 | `ddb6b458…4bf40db5` |
 | `src/chalkline/ctdl/ctdl-schema.json` | <https://credreg.net/ctdl/schema/encoding/json> | 2026-08-07 | 1,052,234 | `a2dd28cb…cc538776` |
 
-Plus ten leaflet pages under `data/source/leaflets/`, each retrieved 2026-08-07 from
-`https://www.ctc.ca.gov/credentials/leaflets/<code>/`:
+Plus nineteen leaflet pages under `data/source/leaflets/`, each retrieved from
+`https://www.ctc.ca.gov/credentials/leaflets/<code>/`. Both titles are recorded because both
+are load-bearing: a leaflet is attached where either equals an authorization's published
+title, and a page is read only where its own title is one that did.
 
-| Leaflet | Title as the Commission's index lists it | Bytes | sha256 |
-|---|---|---|---|
-| `cl-380` | School Nurse Services Credential | 92,774 | `62973ee1…f8dc99` |
-| `cl-562` | Teacher Librarian Services Credential | 92,744 | `e363620f…785e56` |
-| `cl-625` | Resource Specialist Added Authorization | 94,052 | `90892ef0…e387db` |
-| `cl-812` | Reading and Literacy Added Authorization | 88,048 | `b5d2e33c…204d5e` |
-| `cl-824` | Certificate of Completion of Staff Development | 84,613 | `970801b3…013a6b` |
-| `cl-856` | Provisional Internship Permit | 97,856 | `b5d411d2…c78992` |
-| `cl-858` | Short-Term Staff Permit | 96,347 | `53362652…9bcebc` |
-| `cl-879` | Speech-Language Pathology Services Credential | 119,415 | `a92e6307…b83bca` |
-| `cl-893` | American Indian Languages Credential | 86,939 | `ff04bc21…8437e3` |
-| `cl-909` | Emergency Specialist Teaching Permit in Early Childhood Education | 88,526 | `ddbd722e…a9131e` |
+| Leaflet | Title in the Commission's index | Title on the page itself | Retrieved | Bytes | sha256 |
+|---|---|---|---|---|---|
+| `cl-380` | School Nurse Services Credential | School Nurse Services Credential | 2026-08-07 | 92,774 | `62973ee1…f8dc99` |
+| `cl-501` | Exchange Credential | Exchange Certificated Employee Credential | 2026-08-19 | 87,821 | `f48f4273…2fea30` |
+| `cl-529` | Specialist Instruction Credentials | Specialist Instruction Credentials | 2026-08-19 | 92,964 | `d0bd2c1d…50e7ee` |
+| `cl-537` | Reading and Literacy Leadership Specialist Credential | Reading And Literacy Leadership Specialist Credential | 2026-08-19 | 91,416 | `2e058586…e5f0c3` |
+| `cl-562` | Teacher Librarian Services Credential | Teacher Librarian Services Credential | 2026-08-07 | 92,744 | `e363620f…785e56` |
+| `cl-625` | Resource Specialist Added Authorization | Resource Specialist Added Authorization | 2026-08-07 | 94,052 | `90892ef0…e387db` |
+| `cl-628b` | Bilingual Authorizations | Bilingual Authorizations | 2026-08-19 | 111,123 | `11a8aab3…93617e` |
+| `cl-797` | Child Development Permits | Child Development Permits | 2026-08-19 | 115,619 | `85ceacc4…42c71d` |
+| `cl-812` | Reading and Literacy Added Authorization | Reading and Literacy Added Authorization | 2026-08-07 | 88,048 | `b5d2e33c…204d5e` |
+| `cl-824` | Certificate of Completion of Staff Development | Certificate of Completion of Staff Development | 2026-08-07 | 84,613 | `970801b3…013a6b` |
+| `cl-828` | General Education Limited Assignment Teaching Permit | General Education Multiple and Single Subject Limited Assignment Teaching Permits | 2026-08-19 | 90,562 | `e4ec4d6b…f755e6` |
+| `cl-856` | Provisional Internship Permit | Provisional Internship Permit | 2026-08-07 | 97,856 | `b5d411d2…c78992` |
+| `cl-858` | Short-Term Staff Permit | Short-Term Staff Permit | 2026-08-07 | 96,347 | `53362652…9bcebc` |
+| `cl-879` | Speech-Language Pathology Services Credential | Speech-Language Pathology Services Credential | 2026-08-07 | 119,415 | `a92e6307…b83bca` |
+| `cl-889` | Special Education Limited Assignment Permit | Special Education Limited Assignment Permit | 2026-08-19 | 97,120 | `d2ad5623…d60756` |
+| `cl-893` | American Indian Languages Credential | American Indian Languages-Culture Credential | 2026-08-07 | 86,939 | `ff04bc21…8437e3` |
+| `cl-898` | Mathematics Instructional Leadership Specialist Credential (MILS) and Mathematics Instructional Added Authorization (MIAA) | Mathematics Instructional MILS and MIAA | 2026-08-19 | 90,849 | `5c51b1e6…fd1962` |
+| `cl-902` | The Teaching Permit for Statutory Leave (TPSL) | Teaching Permit for Statutory Leave | 2026-08-19 | 94,943 | `545cc6ea…41d1b0` |
+| `cl-909` | Emergency Specialist Teaching Permit in Early Childhood Education | Emergency Specialist Teaching Permit in Early Childhood Education | 2026-08-07 | 88,526 | `ddbd722e…a9131e` |
 
-Those ten are the only leaflets retrieved. Each one is a leaflet a published title identifies
-with an authorization this project models; nothing was fetched speculatively, and a test
-asserts that the set of vendored snapshots is exactly the set the matcher asks for.
+Twelve of the nineteen are attached to an authorization. The other seven were retrieved and
+are attached to nothing, and they are kept deliberately. Each was fetched because the
+Commission's index titled it within a word or a plural of an authorization this project
+models, on the possibility that the page's own title was the authorization's; for each of
+these seven it was not. Those are findings, and a finding whose evidence has been deleted is
+just an assertion, so the snapshot stays and its sidecar says which it is. `cl-504`
+(Eminence) and `cl-568` (Sojourn) were **not** retrieved at all: the authorizations they
+would plausibly describe are both excluded for want of a published scope, so nothing about
+them could change the graph, and a request that cannot change an answer is not worth making.
+
+| Leaflet | Its index title | The authorization it plausibly describes | What its own page calls it | Why it is still not attached |
+|---|---|---|---|---|
+| `cl-537` | Reading and Literacy Leadership Specialist Credential | Reading and Literacy Leadership Specialist | the same as the index | The Commission's own page confirms the index. The two names differ by "Credential", and neither source says they are the same document. |
+| `cl-529` | Specialist Instruction Credentials | Specialist Instruction Credential | the same as the index | Singular against plural, confirmed on the page. A plural naming a family is not the name of a member. |
+| `cl-628b` | Bilingual Authorizations | Bilingual Authorization | the same as the index | Singular against plural, confirmed on the page. |
+| `cl-889` | Special Education Limited Assignment Permit | Special Education Limited Assignment Teaching Permit | the same as the index | One word apart, confirmed on the page. |
+| `cl-797` | Child Development Permits | the six Child Development permits | the same as the index | A plural naming a family the Commission does name individually, in the sort table, and does not name individually here. |
+| `cl-501` | Exchange Credential | Exchange Certificated Employee Teaching Credential | Exchange Certificated Employee Credential | The page's own title is closer than the index's and still not equal: "Teaching" separates them. |
+| `cl-828` | General Education Limited Assignment Teaching Permit | General Education Single Subject Limited Assignment Teaching Permit, and the Multiple Subject one | General Education Multiple and Single Subject Limited Assignment Teaching Permits | The page names both authorizations at once, in one plural title, and equals neither. |
+
+Each of these would still be a guess. A leaflet matched by guesswork is worse than no
+leaflet, because the prose it carries is then attributed to a document that may not be the
+one it describes. What has changed is that six of the seven near misses are now refused on
+the Commission's own second statement of the name rather than on its first alone.
 
 Full hashes and per-file notes are in the `.source.json` sidecar beside each artifact.
 `tests/test_provenance.py` recomputes every hash and size on each test run, so a snapshot
@@ -94,15 +126,19 @@ Recomputed from the emitted graph at build time and written to `site/coverage.js
 | Authorizations whose scope was resolved by cross-reference | 8 |
 | Authorizations with subject codes | 67 |
 | Authorizations the Commission publishes as `NONE` (not subject-coded) | 66 |
-| Authorizations carrying `ceterms:description` | 51 |
-| Of those, described in a Commission leaflet | 16 |
-| Authorizations carrying `ceterms:requires` | 13 |
-| Authorizations carrying `ceterms:renewal` | 7 |
-| `ceterms:ConditionProfile` nodes emitted | 22 |
-| Authorizations linked to a CTC leaflet | 18 |
-| Leaflet pages read | 9 |
-| Leaflet pages refused on identity | 1 |
+| Authorizations carrying `ceterms:description` | 53 |
+| Of those, described in a Commission leaflet | 18 |
+| Authorizations carrying `ceterms:requires` | 15 |
+| Authorizations carrying `ceterms:renewal` | 9 |
+| `ceterms:ConditionProfile` nodes emitted | 36 |
+| Authorizations linked to a CTC leaflet | 22 |
+| Of those, carrying requirements the leaflet states for their own variant | 6 |
+| Leaflet pages read | 10 |
+| Leaflet pages refused on identity | 2 |
+| Leaflet pages vendored | 19 |
+| Of those, retrieved and attached to nothing | 7 |
 | Leaflets in the Commission's index | 81 |
+| Index rows redirecting a retired document code | 8 |
 | CTIDs in the ledger (133 licenses plus the Commission) | 134 |
 
 ## Following the Commission's cross-references
@@ -187,54 +223,136 @@ None of the eight fell into any of those, and `tests/test_model.py` exercises ea
 
 ### Matching
 
-A leaflet is attached to an authorization on title equality, and on nothing else. Two rules:
+A leaflet is attached to an authorization on an equality with a string the Commission
+published, and on nothing else. Three rules, tried in this order:
 
 1. **Exact title**, after case and punctuation normalization. 12 authorizations.
 2. **Named family**: the authorization's title is a leaflet's title followed by one trailing
-   parenthesised qualifier, and the part before it equals the leaflet's title under the same
-   normalization. 6 authorizations, all of them the three Short-Term Staff Permit variants
-   (`cl-858`) and the three Provisional Internship Permit variants (`cl-856`). Rule 1 is tried
-   first, so an authorization with a leaflet of its own is never rolled up into a family one.
+   parenthesised qualifier, and the part before it equals that leaflet's title under the same
+   normalization. 8 authorizations: the three Short-Term Staff Permit variants (`cl-858`), the
+   three Provisional Internship Permit variants (`cl-856`), and the two Teaching Permit for
+   Statutory Leave variants (`cl-902`). Rule 1 is tried first, so an authorization with a
+   leaflet of its own is never rolled up into a family one.
+3. **Document code**: a parenthesised run in the leaflet's own published title is, character
+   for character, a whole Document Title cell in the sort table. 2 authorizations, both of
+   them the Mathematics Instructional Leadership Specialist, whose leaflet `cl-898` is titled
+   "… Specialist Credential (MILS) and … Added Authorization (MIAA)" and whose Document Title
+   cell is `MILS`. This is the Commission naming the document in its own key, which is a
+   stronger statement than a name; it is also not a title, which is why it attaches a link and
+   never any prose.
 
 Rule 2 is still an equality. It is not a prefix rule: `Education Specialist Instruction
 Credential Requirements for Teachers Prepared Outside of California` (`cl-808`) matches
 nothing, because what separates it from `Education Specialist Instruction Credential` is not
-a trailing parenthetical.
+a trailing parenthetical. Rule 3 requires the *whole* Document Title cell: a cell reading
+`TC1, TC2` lists two documents, and a leaflet naming one of them says nothing about a row
+that carries both.
 
-18 of 133 authorizations match a leaflet; 115 do not. Near misses were left unmatched
-deliberately, and they are worth naming because a human at the Commission could confirm any
-of them in a minute and this project cannot:
+Rules 1 and 2 are applied twice, because a leaflet has up to two published titles: the one
+the Commission's index gives it, and the one the leaflet page gives itself in its `<h1>`.
+Usually these are the same string. Where they differ, both are still the Commission's name
+for that document. `cl-902` is the case that matters: the index calls it "The Teaching Permit
+for Statutory Leave (TPSL)", which matches nothing, and the page calls it "Teaching Permit
+for Statutory Leave", which is exactly rule 2's base for the two modeled TPSL
+authorizations. Reading the second title is not a loosening of the rule; it is the same
+equality applied to the other name the Commission published.
 
-| Leaflet | Its title | An authorization it plausibly describes | Why it is not attached |
-|---|---|---|---|
-| `cl-504` | Eminence Credential | Eminence Teaching Credential | One word apart. Nothing in either source says the two names are the same document. |
-| `cl-501` | Exchange Credential | Exchange Certificated Employee Teaching Credential | Two words apart. |
-| `cl-568` | Sojourn Certificated Employee Credential | Sojourn Certificated Employee Teaching Credential | One word apart. |
-| `cl-889` | Special Education Limited Assignment Permit | Special Education Limited Assignment Teaching Permit | One word apart. |
-| `cl-902` | The Teaching Permit for Statutory Leave (TPSL) | Teaching Permit for Statutory Leave (Multiple Subject) | Would need a leading article dropped as well as the qualifier. |
-| `cl-797` | Child Development Permits | The six Child Development permits | A plural naming a family the Commission does not name individually here. |
-| `cl-537` | Reading and Literacy Leadership Specialist Credential | Reading and Literacy Leadership Specialist | One word apart. |
-| `cl-529` | Specialist Instruction Credentials | Specialist Instruction Credential | Singular against plural. |
-| `cl-628b` | Bilingual Authorizations | Bilingual Authorization | Singular against plural. |
+22 of 133 authorizations match a leaflet; 111 do not. That ceiling is low, and it is low
+because the Commission's leaflet titles and its sort-table authorization titles are written
+independently and mostly do not agree. The remaining near misses are named in **Sources**
+above, together with what each leaflet's own page calls itself, because that second title is
+now evidence rather than an assumption: six of the seven were refused on the Commission's own
+confirmation of its first name, not merely on the absence of a second.
 
-Each of these would be a guess. A leaflet matched by guesswork is worse than no leaflet,
+Each of them would still be a guess. A leaflet matched by guesswork is worse than no leaflet,
 because the prose it carries is then attributed to a document that may not be the one it
 describes.
 
+### The index publishes a title only on a leaflet's own row
+
+The leaflet index is a three-column table: the linked title, the Commission's document code,
+and a category. It also carries a redirection row for each retired document, pointing at the
+leaflet that replaced it, with the retired code in the code column and a sentence where a
+title would go: "CL-740 has been replaced by CL-828." There are 8 such rows, covering 6
+leaflets, and the Commission prints all of them **above** the leaflet's own row.
+
+This project used to read only the link and its text, taking the first non-empty text for a
+path. So all six of those leaflets were published under a sentence about a document that no
+longer exists, and their real titles were never read at all:
+
+| Leaflet | Title this project published | Title the Commission publishes |
+|---|---|---|
+| `cl-533o-clad-bl` | CL-533o has been replaced by CL-533o-CLAD-BL | Crosscultural, Language and Academic Development (CLAD) and Bilingual Authorization Permits - EMERGENCY PERMITS |
+| `cl-697b` | CL-697a has been replaced by CL-697b | Designated Subjects Adult Education Teaching Credentials (Based on AB 1374 - Issued on or after January 1, 2011) |
+| `cl-760ge` | CL-760 has been replaced by CL-760GE | Commission Appeals For General Education Teaching Credentials (Multiple and Single Subject) |
+| `cl-828` | CL-740 has been replaced by CL-828. | General Education Limited Assignment Teaching Permit |
+| `cl-888` | CL-620a has been replaced by CL-888 | Career Technical Education Teaching Credential - Designated Subject Based on SB 1104 - Issued on or after January 1, 2009 |
+| `cl-892` | CL-765 has been replaced by CL-892 | Military Service |
+
+A row that publishes no title is not a title, so a leaflet's title is now taken from the row
+whose code column names the code its own link path names. None of the six changes a match:
+none of the recovered titles equals an authorization's under any of the three rules. What it
+changes is that the count of 81 leaflets is 81 leaflets with names, rather than 75 with names
+and 6 labelled with a notice about something else. The 8 redirection rows are counted
+separately in `site/coverage.json`.
+
 ### Reading
 
-A matched leaflet's prose is read only where the leaflet page states its own identity: the
-`<h1>` reads `"<title> (<CODE>)"`, and both halves must agree with what the Commission's index
-said about it. **One leaflet fails that check.** `cl-893` is listed in the index as "American
-Indian Languages Credential" and titles itself "American Indian Languages-Culture
-Credential". The two authorizations that match it (`AIL` and `AILC`) keep the leaflet link,
-because the Commission's own index made that association, and they get no prose, because a
-page whose title is not the title it was matched under is not evidence about the
-authorization it was matched to. The refusal is recorded in `site/coverage.json` and printed
-on the page.
+A matched leaflet's prose is read only where the leaflet page states its own identity, and
+that is now two separate questions.
 
-So: 18 authorizations matched, 10 distinct leaflets, 9 pages read, 1 refused, and 16
+**The code must be the code.** The `<h1>` reads `"<title> (<CODE>)"`, and the code must be
+the leaflet that was asked for. A snapshot whose page calls itself another document is the
+wrong file, and the parser refuses it outright. No vendored snapshot fails this.
+
+**The page's own title must be one of the titles that identified the authorization.** This is
+the check that used to be "the page agrees with the index", and that wording was too blunt to
+survive `cl-902`. Matching on the index's title requires the page to agree with the index;
+matching on the page's own title satisfies the check by construction; matching on a document
+code is not a title match at all and never permits a read.
+
+**Two leaflets are refused, and they are opposite cases.** `cl-893` is listed in the index as
+"American Indian Languages Credential" — exactly the title of the two authorizations that
+match it — and titles itself "American Indian Languages-Culture Credential". The sort table
+publishes *both* `AIL` and `AILC` as document codes, so the page's own name may well be the
+other document's; the two authorizations keep the leaflet link and get no prose. `cl-898` is
+matched by its document code alone, and its page titles itself "Mathematics Instructional
+MILS and MIAA", which is not the authorization's published title and names two documents at
+once; same outcome, different reason. Both refusals are recorded in `site/coverage.json` with
+their reasons and printed on the browsable page.
+
+So: 22 authorizations matched, 12 distinct leaflets, 10 pages read, 2 refused, and 18
 authorizations carrying leaflet prose.
+
+### Variant sections
+
+A leaflet matched by the named-family rule was matched by setting aside a parenthesised
+qualifier the Commission wrote in the authorization's own title. Where that leaflet's
+requirements contain a sub-section headed with that same qualifier, the Commission has stated
+the requirements for that variant, and this project reads them for that authorization only.
+
+The equality is the same normalized title comparison the matcher uses, and the nesting is
+read from the Commission's own outline: a sub-heading counts only where it sits inside a
+section this project classified as requirements, by heading level. A sub-heading of the same
+words under a validity heading is not requirements and is not read.
+
+| Leaflet | Its breakdown | Qualifier it matches | Outcome |
+|---|---|---|---|
+| `cl-858` | Single Subject: / Multiple Subject: / Education Specialist: | (Single Subject), (Multiple Subject) | Two of three variants read |
+| `cl-856` | Single Subject: / Multiple Subject: / Education Specialist: | (Single Subject), (Multiple Subject) | Two of three variants read |
+| `cl-902` | Single Subject / Multiple Subject / Special Education | (Single Subject), (Multiple Subject) | Both modeled variants read |
+
+6 authorizations carry requirements the leaflet states for their own variant. **Two do not,
+and that is the point.** `Short-Term Staff Permit (Special Education)` and
+`Provisional Internship Permit (Special Education)` get only the requirements common to the
+permit, because their leaflets head that breakdown "Education Specialist:" and deciding that
+"Education Specialist" and "Special Education" name the same variant would be this project
+writing the Commission's key for it. The gap is counted in
+`leaflets.variant_qualifiers_no_heading_states` and printed on the page beside those two
+credentials, rather than closed by inference. `cl-902` heads its third breakdown "Special
+Education", which does match — and the authorization it would serve is one of the three the
+sort table gives no publishable scope, so it is excluded for that reason and gains nothing
+here.
 
 ### Where reading stops
 
@@ -252,20 +370,23 @@ Credential", "Authorization", "Introduction", and "Terms and Definitions" or a h
 beginning "Definition". Anything else is skipped, recorded, and counted in
 `site/coverage.json` under `headings_read_past_but_not_classified`.
 
-That is deliberately blunt, and it costs real content. `cl-858` and `cl-856` state their
-requirements under "Requirements for Issuance" and then break them out under "Single
-Subject:", "Multiple Subject:", and "Education Specialist:". Those three sub-headings are
-skipped, so the Short-Term Staff Permit and Provisional Internship Permit carry only the
-requirements common to all three variants. Reading the per-variant sections would mean
-deciding that "Education Specialist:" is the section for the permit titled "(Special
-Education)", which is a judgement about the Commission's wording rather than a reading of it.
+That is deliberately blunt, and it still costs real content. The one place it has been
+narrowed is the variant breakdown described above: a sub-heading that is not a section kind
+but *is* the qualifier the Commission put in the authorization's own title now contributes to
+that authorization, because both strings are the Commission's and the test between them is an
+equality. Everything else unclassified is still skipped and still counted.
+
+`headings_read_past_but_not_classified` counts a heading per authorization that passed over
+it, not per page. "Single Subject:" is unclassified on `cl-858`'s page and is read for the
+authorization titled "(Single Subject)", so counting it against that authorization would
+report a heading as skipped by the very credential that used it.
 
 ### What the leaflets supplied
 
 | Property | From what |
 |---|---|
 | `ceterms:description` | The leaflet's prose between its title and its first heading, plus the text of an `Authorization` section where the leaflet heads one. Both are "a statement, characterization or account of the entity", which is CTDL's definition. Where a leaflet supplied nothing, the sort table's Notes column stands as before. |
-| `ceterms:requires` | One `ceterms:ConditionProfile` per requirements section, named with the Commission's own heading. |
+| `ceterms:requires` | One `ceterms:ConditionProfile` per requirements section, named with the Commission's own heading, followed by the variant section where the leaflet states one under this authorization's own qualifier. |
 | `ceterms:renewal` | One `ceterms:ConditionProfile` per renewal or validity section. |
 
 Each condition profile carries the leaflet URL on `ceterms:subjectWebpage`, because the
@@ -280,10 +401,13 @@ as "California" and the country as "United States", the latter from the page's o
 website of the State of California" banner. A test asserts the printed strings are still in
 the artifact.
 
-**Leaflet links.** A leaflet is attached only by title equality, under the two rules above.
-No prefix matching, no keyword overlap, no reasoning from a document code to a leaflet
-number, no similarity score. That matches 18 of 133 authorizations. The other 115 link to the
-sort table, which is the page that does describe them.
+**Leaflet links.** A leaflet is attached only by an equality with a string the Commission
+published, under the three rules above. No prefix matching, no keyword overlap, no reasoning
+from a document code to a leaflet number, no similarity score. Rule 3 reads a document code
+out of a leaflet title and compares it to the sort table's own Document Title cell; it does
+not reason from `CL-898` to anything, and it does not reason from a code to a name. That
+matches 22 of 133 authorizations. The other 111 link to the sort table, which is the page
+that does describe them.
 
 **Note joining.** The Notes column is a bulleted list, and a leaflet section is a run of
 paragraphs and bullets. Where either becomes a single CTDL string value, the pieces are

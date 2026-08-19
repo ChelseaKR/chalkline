@@ -11,9 +11,9 @@ page.
 > could look like. **Nothing here has been published to the Credential Registry**, in
 > production or in a sandbox, and the CTIDs in this repository are not Registry-assigned.
 
-**Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations and ten
-credential leaflets are modeled, tested, and published as JSON-LD. This is one worked example,
-not a complete representation of California educator credentials.
+**Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations and
+twelve credential leaflets are modeled, tested, and published as JSON-LD. This is one worked
+example, not a complete representation of California educator credentials.
 
 ## What this is
 
@@ -23,8 +23,8 @@ of California educator credentials yet. This repository is one worked example of
 representation could look like if it existed, built only from what the Commission already
 publishes.
 
-From the Commission's Authorization Sort Table and ten of its credential leaflets, all
-retrieved 2026-08-07:
+From the Commission's Authorization Sort Table, retrieved 2026-08-07, and nineteen of its
+credential leaflets, retrieved 2026-08-07 and 2026-08-19:
 
 | | |
 |---|---|
@@ -34,9 +34,12 @@ retrieved 2026-08-07:
 | Excluded, each with a recorded reason | 3 |
 | Subject alignments emitted | 1,014 |
 | Of those, supplied by following a published cross-reference | 538 |
-| Authorizations carrying `ceterms:description` | 51 |
-| Authorizations carrying requirements or renewal terms | 13 |
-| `ceterms:ConditionProfile` nodes emitted | 22 |
+| Authorizations carrying `ceterms:description` | 53 |
+| Authorizations carrying requirements or renewal terms | 15 |
+| `ceterms:ConditionProfile` nodes emitted | 36 |
+| Authorizations linked to a CTC leaflet | 22 |
+| Leaflet pages vendored | 19 |
+| Of those, retrieved and attached to nothing | 7 |
 
 Output lives in [`site/`](site/): [`credentials.jsonld`](site/credentials.jsonld) is the
 graph, [`coverage.json`](site/coverage.json) is a coverage statement counted from that graph
@@ -77,6 +80,15 @@ because the ledger is in version control, which is the same reason a registry's 
 stable: somebody wrote them down. `tests/test_ctid.py` pins the grammar, including the
 version nibble and variant bits.
 
+You do not have to take that on this repository's word. `make verify` runs
+[`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate), an independently written
+structural checker for CTDL JSON-LD, over the committed graph, and the gate fails if it
+reports anything. It checks a different rule family from this project's own validator — CTID
+grammar, identifier kinds, reference targets, class pairings, each finding citing the
+published rule it came from — so neither tool subsumes the other, and the interesting outcome
+is a disagreement rather than a pass. Today it reports `0 findings` on all 134 entities. It
+makes no network calls, so the gate stays offline.
+
 **The modeling is checked against a fetched schema, not against memory.** The full CTDL
 schema encoding is vendored with its retrieval hash, and every emitted document is validated
 for four things before anything is written: the class exists, the property exists and is
@@ -105,15 +117,42 @@ nothing at all. No authorization is excluded for want of a name.
 
 ## Leaflets
 
-Only 18 of the 133 authorizations have a Commission leaflet attached, and that is the point.
-A leaflet is attached on title equality alone: an exact title match, or a title match with one
-trailing parenthesised qualifier removed. Its prose is then read only if the leaflet page's own
-heading states the code and the title the Commission's index gave it, which one leaflet fails.
-Nine leaflet pages were read; sixteen authorizations carry prose from one.
-[`site/coverage.json`](site/coverage.json) counts the headings that were read past without
-being classified, and the refusals with their reasons. The near misses left unmatched, and
-the headings that stopped a read, are named in [PROVENANCE.md](PROVENANCE.md); neither is
-counted in the coverage statement.
+Only 22 of the 133 authorizations have a Commission leaflet attached, and that is the point.
+A leaflet is attached on an equality with a string the Commission published, and on nothing
+else. Three rules: an exact title match, a title match with one trailing parenthesised
+qualifier removed, and a document code the leaflet's own title names in parentheses that is
+character-for-character a whole Document Title cell in the sort table.
+
+A leaflet has up to two published titles — the one the Commission's index gives it and the
+one the leaflet page gives itself — and the first two rules are applied to both. That is not
+a loosening: it is the same equality against the other name the Commission published for the
+same document. It matters for exactly one leaflet, and decisively. `CL-902` is indexed as
+"The Teaching Permit for Statutory Leave (TPSL)", which matches nothing, and titles itself
+"Teaching Permit for Statutory Leave", which is precisely the family base of the two
+authorizations the sort table publishes as `Teaching Permit for Statutory Leave (Multiple
+Subject)` and `(Single Subject)`.
+
+Prose is read only where the leaflet page's own `<h1>` states the code it was asked for *and*
+a title that identified the authorization. Two leaflets fail that, for opposite reasons, and
+both keep their link and lose their prose. Ten leaflet pages were read; eighteen
+authorizations carry prose from one.
+
+Where a leaflet breaks its requirements out by variant, and heads that breakdown with the
+same parenthesised qualifier the Commission put in the authorization's own title, those
+requirements are read for that authorization. Six authorizations gain their own variant's
+requirements this way. Two do not: their leaflets head that section "Education Specialist:"
+where the authorization says "(Special Education)", and deciding those name the same thing
+would be this project writing the Commission's key for it. That gap is counted, not closed.
+
+Nineteen leaflet pages are vendored and seven of them are attached to nothing. Each of those
+seven was retrieved because its index title was a word or a plural away from an
+authorization's, to see what the Commission's own page calls the document; for each of them
+the answer did not match either. They are kept because a recorded non-match whose evidence
+has been deleted is an assertion rather than a finding.
+[`site/coverage.json`](site/coverage.json) counts all of this: the rules that matched, the
+strings they matched against, the refusals with their reasons, the variant gaps, and the
+headings read past without being classified. [PROVENANCE.md](PROVENANCE.md) names each
+leaflet, both of its titles, and why the near misses are still near misses.
 
 ## Usage
 
@@ -134,10 +173,15 @@ python scripts/fetch_sources.py leaflets cl-858     # one leaflet page, named ex
 ```
 
 The leaflet mode takes explicit codes rather than walking the Commission's index, so the
-request count equals the number of documents actually used.
+request count equals the number of documents actually looked at, and every one of them is
+recorded in [PROVENANCE.md](PROVENANCE.md) whether or not it ended up attached. Requests in
+one run are spaced two seconds apart. Two leaflets that a near-miss title suggested were
+deliberately **not** retrieved, because the authorizations they would describe are excluded
+for want of a published scope and no answer could have changed the graph.
 
 ```bash
-make verify   # lockfile check, lint, format check, typecheck, tests with coverage, build check
+make verify   # lockfile check, lint, typecheck, tests with coverage, build check, CTDL validation
+make validate # the independent CTDL validator alone, over the committed graph
 make lock     # regenerate uv.lock after changing a dependency; nothing else rewrites it
 ```
 

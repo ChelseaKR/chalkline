@@ -106,9 +106,19 @@ def figures(statement: dict[str, Any]) -> dict[str, int]:
         ],
         "`ceterms:ConditionProfile` nodes emitted": entities["ceterms:ConditionProfile"],
         "Authorizations linked to a CTC leaflet": leaflets["authorizations_with_a_leaflet"],
+        "Of those, carrying requirements the leaflet states for their own variant": leaflets[
+            "authorizations_with_variant_requirements"
+        ],
         "Leaflet pages read": leaflets["leaflet_pages_read"],
         "Leaflet pages refused on identity": leaflets["leaflet_pages_refused"],
+        "Leaflet pages vendored": leaflets["leaflet_pages_vendored"],
+        "Of those, retrieved and attached to nothing": leaflets[
+            "leaflet_pages_vendored_and_attached_to_nothing"
+        ],
         "Leaflets in the Commission's index": leaflets["leaflets_in_the_commission_index"],
+        "Index rows redirecting a retired document code": leaflets[
+            "index_rows_redirecting_a_retired_document_code"
+        ],
         "CTIDs in the ledger (133 licenses plus the Commission)": len(ctid_module.load_ledger()),
     }
 
@@ -120,10 +130,14 @@ TABLES = (
 
 
 @pytest.fixture(scope="module")
-def statement(real_catalog: Catalog, real_attachments: dict[str, Attachment]) -> dict[str, object]:
-    published = len(leaflets_module.load())
+def statement(
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+    real_index: leaflets_module.Index,
+    vendored_pages: tuple[str, ...],
+) -> dict[str, object]:
     document = export.project_graph(real_catalog, ctid_module.load_ledger(), real_attachments)
-    return export.coverage(document, real_catalog, real_attachments, published)
+    return export.coverage(document, real_catalog, real_attachments, real_index, vendored_pages)
 
 
 def _id(value: Path | str) -> str:

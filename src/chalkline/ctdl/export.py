@@ -42,6 +42,7 @@ from typing import Any, Final
 from chalkline import ctid as ctid_module
 from chalkline.attachment import Attachment
 from chalkline.model import Authorization, Catalog
+from chalkline.sources import leaflets as leaflets_module
 from chalkline.sources.leaflet_pages import Section
 from chalkline.sources.sort_table import SOURCE_URL as SORT_TABLE_URL
 
@@ -360,37 +361,62 @@ stops counting a property is worse than no census.
 """
 
 LEAFLET_RULE: Final = (
-    "a leaflet is attached only where its published title equals the authorization's "
-    "published title after case and punctuation normalization, or equals that title with "
-    "one trailing parenthesised qualifier removed; and its prose is read only where the "
-    "leaflet page's own heading states the code and the title the index gave it"
+    "a leaflet is attached only where one of the Commission's own published strings equals "
+    "the authorization's: a title the leaflet index gives the leaflet, a title the leaflet "
+    "page gives itself, or a document code the leaflet's title names, each after case and "
+    "punctuation normalization and each also tried with one trailing parenthesised qualifier "
+    "removed from the authorization's title; and its prose is read only where the leaflet "
+    "page's own heading states the code it was asked for and a title that identified this "
+    "authorization"
 )
 
 
-def _leaflet_coverage(catalog: Catalog, attachments: Mapping[str, Attachment]) -> dict[str, Any]:
+def _tally(values: Any) -> dict[str, int]:
+    """A sorted count of the strings given, so every census here is built the same way."""
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _leaflet_coverage(
+    catalog: Catalog, attachments: Mapping[str, Attachment], vendored: Sequence[str]
+) -> dict[str, Any]:
     """What the leaflets gave and did not give, counted from the attachments themselves."""
     attached = [attachments[a.key] for a in catalog.authorizations if a.key in attachments]
-    by_rule: dict[str, int] = {}
-    for attachment in attached:
-        by_rule[attachment.match.rule] = by_rule.get(attachment.match.rule, 0) + 1
-    refusals: dict[str, int] = {}
-    for attachment in attached:
-        if attachment.refusal is not None:
-            refusals[attachment.refusal] = refusals.get(attachment.refusal, 0) + 1
     skipped: dict[str, int] = {}
     for attachment in attached:
-        for heading in attachment.page.skipped_headings if attachment.page else ():
+        for heading in attachment.unread_headings:
             skipped[heading] = skipped.get(heading, 0) + 1
     return {
         "rule": LEAFLET_RULE,
         "leaflets_in_the_commission_index": None,
+        "index_rows_redirecting_a_retired_document_code": None,
+        "leaflet_pages_vendored": len(vendored),
+        # Retrieved, kept, and attached to nothing. Each was fetched because its published
+        # index title was one word from an authorization's, on the chance that the page's own
+        # title was the authorization's; for each of these it was not. The snapshot stays in
+        # the repository because a recorded non-match that cannot be re-read is a claim rather
+        # than a finding. PROVENANCE.md names them and prints what each page calls itself.
+        "leaflet_pages_vendored_and_attached_to_nothing": len(
+            set(vendored) - {a.match.leaflet.code for a in attachments.values()}
+        ),
         "authorizations_with_a_leaflet": len(attached),
         "authorizations_without_a_leaflet": len(catalog.authorizations) - len(attached),
-        "matched_by_rule": dict(sorted(by_rule.items())),
+        "matched_by_rule": _tally(a.match.rule for a in attached),
+        "matched_against_a_string_published_by": _tally(a.match.published_by for a in attached),
         "leaflet_pages_read": len({a.leaflet.code for a in attached if a.page is not None}),
         "leaflet_pages_refused": len({a.leaflet.code for a in attached if a.page is None}),
         "authorizations_with_leaflet_prose": sum(1 for a in attached if a.description),
-        "refused_by_reason": dict(sorted(refusals.items())),
+        "authorizations_with_variant_requirements": sum(1 for a in attached if a.variant_sections),
+        # Not the same question as "which qualifiers matched nothing". This counts only the
+        # authorizations whose leaflet does break its requirements out by variant and does
+        # not name theirs, which is the case where something is genuinely missing rather
+        # than simply not published in that form.
+        "variant_qualifiers_no_heading_states": _tally(
+            a.variant_unstated for a in attached if a.variant_unstated is not None
+        ),
+        "refused_by_reason": _tally(a.refusal for a in attached if a.refusal is not None),
         "headings_read_past_but_not_classified": dict(sorted(skipped.items())),
     }
 
@@ -399,7 +425,8 @@ def coverage(
     document: Mapping[str, Any],
     catalog: Catalog,
     attachments: Mapping[str, Attachment],
-    leaflets_published: int,
+    index: leaflets_module.Index,
+    vendored_pages: Sequence[str],
 ) -> dict[str, Any]:
     """The coverage statement published beside the export, counted from the export itself.
 
@@ -422,8 +449,9 @@ def coverage(
     reasons: dict[str, int] = {}
     for exclusion in catalog.exclusions:
         reasons[exclusion.reason] = reasons.get(exclusion.reason, 0) + 1
-    leaflet_counts = _leaflet_coverage(catalog, attachments)
-    leaflet_counts["leaflets_in_the_commission_index"] = leaflets_published
+    leaflet_counts = _leaflet_coverage(catalog, attachments, vendored_pages)
+    leaflet_counts["leaflets_in_the_commission_index"] = len(index.leaflets)
+    leaflet_counts["index_rows_redirecting_a_retired_document_code"] = len(index.superseded)
     return {
         "note": DISCLAIMER,
         "source": {
@@ -513,7 +541,8 @@ def coverage_problems(
     document: Mapping[str, Any],
     catalog: Catalog,
     attachments: Mapping[str, Attachment],
-    leaflets_published: int,
+    index: leaflets_module.Index,
+    vendored_pages: Sequence[str],
 ) -> list[str]:
     """Every way a coverage statement fails to describe the export beside it.
 
@@ -524,7 +553,7 @@ def coverage_problems(
     freshly counted one, which catches a stale committed statement but is a tautology when
     the caller has just produced the statement from these same inputs.
     """
-    expected = coverage(document, catalog, attachments, leaflets_published)
+    expected = coverage(document, catalog, attachments, index, vendored_pages)
     return census_problems(document) + [
         f"{key}: says {statement.get(key)!r}, the export gives {expected[key]!r}"
         for key in expected
@@ -537,10 +566,11 @@ def check_coverage(
     document: Mapping[str, Any],
     catalog: Catalog,
     attachments: Mapping[str, Attachment],
-    leaflets_published: int,
+    index: leaflets_module.Index,
+    vendored_pages: Sequence[str],
 ) -> None:
     """Refuse to publish a coverage statement the export contradicts."""
-    problems = coverage_problems(statement, document, catalog, attachments, leaflets_published)
+    problems = coverage_problems(statement, document, catalog, attachments, index, vendored_pages)
     if problems:
         raise ValueError(
             "coverage statement does not describe the export beside it: " + "; ".join(problems)

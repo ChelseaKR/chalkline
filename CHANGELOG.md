@@ -6,7 +6,96 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A leaflet's own page title is now read as a second published title for the same document,
+  and both are tried against the two title-equality rules. Nothing is loosened: it is the
+  same equality applied to the other name the Commission published. `CL-902` is listed in
+  the index as "The Teaching Permit for Statutory Leave (TPSL)", which matches nothing, and
+  titles itself "Teaching Permit for Statutory Leave", which is exactly the named-family base
+  of `Teaching Permit for Statutory Leave (Multiple Subject)` and `(Single Subject)`.
+- A third attachment rule: a parenthesised run in a leaflet's published title that is,
+  character for character, a whole Document Title cell in the sort table. `CL-898` names
+  `MILS` that way, and the sort table publishes `MILS` as the Document Title of exactly one
+  credential. A code is not a title, so this rule attaches the Commission's link and never
+  any prose. The cell must match whole: `TC1, TC2` lists two documents, and a leaflet naming
+  one of them says nothing about a row carrying both.
+- Variant requirements. Where a leaflet matched by the named-family rule breaks its
+  requirements out under a sub-heading equal to the parenthesised qualifier the Commission
+  wrote in the authorization's own title, those requirements are read for that authorization
+  alone. The nesting is read from the Commission's outline by heading level, so the same
+  words under a validity heading are not requirements. Six authorizations gain their own
+  variant's requirements. Two do not: `Short-Term Staff Permit (Special Education)` and
+  `Provisional Internship Permit (Special Education)`, whose leaflets head that breakdown
+  "Education Specialist:". Deciding those two phrases name the same variant would be this
+  project writing the Commission's key for it, so the gap is counted in
+  `leaflets.variant_qualifiers_no_heading_states` and printed on the page instead.
+- Nine leaflet snapshots, retrieved 2026-08-19: `cl-501`, `cl-529`, `cl-537`, `cl-628b`,
+  `cl-797`, `cl-828`, `cl-889`, `cl-898`, `cl-902`. Two are attached. The other seven were
+  retrieved to read what the Commission's own page calls a document whose index title was a
+  word or a plural away from an authorization's, and for all seven it was not the
+  authorization's title either. They stay vendored because a recorded non-match whose
+  evidence has been deleted is an assertion rather than a finding, and `PROVENANCE.md` now
+  prints both titles for every snapshot. `cl-504` and `cl-568` were deliberately **not**
+  retrieved: the authorizations they would describe are excluded for want of a published
+  scope, so no answer could have changed the graph.
+- `make validate` runs [`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate) `0.2.1`,
+  an independently written CTDL structural checker, over the committed graph, and `make
+  verify` depends on it. It checks a different rule family from this project's own validator
+  — CTID grammar, identifier kinds, reference targets, class pairings — so neither subsumes
+  the other and the interesting outcome is a disagreement. It reports `0 findings` on all 134
+  entities today; rewriting one `ceterms:ctid` to a bare UUID makes it report `CTID_BARE_UUID`
+  and exit 1, so the zero is being earned. It makes no network calls and the gate stays
+  offline. Pinned rather than floated: a new rule in a patch release is a fact about CTDL
+  worth seeing in a diff. Closes #21.
+- `scripts/fetch_sources.py` waits two seconds between consecutive requests in one run.
+  Nothing has ever been rate-limited; the only cost of waiting is the script's own clock.
+
 ### Fixed
+
+- The leaflet index publishes a document code beside each title, and this project read only
+  the link and its text, taking the first non-empty text for a path. The index also carries a
+  redirection row for each retired document — the retired code in the code column and "CL-740
+  has been replaced by CL-828." where a title would go — and prints it *above* the leaflet's
+  own row. So six leaflets were published under a sentence about a document that no longer
+  exists, and their real titles were never read: `cl-828` came out titled "CL-740 has been
+  replaced by CL-828." rather than "General Education Limited Assignment Teaching Permit".
+  A row that publishes no title is not a title. A leaflet's title is now taken from the row
+  whose code column names the code its own link path names, which is an agreement between two
+  published strings and therefore independent of the order the Commission prints the rows in.
+  No match changes: none of the six recovered titles equals an authorization's under any
+  rule. The count of 81 leaflets is now 81 leaflets with names rather than 75 with names and
+  six labelled with a notice about something else, and the 8 redirection rows are counted
+  separately.
+- `headings_read_past_but_not_classified` counted a heading against every authorization the
+  leaflet served, including the one that read it. "Single Subject:" is unclassified on
+  `cl-858`'s page and is now read for the authorization titled "(Single Subject)", so
+  counting it there would report a heading as passed over by the very credential that used
+  it. It is now counted per authorization that actually passed over it.
+
+### Changed
+
+- The leaflet page parser no longer refuses a page whose title disagrees with the index. It
+  still refuses a page whose `<h1>` names a different document code, which is the check that
+  says the snapshot is the right file. The title question moved to `chalkline.attachment`,
+  because it is not a question about the page: `cl-893` and `cl-902` both disagree with the
+  index and they are opposite cases, and which one is a doubt depends on the authorization
+  being matched. The rule is now "did the title the page publishes identify this
+  authorization", which refuses `cl-893` on the same grounds and with the same recorded
+  reason as before, and admits `cl-902`. Deciding it in the parser is why `cl-902` could not
+  be read at all.
+- Counted, from 18 to 22 authorizations with a leaflet; 16 to 18 carrying leaflet prose; 9 to
+  10 leaflet pages read; 22 to 36 `ceterms:ConditionProfile` nodes; 51 to 53 carrying
+  `ceterms:description`; 13 to 15 carrying requirements or renewal terms. The coverage
+  statement gains `matched_against_a_string_published_by`,
+  `authorizations_with_variant_requirements`, `variant_qualifiers_no_heading_states`,
+  `leaflet_pages_vendored`, `leaflet_pages_vendored_and_attached_to_nothing` and
+  `index_rows_redirecting_a_retired_document_code`. All 134 CTIDs are unchanged, byte for
+  byte, and none was minted: the catalog comes from the sort table, and no leaflet rule can
+  add or remove a subject.
+
+### Fixed
+
 
 - `chalkline.sources.sort_table.load` returned `()` for an artifact that kept the
   Commission's six headers and lost every row under them. That page satisfies all four of
