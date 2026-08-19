@@ -50,6 +50,68 @@ def test_missing_ledger_reads_as_empty(tmp_path: Path) -> None:
     assert ctid.load_ledger(tmp_path / "absent.json") == {}
 
 
+def test_an_explicitly_empty_ledger_is_still_a_ledger(tmp_path: Path) -> None:
+    """``"ctids": {}`` is a statement that nothing has been assigned, and it is allowed."""
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps({"note": ctid.LEDGER_NOTE, "ctids": {}}), encoding="utf-8")
+    assert ctid.load_ledger(path) == {}
+
+
+def test_a_ledger_without_a_ctids_key_is_unreadable_not_empty(tmp_path: Path) -> None:
+    """The distinction the whole stability guarantee rests on.
+
+    A file with no ``ctids`` mapping used to read as ``{}``, exactly like no file at all.
+    The next `mint-ctids` would then find every key unassigned and hand out fresh UUIDv4s
+    for all of them, which is the one thing `ctid`'s own docstring says cannot happen: "an
+    identifier that has been handed out ... does not get to change quietly."
+    """
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps({"note": ctid.LEDGER_NOTE}), encoding="utf-8")
+    with pytest.raises(ValueError, match="no 'ctids' key"):
+        ctid.load_ledger(path)
+
+
+def test_a_ledger_that_is_not_an_object_is_refused(tmp_path: Path) -> None:
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps(["ce-not-a-ledger"]), encoding="utf-8")
+    with pytest.raises(ValueError, match="not an object"):
+        ctid.load_ledger(path)
+
+
+def test_a_ctids_key_that_is_not_a_mapping_is_refused(tmp_path: Path) -> None:
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps({"ctids": [ctid.mint()]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="not an object of key-to-CTID"):
+        ctid.load_ledger(path)
+
+
+def test_a_non_string_assignment_is_reported_not_crashed_on(tmp_path: Path) -> None:
+    """A number where a CTID belongs is a value that is not a CTID, not a TypeError."""
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps({"ctids": {"a": 7}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="not CTIDs"):
+        ctid.load_ledger(path)
+
+
+def test_minting_against_an_unreadable_ledger_cannot_overwrite_the_assignments(
+    tmp_path: Path,
+) -> None:
+    """End to end: the damage the refusal above prevents.
+
+    `mint_ctids` writes the ledger back whenever it minted anything, so a ledger that reads
+    as empty is a ledger that gets replaced. This asserts the run stops instead, and that
+    the file it would have overwritten is still on disk unchanged.
+    """
+    from chalkline.cli import mint_ctids
+
+    path = tmp_path / "ledger.json"
+    original = json.dumps({"note": ctid.LEDGER_NOTE, "assignments": {"a": ctid.mint()}})
+    path.write_text(original, encoding="utf-8")
+    with pytest.raises(ValueError, match="no 'ctids' key"):
+        mint_ctids(path)
+    assert path.read_text(encoding="utf-8") == original
+
+
 def test_a_malformed_ledger_entry_stops_everything(tmp_path: Path) -> None:
     path = tmp_path / "ledger.json"
     path.write_text(json.dumps({"ctids": {"a": "not-a-ctid"}}), encoding="utf-8")

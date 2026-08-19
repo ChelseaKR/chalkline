@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from chalkline.sources import sort_table
@@ -68,6 +70,32 @@ def test_rejects_renamed_or_reordered_columns() -> None:
 def test_rejects_a_table_with_no_rows() -> None:
     with pytest.raises(ValueError, match="no rows"):
         sort_table.parse("<table></table>")
+
+
+def test_load_rejects_an_artifact_that_kept_its_headers_and_lost_its_rows(
+    tmp_path: Path,
+) -> None:
+    """The one shape of a broken page that every structural check lets through.
+
+    `parse` refuses a page with no `<table>`, no `<tr>`, renamed columns, or a short row. A
+    page holding the Commission's six headers and nothing under them satisfies all four, so
+    `parse` returns `()` — correctly, it read no rows. Read as an artifact that is what a
+    catalog of nothing looks like, and the whole pipeline publishes it: zero licences, a
+    coverage statement counting zero of everything as measured fact, a page of nine zeroed
+    tiles, and `chalkline build` exiting 0.
+    """
+    path = tmp_path / "authorization-sort-table.html"
+    path.write_text(table(), encoding="utf-8")
+    assert sort_table.parse(path.read_text(encoding="utf-8")) == ()
+    with pytest.raises(ValueError, match="header row and no data rows"):
+        sort_table.load(path)
+
+
+def test_load_accepts_an_artifact_with_a_single_row(tmp_path: Path) -> None:
+    """The refusal is about none, not about few: one row is a readable table."""
+    path = tmp_path / "authorization-sort-table.html"
+    path.write_text(table(row()), encoding="utf-8")
+    assert len(sort_table.load(path)) == 1
 
 
 def test_rejects_a_short_row() -> None:

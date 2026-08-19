@@ -136,5 +136,31 @@ def parse(markup: str) -> tuple[SortTableRow, ...]:
 
 
 def load(path: Path | None = None) -> tuple[SortTableRow, ...]:
-    """Parse the vendored sort table (or another copy, for tests)."""
-    return parse((path or SOURCE_PATH).read_text(encoding="utf-8"))
+    """Parse the vendored sort table (or another copy, for tests).
+
+    An artifact that yields no data rows is refused here rather than returned. `parse` is
+    allowed to find none, because a caller may legitimately hand it a table fragment; a
+    whole sort-table artifact holding none is a page this parser can no longer read.
+
+    The header row is what separates the two cases, and it is why `parse` cannot catch this
+    one. Its structural refusals all fire on a page that stopped looking like the sort
+    table: no `<table>`, no `<tr>` at all, renamed columns, a short row. A page that keeps
+    the Commission's six headers and loses its rows passes every one of them, and `parse`
+    returns `()` because that is what it read.
+
+    Nothing downstream then objects. `build_catalog` yields a catalog of nothing, the export
+    emits a graph holding the Commission and no licences, `validate.check` passes because
+    that graph is not empty, the coverage statement counts zero of everything and publishes
+    it as measured fact, the page renders nine count tiles reading zero, and `chalkline
+    build` prints "0 authorizations modeled, 0 excluded" and exits 0. `leaflets.load` was
+    given this same refusal for this same reason, and its docstring says `sort_table.load`
+    "has always refused its artifact on the same grounds" — which was true of every way the
+    page could stop parsing, and not of the one way it could stop having rows.
+    """
+    rows = parse((path or SOURCE_PATH).read_text(encoding="utf-8"))
+    if not rows:
+        raise ValueError(
+            f"the sort table at {path or SOURCE_PATH} publishes its header row and no data "
+            "rows; the page structure changed and an unreadable table is not an empty one"
+        )
+    return rows

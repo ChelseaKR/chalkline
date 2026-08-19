@@ -182,10 +182,22 @@ def _credential_block(
             f"<details><summary>{count} authorized {noun}</summary>"
             f'<ul class="subjects">{rows}</ul></details>'
         )
-    else:
+    elif authorization.declares_no_subject_codes:
         parts.append(
             '<p class="from">The Commission publishes <code>NONE</code> in the Subject Code '
             "column for this authorization: it is not subject-coded.</p>"
+        )
+    else:
+        # Quoting the Commission's NONE is a claim about the source, and an empty subject
+        # list is not evidence for it. Today the two coincide: `build_catalog` excludes an
+        # authorization whose subjects are neither published nor reachable by
+        # cross-reference, so every modeled authorization either carries subjects or carries
+        # the flag, and `test_site.py` pins that. The claim was being read off the empty
+        # list rather than off the flag, which meant the one branch that had to hold for the
+        # sentence to be true was the one branch nothing checked.
+        parts.append(
+            '<p class="from">No subjects are published for this authorization, and the '
+            "Commission did not publish <code>NONE</code> against it either.</p>"
         )
 
     conditions = _conditions_block(attachment)

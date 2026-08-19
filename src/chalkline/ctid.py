@@ -67,13 +67,50 @@ def load_ledger(path: Path | None = None) -> dict[str, str]:
 
     A malformed entry stops everything here rather than reaching an export, because a CTID
     that does not match the grammar is the exact bug this project exists to not demonstrate.
+
+    Two different absences, kept apart. **No ledger file** is a real state: a repository
+    before its first mint has none, and reading that as an empty mapping is correct. **A
+    ledger file that does not hold a ``ctids`` mapping** is not that state; it is a file
+    this function cannot read. Both used to arrive here as ``{}``, and the difference
+    matters because of what the empty mapping is then used for: `mint_missing` treats every
+    key as unassigned, mints a fresh UUIDv4 for each, and `save_ledger` writes the result
+    over the file. A ledger whose ``ctids`` key had been renamed, dropped in a merge, or
+    truncated away would therefore be *repaired* by re-minting all 134 identifiers, exiting
+    0 and reporting the new count as a successful run, with none of the committed CTIDs
+    surviving. Stability here rests on the file, so a file that cannot be read has to stop
+    the run rather than read as a blank slate.
     """
     ledger_path = path or LEDGER_PATH
     if not ledger_path.exists():
         return {}
     document = json.loads(ledger_path.read_text(encoding="utf-8"))
-    ctids: dict[str, str] = dict(document.get("ctids", {}))
-    bad = {key: value for key, value in ctids.items() if not is_ctid(value)}
+    if not isinstance(document, Mapping):
+        raise ValueError(
+            f"the ledger at {ledger_path} holds a {type(document).__name__}, not an object; "
+            "a ledger that cannot be read is not a ledger with nothing in it"
+        )
+    if "ctids" not in document:
+        raise ValueError(
+            f"the ledger at {ledger_path} holds no 'ctids' key. An absent mapping is not an "
+            "empty one: minting against it would re-mint every identifier and overwrite the "
+            "assignments this file exists to keep stable. Restore the file, or delete it to "
+            "start a ledger from nothing."
+        )
+    assignments = document["ctids"]
+    if not isinstance(assignments, Mapping):
+        raise ValueError(
+            f"the ledger at {ledger_path} maps 'ctids' to a {type(assignments).__name__}, "
+            "not an object of key-to-CTID assignments"
+        )
+    ctids: dict[str, str] = dict(assignments)
+    # A non-string value reaches `is_ctid` as a regex argument and raises TypeError from the
+    # `re` module, which names neither this file nor the key at fault. It is a value that is
+    # not a CTID, so it is reported as one.
+    bad = {
+        key: value
+        for key, value in ctids.items()
+        if not isinstance(value, str) or not is_ctid(value)
+    }
     if bad:
         raise ValueError(f"ledger holds values that are not CTIDs: {sorted(bad)[:5]}")
     duplicated = [value for value in set(ctids.values()) if list(ctids.values()).count(value) > 1]
