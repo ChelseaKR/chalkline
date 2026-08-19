@@ -149,3 +149,92 @@ def test_the_vendored_attachments_are_all_accounted_for(
     """Every attachment either read its page or says, in one string, why it did not."""
     for attachment in real_attachments.values():
         assert (attachment.page is None) == (attachment.refusal is not None)
+
+
+def leaflet_page(
+    *sections: leaflet_pages.Section, title: str = "A Thing"
+) -> leaflet_pages.LeafletPage:
+    return leaflet_pages.LeafletPage(
+        code="cl-1",
+        page_title=title,
+        lead=(),
+        sections=sections,
+        stopped_at=None,
+        skipped_headings=tuple(s.heading for s in sections if s.kind == leaflet_pages.UNCLASSIFIED),
+    )
+
+
+def family_attachment(page: leaflet_pages.LeafletPage, qualifier: str) -> Attachment:
+    leaflet = leaflets.Leaflet(code="cl-1", title="A Thing", url="https://example.gov/1/")
+    return Attachment(
+        match=leaflets.Match(
+            leaflet=leaflet, rule=leaflets.MATCH_NAMED_FAMILY, qualifier=qualifier
+        ),
+        page=page,
+        refusal=None,
+    )
+
+
+REQUIREMENTS_SECTION = leaflet_pages.Section(
+    heading="Requirements for Issuance",
+    level=2,
+    kind=leaflet_pages.REQUIREMENTS,
+    blocks=("Common to all.",),
+)
+SINGLE_SUBJECT = leaflet_pages.Section(
+    heading="Single Subject:",
+    level=3,
+    kind=leaflet_pages.UNCLASSIFIED,
+    blocks=("Theirs alone.",),
+    within=leaflet_pages.REQUIREMENTS,
+)
+
+
+def test_a_variant_section_the_qualifier_names_is_read_for_that_variant() -> None:
+    attachment = family_attachment(
+        leaflet_page(REQUIREMENTS_SECTION, SINGLE_SUBJECT), "Single Subject"
+    )
+    assert [s.heading for s in attachment.variant_sections] == ["Single Subject:"]
+    assert [s.heading for s in attachment.requirements] == [
+        "Requirements for Issuance",
+        "Single Subject:",
+    ]
+    assert attachment.variant_unstated is None
+    # The heading was read for this authorization, so it is not also passed over by it.
+    assert attachment.unread_headings == ()
+
+
+def test_a_qualifier_no_heading_states_is_recorded_rather_than_approximated() -> None:
+    """CL-858 heads its third breakdown "Education Specialist:" for "(Special Education)"."""
+    attachment = family_attachment(
+        leaflet_page(REQUIREMENTS_SECTION, SINGLE_SUBJECT), "Special Education"
+    )
+    assert attachment.variant_sections == ()
+    assert [s.heading for s in attachment.requirements] == ["Requirements for Issuance"]
+    assert attachment.variant_unstated == "Special Education"
+    assert attachment.unread_headings == ("Single Subject:",)
+
+
+def test_a_leaflet_that_states_no_variants_at_all_reports_nothing_missing() -> None:
+    """Absence of a breakdown is not a gap in one. Most family leaflets have no variants."""
+    attachment = family_attachment(leaflet_page(REQUIREMENTS_SECTION), "Special Education")
+    assert attachment.variant_sections == ()
+    assert attachment.variant_unstated is None
+
+
+def test_a_snapshot_that_is_another_document_is_recorded_rather_than_raised(
+    tmp_path: Path,
+) -> None:
+    """The one refusal the parser still makes: the page's <h1> names a different leaflet."""
+    (tmp_path / "cl-380.html").write_text(
+        '<html><body><article><h1 class="entry-title">Something Else (CL-999)</h1>'
+        '<div class="et_pb_with_border et_pb_section" ><p>x</p></div></article></body></html>',
+        encoding="utf-8",
+    )
+    catalog = catalog_of("School Nurse Services Credential")
+    index = index_of(("cl-380", "School Nurse Services Credential"))
+    (attachment,) = attach(catalog, index, tmp_path).values()
+    assert attachment.page is None
+    assert attachment.refusal is not None
+    assert "not the leaflet the index named" in attachment.refusal
+    assert attachment.description == ()

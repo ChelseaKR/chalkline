@@ -25,6 +25,10 @@ dev = [
   "pytest-cov>=7.1.0",
   "pytest-xdist>=3.8.0",
   "pip-audit>=2.10.1",
+  # An independently written implementation of the same specification, used as a second
+  # opinion on the published graph. Pinned rather than floated: a new rule appearing in a
+  # patch release is a fact about CTDL worth reviewing in a diff, not absorbing silently.
+  "ctdl-validate==0.2.1",
 ]
 
 [tool.hatch.build.targets.wheel]

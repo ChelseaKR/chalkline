@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check audit verify clean
+.PHONY: install lock lock-check lint format typecheck test build check validate audit verify clean
 
 install:
 	$(UV) sync --locked
@@ -45,6 +45,18 @@ build:
 check:
 	$(UVRUN) chalkline check
 
+# A second opinion on the published graph, from an implementation this repository did not
+# write. `chalkline check` says the bytes are what this code produces; this says those bytes
+# also satisfy a checker built from the same specification by other means. The two tools
+# check different rule families -- this project validates class, property, domain and range
+# against the vendored schema encoding, and ctdl-validate checks CTID grammar, identifier
+# kinds, reference targets and class pairings -- so neither subsumes the other and the
+# interesting outcome is a disagreement, not a pass.
+#
+# It makes no network calls, so `verify` stays offline. It is pinned in pyproject.toml.
+validate:
+	$(UVRUN) ctdl-validate site/credentials.jsonld
+
 # Not part of `verify`: pip-audit queries the PyPI advisory API, and `verify` is offline by
 # design. CI runs this as its own job, and a new advisory against an unchanged tree is a
 # fact about the world rather than a regression in this commit.
@@ -53,7 +65,11 @@ audit:
 
 # lock-check runs first on purpose. Every later target would otherwise be the thing that
 # repaired the lockfile it was supposed to be checked against.
-verify: lock-check lint typecheck test check
+#
+# `validate` runs after `check`, and the order is the point: `check` proves site/ is what the
+# code produces, and only then is validating those committed bytes a statement about this
+# build rather than about whatever was last committed.
+verify: lock-check lint typecheck test check validate
 	@echo "verify: ok"
 
 clean:

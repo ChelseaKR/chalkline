@@ -8,6 +8,7 @@
   "sha256": "970801b321e44d5f9265f28563fdaa73eaf6e5c3a04f481c5682ae56b3013a6b",
   "publisher": "California Commission on Teacher Credentialing",
   "index_title": "Certificate of Completion of Staff Development",
+  "page_title": "Certificate of Completion of Staff Development",
   "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-824`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
-  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+  "purpose": "Attached. The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
 }

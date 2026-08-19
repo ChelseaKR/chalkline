@@ -24,8 +24,8 @@ from chalkline.ctdl import export as export_module
 from chalkline.ctdl import validate as validate_module
 from chalkline.model import Catalog, build_catalog
 from chalkline.site import render
+from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
-from chalkline.sources import sort_table
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SITE_DIR = REPO_ROOT / "site"
@@ -38,13 +38,16 @@ def _catalog() -> Catalog:
 
 def _artifacts(catalog: Catalog) -> dict[str, str]:
     """The three published files, as text, without writing anything."""
-    published = leaflets_module.load()
-    attachments = attach(catalog, leaflets_module.index_by_title(published))
+    index = leaflets_module.load_index()
+    attachments = attach(
+        catalog, leaflets_module.index_by_title(index.leaflets), published=index.leaflets
+    )
+    vendored = leaflet_pages.available()
     ctids = ctid_module.load_ledger()
     document = export_module.project_graph(catalog, ctids, attachments)
     validate_module.check(document)
-    statement = export_module.coverage(document, catalog, attachments, len(published))
-    export_module.check_coverage(statement, document, catalog, attachments, len(published))
+    statement = export_module.coverage(document, catalog, attachments, index, vendored)
+    export_module.check_coverage(statement, document, catalog, attachments, index, vendored)
     return {
         export_module.GRAPH_FILENAME: export_module.serialize(document),
         export_module.COVERAGE_FILENAME: export_module.serialize(statement),

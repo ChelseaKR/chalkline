@@ -1,0 +1,14 @@
+{
+  "file": "cl-797.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-797/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-797/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 115619,
+  "sha256": "85ceacc4ca5efbec5b46d7e704676add33f29c41dc1fc94d28e9cfa64c42c71d",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Child Development Permits",
+  "page_title": "Child Development Permits",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-797`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. The index titles it 'Child Development Permits', a plural naming a family whose six members the Commission names individually in the sort table; the page titles itself the same. Kept as the evidence for that finding."
+}

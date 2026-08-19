@@ -1,0 +1,14 @@
+{
+  "file": "cl-902.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-902/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-902/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 94943,
+  "sha256": "545cc6eadeb723ba52c0dbf52ba0376b55d7e80a3adbfddd719f4d4f0041d1b0",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "The Teaching Permit for Statutory Leave (TPSL)",
+  "page_title": "Teaching Permit for Statutory Leave",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-902`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Attached. The Commission's index titles this leaflet 'The Teaching Permit for Statutory Leave (TPSL)' and the page titles itself 'Teaching Permit for Statutory Leave', which is the family base of the two authorizations the sort table publishes as 'Teaching Permit for Statutory Leave (Multiple Subject)' and '(Single Subject)'. Read for description, requirements including the per-variant breakdown, and renewal terms."
+}

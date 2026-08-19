@@ -8,6 +8,7 @@
   "sha256": "62973ee1470e106825b5f92400747170f4896dae0fd4021bb49a3d38c2f8dc99",
   "publisher": "California Commission on Teacher Credentialing",
   "index_title": "School Nurse Services Credential",
+  "page_title": "School Nurse Services Credential",
   "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-380`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
-  "purpose": "The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
+  "purpose": "Attached. The Commission's leaflet for this document, as served. Read for the prose the Authorization Sort Table does not carry: description, requirements, and renewal terms. Retrieved only because a published title identifies it with an authorization this project models."
 }

@@ -1,0 +1,14 @@
+{
+  "file": "cl-828.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-828/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-828/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 90562,
+  "sha256": "e4ec4d6b411e9d0bfb944b4b28933f3b2ddd91d7c7cb8fa7a4c8be114bf755e6",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "General Education Limited Assignment Teaching Permit",
+  "page_title": "General Education Multiple and Single Subject Limited Assignment Teaching Permits",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-828`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. Its index row is a redirection from the retired CL-740, and its own row titles it 'General Education Limited Assignment Teaching Permit'; the page titles itself 'General Education Multiple and Single Subject Limited Assignment Teaching Permits', which names both authorizations at once and equals neither. Kept as the evidence for that finding."
+}

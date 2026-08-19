@@ -6,7 +6,7 @@ import pytest
 
 from chalkline.attachment import Attachment, attach
 from chalkline.model import Catalog, build_catalog
-from chalkline.sources import leaflets, sort_table
+from chalkline.sources import leaflet_pages, leaflets, sort_table
 
 HEADER_ROW = (
     "<tr><th>Document Title</th><th>Authorization Title</th><th>Authorization Code</th>"
@@ -48,8 +48,14 @@ def real_catalog(real_rows: tuple[sort_table.SortTableRow, ...]) -> Catalog:
 
 
 @pytest.fixture(scope="session")
-def real_leaflets() -> tuple[leaflets.Leaflet, ...]:
-    return leaflets.load()
+def real_index() -> leaflets.Index:
+    """The vendored leaflet index: titled leaflets, and the rows that only redirect."""
+    return leaflets.load_index()
+
+
+@pytest.fixture(scope="session")
+def real_leaflets(real_index: leaflets.Index) -> tuple[leaflets.Leaflet, ...]:
+    return real_index.leaflets
 
 
 @pytest.fixture(scope="session")
@@ -60,8 +66,16 @@ def leaflet_index(
 
 
 @pytest.fixture(scope="session")
+def vendored_pages() -> tuple[str, ...]:
+    """Every leaflet page this repository holds a snapshot for."""
+    return leaflet_pages.available()
+
+
+@pytest.fixture(scope="session")
 def real_attachments(
-    real_catalog: Catalog, leaflet_index: dict[str, leaflets.Leaflet]
+    real_catalog: Catalog,
+    leaflet_index: dict[str, leaflets.Leaflet],
+    real_leaflets: tuple[leaflets.Leaflet, ...],
 ) -> dict[str, Attachment]:
     """Every leaflet this project attaches to the vendored catalog, read once."""
-    return attach(real_catalog, leaflet_index)
+    return attach(real_catalog, leaflet_index, published=real_leaflets)

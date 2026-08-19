@@ -1,0 +1,14 @@
+{
+  "file": "cl-889.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-889/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-889/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 97120,
+  "sha256": "d2ad5623eede0b0da162c0b8a18a90c93de19af8890cbfa4854ab7f117d60756",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Special Education Limited Assignment Permit",
+  "page_title": "Special Education Limited Assignment Permit",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-889`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. Near miss on one word ('Special Education Limited Assignment Permit' against 'Special Education Limited Assignment Teaching Permit'); the page titles itself the same as the index. Kept as the evidence for that finding."
+}

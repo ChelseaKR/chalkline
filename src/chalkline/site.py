@@ -126,6 +126,15 @@ def _conditions_block(attachment: Attachment | None) -> str:
                 f"<details><summary>{_e(label)}: {_e(section.heading)}</summary>"
                 f'<ul class="conditions">{items}</ul></details>'
             )
+    unstated = attachment.variant_unstated
+    if unstated is not None:
+        parts.append(
+            '<p class="from">This leaflet breaks its requirements out by variant and states '
+            f"none under &ldquo;{_e(unstated)}&rdquo;, the qualifier the Commission publishes "
+            "in this authorization's own title. Only the requirements it states for the "
+            "permit as a whole are shown; matching this variant to a differently worded "
+            "heading would be this project's judgement rather than the Commission's.</p>"
+        )
     return "".join(parts)
 
 
@@ -212,7 +221,7 @@ def _credential_block(
         leaflet = attachment.leaflet
         links.append(
             f'<a href="{_e(leaflet.url)}">Leaflet {_e(leaflet.code.upper())}</a> '
-            f"({_e(attachment.match.rule)})"
+            f"({_e(attachment.match.rule)}, matched against {_e(attachment.match.published_by)})"
         )
     parts.append(f'<p class="meta">{" &middot; ".join(links)}</p>')
     parts.append("</article>")

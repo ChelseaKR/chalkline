@@ -1,0 +1,14 @@
+{
+  "file": "cl-529.html",
+  "requested_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-529/",
+  "final_url": "https://www.ctc.ca.gov/credentials/leaflets/cl-529/",
+  "retrieved": "2026-08-19",
+  "http_status": 200,
+  "bytes": 92964,
+  "sha256": "d0bd2c1d14926d2a56df56eb8d4fd4037d126bb28445e3ef3559bac26750e7ee",
+  "publisher": "California Commission on Teacher Credentialing",
+  "index_title": "Specialist Instruction Credentials",
+  "page_title": "Specialist Instruction Credentials",
+  "access": "Public web page, retrieved with a single unauthenticated GET by `python scripts/fetch_sources.py leaflets cl-529`. https://www.ctc.ca.gov/robots.txt disallows only /wp-admin/; this path is permitted. No bot protection was encountered and none was circumvented.",
+  "purpose": "Retrieved and not attached. Near miss on singular against plural ('Specialist Instruction Credentials' against 'Specialist Instruction Credential'); the page titles itself the same as the index. Kept as the evidence for that finding."
+}
