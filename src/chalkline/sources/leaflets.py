@@ -123,6 +123,12 @@ def load(path: Path | None = None) -> tuple[Leaflet, ...]:
     attached, descriptions and conditions dropped out of the graph, the coverage statement
     published the smaller figures as fact, and every gate stayed green. `_LINK_RE` needs a
     path-relative href, so a CMS switching to absolute URLs is all it would take.
+
+    This docstring used to say `sort_table.load` "has always refused its artifact on the same
+    grounds". That was true of every way the sort-table page could stop *parsing* and false
+    of the one way it could stop having rows: a table keeping the Commission's six headers
+    and losing every row under them satisfied all four of that parser's structural checks and
+    returned `()`. `sort_table.load` now carries this same refusal, so the sentence holds.
     """
     leaflets = parse((path or SOURCE_PATH).read_text(encoding="utf-8"))
     if not leaflets:

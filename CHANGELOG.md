@@ -8,6 +8,40 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `chalkline.sources.sort_table.load` returned `()` for an artifact that kept the
+  Commission's six headers and lost every row under them. That page satisfies all four of
+  the parser's structural refusals — one `<table>`, at least one `<tr>`, the expected
+  headers, full-width rows — so nothing objected, and the empty read propagated as fact:
+  a catalog of nothing, a graph holding the Commission and no licences, a `validate.check`
+  that passed because that graph is not empty, a coverage statement counting zero of
+  everything, a page of nine zeroed tiles, and `chalkline build` printing
+  "0 authorizations modeled, 0 excluded" and exiting 0. This is the same refusal
+  `leaflets.load` was given, on the same grounds, at the same boundary: `parse` still
+  returns `()` for a fragment that genuinely holds no rows, and the artifact loader refuses.
+  The `leaflets.load` docstring's claim that `sort_table.load` "has always refused its
+  artifact on the same grounds" was true of every way that page could stop parsing and false
+  of the one way it could stop having rows; it is now true as written.
+- `chalkline.ctid.load_ledger` read a ledger file holding no `ctids` mapping as `{}`, which
+  is what it also returns when there is no ledger file at all. The two are not the same
+  state, and the difference is what the empty mapping is then used for: `mint_missing` finds
+  every key unassigned, mints a fresh UUIDv4 for each, and `save_ledger` writes the result
+  over the file. A `ctids` key renamed, dropped in a merge, or truncated away would
+  therefore have been repaired by re-minting all 134 identifiers, reporting the new count as
+  a successful run and exiting 0, with none of the committed CTIDs surviving — the one thing
+  the module's own docstring says cannot happen. A missing file still reads as empty, an
+  explicit `"ctids": {}` is still an allowed statement that nothing has been assigned, and
+  a file that cannot be read now stops the run. A non-string assignment is reported as a
+  value that is not a CTID rather than raising `TypeError` from inside `re`.
+- The page printed "The Commission publishes `NONE` in the Subject Code column for this
+  authorization" whenever an authorization had no subjects, reading a claim about the source
+  off an empty list rather than off `declares_no_subject_codes`, the field that records it.
+  The two coincide on the vendored artifact because `build_catalog` excludes an
+  authorization whose subjects are neither published nor reachable by cross-reference, so
+  the published page never carried a wrong sentence and its bytes do not change here. That
+  invariant held across three code paths and nothing asserted it, which is why reading the
+  wrong variable was invisible; it is now stated as a test over the real catalog, and the
+  third case prints what is actually true of it.
+
 - The CTDL validator accepted any string where a property's range admits a CTDL class. A
   string there is a reference to such a node, which is what the module docstring already
   claimed, but nothing enforced it: an organization's name sat in `ceterms:ownedBy` as

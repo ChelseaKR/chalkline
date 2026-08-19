@@ -8,7 +8,7 @@ from html.parser import HTMLParser
 
 from chalkline import ctid as ctid_module
 from chalkline.attachment import Attachment
-from chalkline.model import Catalog, build_catalog
+from chalkline.model import Authorization, Catalog, build_catalog
 from chalkline.site import render
 from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
@@ -87,6 +87,46 @@ def test_markup_in_source_text_is_escaped() -> None:
 def test_a_not_subject_coded_credential_says_so() -> None:
     catalog = build_catalog(sort_table.parse(table(row(subject_code="NONE", subject=""))))
     assert "not subject-coded" in rendered(catalog)
+
+
+def test_the_none_claim_is_read_off_the_flag_and_not_off_an_empty_list() -> None:
+    """The page quotes the Commission's ``NONE`` only where the Commission published it.
+
+    `declares_no_subject_codes` is the field that records that the Commission published
+    ``NONE``; an empty subject tuple only records that this authorization has no subjects.
+    The page used to print the ``NONE`` sentence from the empty tuple, which is a statement
+    about the source made from something that is not evidence of it.
+    """
+    silent = Authorization(
+        document_title="TC1",
+        title="Silent Credential",
+        authorization_code="ZZZ",
+        document_codes=("TC1",),
+        authorization_codes=("ZZZ",),
+        subjects=(),
+        declares_no_subject_codes=False,
+        shared_notes=(),
+    )
+    page = rendered(Catalog(authorizations=(silent,), exclusions=(), source_rows=1))
+    assert "not subject-coded" not in page
+    assert "did not publish <code>NONE</code>" in page
+
+
+def test_every_modeled_authorization_has_subjects_or_declares_none(
+    real_catalog: Catalog,
+) -> None:
+    """The invariant that made the old branch true, stated instead of relied upon.
+
+    `build_catalog` excludes an authorization whose subjects are neither published nor
+    reachable through a cross-reference, so a modeled one always lands in exactly one of the
+    two states the page renders. That held by construction across three separate code paths
+    and nothing asserted it, which is why printing the ``NONE`` sentence from the wrong
+    variable stayed invisible.
+    """
+    for authorization in real_catalog.authorizations:
+        assert bool(authorization.subjects) != authorization.declares_no_subject_codes, (
+            f"{authorization.key} carries neither subjects nor the Commission's NONE"
+        )
 
 
 def attached(
