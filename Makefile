@@ -59,14 +59,22 @@ check:
 # and the stale evidence has to be regenerated and reviewed as a diff, the same discipline
 # `chalkline check` holds credentials.jsonld and coverage.json to.
 #
-# It makes no network calls, so `verify` stays offline. ctdl-validate is pinned in
-# pyproject.toml.
+# It makes no network calls itself. ctdl-validate is pinned in pyproject.toml. (`verify` as a
+# whole does reach the network, once, in the `audit` step that runs after this one.)
 validate:
 	$(UVRUN) python scripts/validate_evidence.py --check
 
-# Not part of `verify`: pip-audit queries the PyPI advisory API, and `verify` is offline by
-# design. CI runs this as its own job, and a new advisory against an unchanged tree is a
-# fact about the world rather than a regression in this commit.
+# pip-audit queries the PyPI advisory API, so this is the one target in `verify` that is not
+# offline. It runs last, for the same reason a network call belongs last in a chain of
+# otherwise-deterministic gates: everything decidable from the committed tree alone has
+# already been decided by the time this one reaches the network. It is also its own CI job
+# (`make audit`, matching this target exactly), because a new advisory against an unchanged
+# tree is a fact about the world discovered between commits rather than a regression *in* a
+# commit, and that distinction is worth its own line in a CI run. Until 2026-08-21 this target
+# was excluded from `verify` on the reasoning above; the reasoning was correct about what an
+# audit finding *means* and wrong about what `make verify` is for. A contributor who ran only
+# `make verify` locally saw green while an unrun `pip-audit` sat behind it, and `verify` is
+# supposed to be the one target that tells the truth about what CI requires (issue #22).
 audit:
 	$(UVRUN) pip-audit --strict
 
@@ -75,8 +83,10 @@ audit:
 #
 # `validate` runs after `check`, and the order is the point: `check` proves site/ is what the
 # code produces, and only then is validating those committed bytes a statement about this
-# build rather than about whatever was last committed.
-verify: lock-check lint typecheck test check validate
+# build rather than about whatever was last committed. `audit` runs last because it is the
+# one target here that reaches the network; everything before it is decided from the
+# committed tree alone.
+verify: lock-check lint typecheck test check validate audit
 	@echo "verify: ok"
 
 clean:

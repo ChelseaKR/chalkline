@@ -1,18 +1,20 @@
-# Least-privilege GITHUB_TOKEN, SHA-pinned actions, and four reporting jobs: SAST, secret
-# scan and SCA from SECURITY-AND-SUPPLY-CHAIN-STANDARD §§4-5, plus `make verify` from
-# CODE-QUALITY-STANDARD §2.
+# Least-privilege GITHUB_TOKEN, SHA-pinned actions, and five reporting jobs: SAST (Semgrep
+# over src/tests/scripts, zizmor over the workflow files themselves) and secret scan and SCA
+# from SECURITY-AND-SUPPLY-CHAIN-STANDARD §§4-5, plus `make verify` from
+# CODE-QUALITY-STANDARD §2. `codeql.yml` adds a sixth job, `analyze`, a second and
+# independently built opinion on the workflow files alongside zizmor.
 #
-# These jobs report. They do not block. `main` carries no protection: as of 2026-08-15
-# `gh api repos/ChelseaKR/chalkline/rulesets` returns `[]`, `branches/main` returns
-# `"protected": false`, and `branches/main/protection` returns 404. Nothing here prevents a
-# direct push to `main`, a force-push, a branch deletion, or a merge over a red run. An
-# earlier version of this header called these gates merge-blocking, which was the one claim
-# in the file a reader was most likely to check and the one thing it got wrong.
+# These jobs report. They do not yet block. `main` carries no protection as of this commit:
+# `gh api repos/ChelseaKR/chalkline/rulesets` returns `[]`. Nothing here prevents a direct
+# push to `main`, a force-push, a branch deletion, or a merge over a red run. An earlier
+# version of this header called these gates merge-blocking, which was the one claim in the
+# file a reader was most likely to check and the one thing it got wrong.
 #
-# Making them binding is a repository setting, not a change to this file. It needs a
-# ruleset on `main` requiring `verify`, `audit`, `secret-scan` and `sast` by those exact job
-# names, plus `non_fast_forward` and `deletion`. Until that ruleset exists, treat a green
-# run here as evidence and not as an obstacle. Tracked in issue #22.
+# Making them binding is a repository setting, not a change to this file, and it needs these
+# job names to exist and have run at least once first. It needs a ruleset on `main` requiring
+# `verify`, `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` by those exact job names,
+# plus `non_fast_forward` and `deletion`. Until that ruleset exists, treat a green run here
+# as evidence and not as an obstacle. Tracked in issue #22.
 #
 # Every action is pinned to the full 40-char commit SHA of its tag, resolved 2026-08-07 via
 # `gh api repos/OWNER/REPO/commits/TAG`. Actions stay `@<sha> # vX.Y.Z` so the version is
@@ -101,3 +103,19 @@ jobs:
           version: ">=0.11.0"
           python-version: "3.12"
       - run: uvx --from semgrep==1.168.0 semgrep scan --error --metrics off --config p/python --config p/security-audit src tests scripts
+
+  # Workflow SAST (CICD-13): lints .github/workflows/** for injection, missing permissions,
+  # unpinned actions, credential persistence, and the other ways a workflow file itself can
+  # be the vulnerability. `sast` above scans src/tests/scripts; nothing scanned the workflows
+  # that run them until this job. Zero findings expected -- verified locally before this job
+  # was added, the same discipline `verify` holds the rest of the tree to.
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # zizmor-action uploads its SARIF report to Code Scanning
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7

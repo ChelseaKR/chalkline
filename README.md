@@ -11,9 +11,24 @@ page.
 > could look like. **Nothing here has been published to the Credential Registry**, in
 > production or in a sandbox, and the CTIDs in this repository are not Registry-assigned.
 
-**Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations and
-twelve credential leaflets are modeled, tested, and published as JSON-LD. This is one worked
-example, not a complete representation of California educator credentials.
+**Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations are
+modeled, tested, and published as JSON-LD; 19 vendored credential leaflets extend 22 of them
+with descriptions, requirements, or renewal terms. This is one worked example, not a
+complete representation of California educator credentials.
+
+## Quickstart
+
+```bash
+uv sync
+uv run chalkline build   # write site/ from the vendored sources
+uv run chalkline check   # verify committed site/ matches a fresh build
+make verify               # the full local gate: lint, typecheck, tests, build check, CTDL
+                           # validation (this project's own, and the independent ctdl-validate),
+                           # dependency audit
+```
+
+Nothing above touches the network; see [Usage](#usage) below for the full command set and
+what does.
 
 ## What this is
 
@@ -187,15 +202,20 @@ deliberately **not** retrieved, because the authorizations they would describe a
 for want of a published scope and no answer could have changed the graph.
 
 ```bash
-make verify   # lockfile check, lint, typecheck, tests with coverage, build check, CTDL validation
+make verify   # lockfile check, lint, typecheck, tests with coverage, build check,
+              # CTDL validation, dependency audit
 make validate # the independent CTDL validator alone, over the committed graph
+make audit    # pip-audit alone, against the PyPI advisory API
 make lock     # regenerate uv.lock after changing a dependency; nothing else rewrites it
 ```
 
 Every target that runs a tool runs it through `uv run --locked`, and `make verify` opens with
 `uv lock --check --offline`, so a `uv.lock` that no longer agrees with `pyproject.toml` fails
 the gate rather than being silently repaired by it. `make lock` is the one target allowed to
-rewrite the lockfile.
+rewrite the lockfile. `make verify` ends with `make audit`, the one step in it that reaches the
+network (the PyPI advisory API): everything decidable from the committed tree alone is decided
+first, and a contributor who runs `make verify` locally sees exactly what CI requires to merge,
+which is the whole reason `verify` exists as a single target rather than a suggested order.
 
 ## Provenance
 
@@ -214,7 +234,7 @@ result says so instead of being left out.
 |---|---|---|
 | Responsible-Tech Framework | Applies — the unofficial status, the fact that nothing has been published to the Credential Registry, and the refusal to circumvent bot protection or access controls are stated at the top of this README, in the generated page, and in [SECURITY.md](SECURITY.md). **Not yet written:** there is no separate responsible-technology audit document. | [PROVENANCE.md](PROVENANCE.md) records every source, every exclusion with its reason, and every property deliberately not emitted. |
 | Code Quality | Applies | `make verify` is the gate and CI runs that exact target: `uv lock --check --offline`, ruff lint and format check, mypy over `src tests scripts`, pytest with a 90% coverage floor, and the build-output check. Floors are pinned in `pyproject.toml`: Python >= 3.12, ruff >= 0.16.2, mypy >= 2.3.0, complexity <= 10. Every invocation is `uv run --locked`, so a drifted lockfile fails rather than being silently repaired. |
-| Security & Supply-Chain | Applies | [SECURITY.md](SECURITY.md) names the private reporting channel and the real risk surface. CI runs gitleaks over full history, Semgrep, and `pip-audit --strict`. There are no runtime dependencies; dev dependencies are locked in `uv.lock` and updated by Dependabot with a cooldown, and every GitHub Action is pinned to a full commit SHA. |
+| Security & Supply-Chain | Applies | [SECURITY.md](SECURITY.md) names the confidential reporting channel and the real risk surface. CI runs gitleaks over full history, Semgrep, and `pip-audit --strict`. There are no runtime dependencies; dev dependencies are locked in `uv.lock` and updated by Dependabot with a cooldown, and every GitHub Action is pinned to a full commit SHA. |
 | CI/CD | Applies | `.github/workflows/ci.yml` runs `make verify` byte for byte with the local target, plus separate audit, secret-scan, and SAST jobs; `pages.yml` republishes only when the committed `site/` still matches what the code produces. Every workflow declares a top-level least-privilege `permissions:` block. |
 | Release & Versioning | Applies — no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. |
 | Observability | Applies — the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml` |
@@ -225,7 +245,7 @@ result says so instead of being left out.
 | Documentation | Applies | This README, [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CITATION.cff](CITATION.cff), [PROVENANCE.md](PROVENANCE.md), the modelling notes in `docs/MODELING.md` and `docs/IDENTIFIERS.md`, and five ADRs in [docs/adr/](docs/adr/). |
 | Quality & Metrics | Applies — the merge-blocking gate is `make verify` with a 90% coverage floor, and the coverage statement the build publishes is counted from the graph at build time rather than asserted by hand. **Not yet written:** there is no separate metrics ledger document. | `pyproject.toml`, [`site/coverage.json`](site/coverage.json) |
 | AI Development Measurement | Applies — no AI-development baseline is recorded in this repository, and no activity counter (sessions, tokens, lines changed, percent AI-generated) is tracked or gated. The gates that do exist are outcome-side: `make verify` on every change. | `Makefile`, `.github/workflows/ci.yml` |
-| Incident Response | Applies — the private reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
+| Incident Response | Applies — the confidential reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
 | Data Governance | Applies — every input is public information published by a California state agency, and there is no personal data anywhere in this repository. Source snapshots are committed and hash-checked, so a change to one is visible in review. | [PROVENANCE.md](PROVENANCE.md) records each source URL, retrieval date, byte count, and sha256; CTIDs come from a committed ledger rather than being minted per build ([ADR 0003](docs/adr/0003-uuidv4-ctids-from-a-committed-ledger.md)). |
 
 ## License
