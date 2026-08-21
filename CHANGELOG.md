@@ -6,8 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- `make verify` now runs `make audit` as its last step. Until 2026-08-21 a local `make verify`
+  was green without `pip-audit` ever having run, while CI additionally required a separate
+  `audit` job to pass — so `make verify` did not tell the truth about what CI required, which
+  is the one thing a target named `verify` cannot afford to get wrong (issue #22).
+- The README's Status line said "twelve credential leaflets" since 2026-08-08 and was never
+  updated as leaflet coverage moved; it now reads 19 vendored leaflets extending 22
+  authorizations, matching `site/coverage.json`.
+- "private reporting channel" in two Standards Conformance rows read as "private repo" to a
+  naive substring check (`portfolio-standards/automation/conformance_check.py`'s
+  `stale_private_refs` control), a false positive this repository is in fact public and has
+  been since 2026-08-08. Reworded to "confidential reporting channel"; the meaning is
+  unchanged.
+
 ### Added
 
+- `.github/workflows/codeql.yml`: CodeQL's `actions` language over the workflow files, and a
+  `zizmor` job in `ci.yml`, a second, independently built implementation of the same
+  workflow-SAST idea. Both upload SARIF to Code Scanning.
+- `.standards-version` (`v2.0.0`), the vendored portfolio-standards pin DOC-01 asks for, and
+  `tests/test_standards_pin.py`, which checks it names a released tag and never a branch.
+- A `## Quickstart` section in the README's first 20 lines.
 - `scripts/validate_evidence.py`, which runs the independently written `ctdl-validate` CLI
   (pinned `0.2.1`) as a separate process against the committed `site/credentials.jsonld` and
   writes or checks its `--format json` report at `site/ctdl-validate.json`, a fourth

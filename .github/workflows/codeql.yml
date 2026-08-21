@@ -1,0 +1,45 @@
+# SAST for the workflow files, CodeQL's "actions" language (CICD-13). `sast` in ci.yml
+# already covers src/tests/scripts with Semgrep, and `zizmor` there covers the workflow files
+# with a purpose-built linter; this is a second, independently built implementation of the
+# same workflow-SAST idea, the same "neither subsumes the other" reasoning this project
+# applies to its own CTDL validators. Only the `actions` language is analyzed here -- not
+# `python` -- because Semgrep already holds that ground and running CodeQL over it too would
+# be a second, more expensive opinion this repository has not asked for.
+#
+# On a schedule as well as on every PR and push to main, so drift in CodeQL's own query packs
+# gets caught even on a quiet repository between changes.
+#
+# Every action is pinned to the full 40-char commit SHA of its tag, per
+# SECURITY-AND-SUPPLY-CHAIN-STANDARD §6.
+name: codeql
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 8 * * 3" # Wednesday 08:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # required to upload CodeQL results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          languages: actions
+      - uses: github/codeql-action/analyze@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+        with:
+          category: "/language:actions"
