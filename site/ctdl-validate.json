@@ -1,0 +1,13 @@
+{
+  "findings": [],
+  "summary": {
+    "ERROR": 0,
+    "INFO": 0,
+    "UNVERIFIABLE": 0,
+    "WARNING": 0
+  },
+  "tool": {
+    "name": "ctdl-validate",
+    "version": "0.2.1"
+  }
+}
