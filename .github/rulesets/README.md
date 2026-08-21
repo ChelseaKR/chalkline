@@ -6,9 +6,25 @@ diff. CI-CD-STANDARD §5 asks for exactly that: "Branch protection is enforced t
 repository-owned GitHub Ruleset named `protect-main` and committed as a per-repo artifact so
 the posture is reviewable in-tree."
 
-## It is not applied yet
+## Applied and verified, 2026-08-21
 
-Checked 2026-08-15:
+Posted via `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`
+(recreated once, at ruleset id `21156701`, after a PATCH attempt against the first posting
+404'd for reasons that look like a `gh` CLI/API quirk rather than anything about the ruleset
+itself -- DELETE then POST again worked cleanly).
+
+| Query | Result |
+|---|---|
+| `gh api repos/ChelseaKR/chalkline/rulesets` | one active `protect-main` ruleset, `current_user_can_bypass: "never"` |
+| `gh api repos/ChelseaKR/chalkline/branches/main` | `"protected": true` |
+
+Not taken on the API response's word: a throwaway PR (#29) carried a deliberately failing
+test so `verify` would go red for real. With `verify` red, `gh pr merge` was refused
+("the base branch policy prohibits the merge") and `mergeStateStatus` read `BLOCKED`. The PR
+was closed unmerged and its branch deleted. `portfolio-standards/automation/conformance_check.py
+--repo` also reports `branch_protection_effective: PASS` against the live repository.
+
+Checked before applying, 2026-08-15:
 
 | Query | Result |
 |---|---|
@@ -16,16 +32,14 @@ Checked 2026-08-15:
 | `gh api repos/ChelseaKR/chalkline/branches/main` | `"protected": false` |
 | `gh api repos/ChelseaKR/chalkline/branches/main/protection` | 404, Branch not protected |
 
-Applying it is a repository setting and a deliberate act by the owner, not something a
-change to this directory performs. Committing the file does not enforce it, and this README
-exists so nobody reads the file's presence as evidence that it is in force.
-
 ## What it covers, and what it deliberately does not
 
 `main.json` carries three rules: `deletion`, `non_fast_forward`, and `required_status_checks`
-naming `verify`, `audit`, `secret-scan` and `sast`. Those are the four job names in
-`.github/workflows/ci.yml` as they stand, and they are the whole of what this repository can
-require today without requiring a check that does not exist. A required context that never
+naming `verify`, `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` (the last two added
+2026-08-21, when `zizmor` and CodeQL's `actions` language joined `ci.yml`/`codeql.yml` as a
+second, independently built opinion on the workflow files, issue #22). Those are every job
+name across `.github/workflows/*.yml` today, and they are the whole of what this repository
+can require without requiring a check that does not exist. A required context that never
 reports is a branch nothing can merge to.
 
 The full profile in `CI-CD-STANDARD.md` §5 has three more rules, and each is left out for a
@@ -55,15 +69,22 @@ a solo profile: that validator requires a `solo-governance` status check, and no
 exists here. Standing up an attestation job only so a validator passes would be the same
 kind of empty gate this file is trying to correct.
 
-## Applying it
+## Re-applying it
 
-The file is in the shape the REST API accepts, so it can be posted as-is by the owner:
+The file is in the shape the REST API accepts, so it can be posted as-is:
 
 `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`
 
+(`gh api ... -X PATCH repos/.../rulesets/<id>` 404'd against this repository on 2026-08-21 for
+reasons that did not reproduce as a documented API or `gh` behavior; DELETE-then-POST worked.
+If updating an existing ruleset in place ever matters again, try PATCH first and fall back to
+delete-then-recreate.)
+
 Confirm afterwards that `gh api repos/ChelseaKR/chalkline/rulesets` returns it and that
-`gh api repos/ChelseaKR/chalkline/branches/main` reports `"protected": true`, then update
-the header of `.github/workflows/ci.yml`, which currently states that nothing is enforced.
+`gh api repos/ChelseaKR/chalkline/branches/main` reports `"protected": true` -- and, because
+an API response is not the same thing as a merge actually being refused, confirm it with a
+real PR: push a commit that fails one of the required checks, open a PR against `main`, and
+confirm both `gh pr merge` and `mergeStateStatus` refuse it before closing the PR unmerged.
 
 `outcome-receipts/.github/rulesets/main.json` is the portfolio's reference for a complete
 committed profile. `ledger` has a live and working `protect-main` ruleset but no committed

@@ -4,17 +4,16 @@
 # CODE-QUALITY-STANDARD §2. `codeql.yml` adds a sixth job, `analyze`, a second and
 # independently built opinion on the workflow files alongside zizmor.
 #
-# These jobs report. They do not yet block. `main` carries no protection as of this commit:
-# `gh api repos/ChelseaKR/chalkline/rulesets` returns `[]`. Nothing here prevents a direct
-# push to `main`, a force-push, a branch deletion, or a merge over a red run. An earlier
-# version of this header called these gates merge-blocking, which was the one claim in the
-# file a reader was most likely to check and the one thing it got wrong.
-#
-# Making them binding is a repository setting, not a change to this file, and it needs these
-# job names to exist and have run at least once first. It needs a ruleset on `main` requiring
-# `verify`, `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` by those exact job names,
-# plus `non_fast_forward` and `deletion`. Until that ruleset exists, treat a green run here
-# as evidence and not as an obstacle. Tracked in issue #22.
+# These jobs block. As of 2026-08-21 a `protect-main` ruleset on `main` requires `verify`,
+# `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` (from `codeql.yml`) by those exact
+# job names, plus `non_fast_forward` and `deletion`, with `current_user_can_bypass: never` --
+# not even an administrator can override it (`gh api repos/ChelseaKR/chalkline/rulesets`).
+# This was not taken on the API response's word: a throwaway PR (#29) with a deliberately
+# failing test was opened against a red `verify`, and both `gh pr merge` and
+# `mergeStateStatus` confirmed the merge was refused ("the base branch policy prohibits the
+# merge") before the PR was closed unmerged. Two earlier versions of this header called these
+# gates merge-blocking while `main` carried no protection at all, which was the one claim in
+# the file a reader was most likely to check and the one thing it got wrong twice. Issue #22.
 #
 # Every action is pinned to the full 40-char commit SHA of its tag, resolved 2026-08-07 via
 # `gh api repos/OWNER/REPO/commits/TAG`. Actions stay `@<sha> # vX.Y.Z` so the version is

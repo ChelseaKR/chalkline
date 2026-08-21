@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
+  `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
+  refused, and `current_user_can_bypass` is `never`. Verified against a real merge, not just
+  the API response: a throwaway PR (#29) carrying a deliberately failing test was refused by
+  both `gh pr merge` and `mergeStateStatus` while `verify` was red, then closed unmerged.
+  `.github/rulesets/main.json` (already committed 2026-08-15, per CI-CD-STANDARD §5, but not
+  yet applied) is the posture now live; `.github/rulesets/README.md` records the before/after
+  and the verification. Closes #22.
+
 ### Fixed
 
 - `make verify` now runs `make audit` as its last step. Until 2026-08-21 a local `make verify`
