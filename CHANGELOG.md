@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `scripts/validate_evidence.py`, which runs the independently written `ctdl-validate` CLI
+  (pinned `0.2.1`) as a separate process against the committed `site/credentials.jsonld` and
+  writes or checks its `--format json` report at `site/ctdl-validate.json`, a fourth
+  committed artifact held to the same byte-for-byte gate `chalkline check` already holds
+  `credentials.jsonld` and `coverage.json` to. `make validate` now runs the `--check` form,
+  and `tests/test_ctdl_validate_evidence.py` runs it again from the test suite, including a
+  control test that mutates one `ceterms:ctid` into a bare UUID and asserts the validator
+  catches it — so a clean report proves the graph was actually read, not merely that the
+  file exists. Today: `0 findings` on all 134 entities. Closes #21.
 - `.pre-commit-config.yaml`: ruff, mypy, and gitleaks as a pre-flight, run
   through `uv run --locked` so the versions are the lockfile's and cannot drift
   away from `make verify`.

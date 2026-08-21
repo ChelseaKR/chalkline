@@ -53,9 +53,16 @@ check:
 # kinds, reference targets and class pairings -- so neither subsumes the other and the
 # interesting outcome is a disagreement, not a pass.
 #
-# It makes no network calls, so `verify` stays offline. It is pinned in pyproject.toml.
+# scripts/validate_evidence.py runs the installed `ctdl-validate` CLI as a separate process
+# over site/credentials.jsonld with --format json and checks the result against the committed
+# site/ctdl-validate.json, so a disagreement is never silently absorbed -- it fails the gate
+# and the stale evidence has to be regenerated and reviewed as a diff, the same discipline
+# `chalkline check` holds credentials.jsonld and coverage.json to.
+#
+# It makes no network calls, so `verify` stays offline. ctdl-validate is pinned in
+# pyproject.toml.
 validate:
-	$(UVRUN) ctdl-validate site/credentials.jsonld
+	$(UVRUN) python scripts/validate_evidence.py --check
 
 # Not part of `verify`: pip-audit queries the PyPI advisory API, and `verify` is offline by
 # design. CI runs this as its own job, and a new advisory against an unchanged tree is a

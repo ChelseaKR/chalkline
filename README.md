@@ -81,13 +81,20 @@ stable: somebody wrote them down. `tests/test_ctid.py` pins the grammar, includi
 version nibble and variant bits.
 
 You do not have to take that on this repository's word. `make verify` runs
-[`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate), an independently written
-structural checker for CTDL JSON-LD, over the committed graph, and the gate fails if it
-reports anything. It checks a different rule family from this project's own validator — CTID
-grammar, identifier kinds, reference targets, class pairings, each finding citing the
-published rule it came from — so neither tool subsumes the other, and the interesting outcome
-is a disagreement rather than a pass. Today it reports `0 findings` on all 134 entities. It
-makes no network calls, so the gate stays offline.
+[`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate) `0.2.1`, an independently
+written structural checker for CTDL JSON-LD, over the committed graph, and the gate fails if
+it reports an ERROR finding. It checks a different rule family from this project's own
+validator — CTID grammar, identifier kinds, reference targets, class pairings, each finding
+citing the published rule it came from — so neither tool subsumes the other, and the
+interesting outcome is a disagreement rather than a pass. Today it reports `0 findings` on
+all 134 entities, and the report is committed at
+[`site/ctdl-validate.json`](site/ctdl-validate.json): `scripts/validate_evidence.py` runs the
+tool as a separate process against `site/credentials.jsonld` and writes its `--format json`
+output verbatim, and `tests/test_ctdl_validate_evidence.py` re-runs it on every test run and
+fails if the committed file is not what a fresh run reports — including a control test that
+mutates one `ceterms:ctid` into a bare UUID and asserts `ctdl-validate` catches it, so a clean
+report is a statement about this build rather than a stale file nobody re-checks. It makes no
+network calls, so the gate stays offline.
 
 **The modeling is checked against a fetched schema, not against memory.** The full CTDL
 schema encoding is vendored with its retrieval hash, and every emitted document is validated
