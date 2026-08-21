@@ -17,7 +17,9 @@
           {"context": "verify"},
           {"context": "audit"},
           {"context": "secret-scan"},
-          {"context": "sast"}
+          {"context": "sast"},
+          {"context": "zizmor"},
+          {"context": "analyze"}
         ]
       }
     }
