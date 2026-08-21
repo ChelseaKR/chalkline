@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `.pre-commit-config.yaml`: ruff, mypy, and gitleaks as a pre-flight, run
+  through `uv run --locked` so the versions are the lockfile's and cannot drift
+  away from `make verify`.
+- `.github/CODEOWNERS`.
+- A Standards Conformance section in the README declaring all fifteen
+  standards. Four rows are obligations rather than passing results and say so:
+  Accessibility has no gate on the published page, Internationalization has no
+  catalog or scope declaration, Performance has no measured budget, and there
+  is no separate responsible-technology audit or metrics ledger document.
 - A leaflet's own page title is now read as a second published title for the same document,
   and both are tried against the two title-equality rules. Nothing is loosened: it is the
   same equality applied to the other name the Commission published. `CL-902` is listed in
