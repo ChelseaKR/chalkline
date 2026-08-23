@@ -72,6 +72,15 @@
       "Single Subject": 1,
       "Single Subject:": 4,
       "Special Education": 2
+    },
+    "authorizations_with_a_leaflet_reading_stopped_before_the_end": 16,
+    "reading_stopped_at_heading": {
+      "Bilingual Authorizations": 4,
+      "Bilingual Authorizations:": 3,
+      "National Board for Professional Teaching Standards Certification": 3,
+      "Special Class Authorization": 3,
+      "Special Teaching Authorization in Health": 1,
+      "TPSL Authorizations": 2
     }
   },
   "excluded_by_reason": {

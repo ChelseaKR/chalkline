@@ -353,3 +353,48 @@ def test_an_authorization_with_no_codes_at_all_emits_no_identifier() -> None:
     )
     entity = export.project_license(catalog.authorizations[0], "ce-x", "urn:org", None)
     assert "ceterms:identifier" not in entity
+
+
+def test_a_leaflet_read_stopped_partway_is_counted_not_silent(
+    real_catalog: Catalog,
+) -> None:
+    """A stop looks, in every other property count, exactly like a page read to its end.
+
+    Before `Attachment.stopped_at` existed, `LeafletPage.stopped_at` was computed by the
+    parser and read by nothing downstream: a license whose leaflet stopped partway published
+    the same zero `ceterms:requires`/`ceterms:renewal` as one read whole with nothing further
+    to state, with no coverage figure telling the two apart (issue #36).
+    """
+    stopped = attachment_with()
+    object.__setattr__(stopped.page, "stopped_at", "Some Other Credential")
+    whole = attachment_with()
+    attachments = {
+        real_catalog.authorizations[0].key: stopped,
+        real_catalog.authorizations[1].key: whole,
+    }
+    statement = export.coverage({"@graph": []}, real_catalog, attachments, INDEX, VENDORED)
+    leaflets_counted = statement["leaflets"]
+    assert leaflets_counted["authorizations_with_a_leaflet_reading_stopped_before_the_end"] == 1
+    assert leaflets_counted["reading_stopped_at_heading"] == {"Some Other Credential": 1}
+
+
+def test_the_vendored_leaflets_include_at_least_one_stopped_read(
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+) -> None:
+    """Pins the real, currently-open gap (issue #36) so the count cannot quietly go stale.
+
+    `cl-879` ("Speech-Language Pathology Services Credential") stops at "Special Class
+    Authorization", a heading still about the leaflet's own subject, before ever reaching the
+    "Requirements for the ... Credential" headings further down the same page -- and this is
+    the count that says so, where nothing did before.
+    """
+    statement = export.coverage({"@graph": []}, real_catalog, real_attachments, INDEX, VENDORED)
+    leaflets_counted = statement["leaflets"]
+    directly_counted = sum(1 for a in real_attachments.values() if a.stopped_at is not None)
+    assert directly_counted > 0
+    assert (
+        leaflets_counted["authorizations_with_a_leaflet_reading_stopped_before_the_end"]
+        == directly_counted
+    )
+    assert "Special Class Authorization" in leaflets_counted["reading_stopped_at_heading"]
