@@ -418,6 +418,21 @@ def _leaflet_coverage(
         ),
         "refused_by_reason": _tally(a.refusal for a in attached if a.refusal is not None),
         "headings_read_past_but_not_classified": dict(sorted(skipped.items())),
+        # A page this project stopped reading partway (see leaflet_pages._names_a_document)
+        # looks, in every property count above, exactly like a page that was read whole and
+        # simply states nothing further -- both show zero requirements or zero renewal terms
+        # on the license. That is a real gap: the heading a stop fires on is not always a
+        # different Commission document (issue #36), so a stop can silently drop this
+        # authorization's own later requirements or renewal terms with nothing here to show
+        # for it. Counting it does not recover the dropped content -- only a human reading
+        # the leaflet can decide whether the stop was the right call -- but it turns "reads
+        # as zero" into a disclosed, checkable limit rather than an invisible one.
+        "authorizations_with_a_leaflet_reading_stopped_before_the_end": sum(
+            1 for a in attached if a.stopped_at is not None
+        ),
+        "reading_stopped_at_heading": _tally(
+            a.stopped_at for a in attached if a.stopped_at is not None
+        ),
     }
 
 

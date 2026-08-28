@@ -222,6 +222,31 @@ def test_a_leaflet_that_states_no_variants_at_all_reports_nothing_missing() -> N
     assert attachment.variant_unstated is None
 
 
+def test_stopped_at_is_none_without_a_page() -> None:
+    """Nothing was read, so there is nothing to say reading stopped partway through."""
+    leaflet = leaflets.Leaflet(code="cl-1", title="A Thing", url="https://example.gov/1/")
+    attachment = Attachment(
+        match=leaflets.Match(leaflet=leaflet, rule=leaflets.MATCH_EXACT_TITLE),
+        page=None,
+        refusal=NO_SNAPSHOT,
+    )
+    assert attachment.stopped_at is None
+
+
+def test_stopped_at_carries_the_page_s_own_stop_heading() -> None:
+    """The parser's `LeafletPage.stopped_at` reaches the coverage statement through here.
+
+    It used to stop here: `LeafletPage.stopped_at` was computed and tested at the parser
+    level and then read by nothing downstream, so a leaflet read that stopped partway
+    published exactly the same zero requirements/renewal as one read whole with nothing
+    further to state (issue #36).
+    """
+    page = leaflet_page(title="A Thing")
+    object.__setattr__(page, "stopped_at", "Some Other Credential")
+    attachment = family_attachment(page, "Special Education")
+    assert attachment.stopped_at == "Some Other Credential"
+
+
 def test_a_snapshot_that_is_another_document_is_recorded_rather_than_raised(
     tmp_path: Path,
 ) -> None:

@@ -194,6 +194,22 @@ class Attachment:
         return tuple(h for h in self.page.skipped_headings if h not in read)
 
     @property
+    def stopped_at(self) -> str | None:
+        """The heading, if any, where this leaflet stopped being read, page-title-verified.
+
+        ``None`` means the page was read to its end, or that there is no page at all (no
+        snapshot, or one refused for identity -- see :func:`readable_for`). A leaflet that
+        stopped partway may state more about this authorization after that heading (see
+        :mod:`chalkline.sources.leaflet_pages` for why reading stops there), and this project
+        does not know whether it does or guess at it. What it does do is count this rather
+        than let a truncated read look identical, in the coverage statement, to a leaflet
+        that was read whole and simply states nothing further: see
+        ``authorizations_with_a_leaflet_reading_stopped_before_the_end`` in
+        :func:`chalkline.ctdl.export.coverage`.
+        """
+        return None if self.page is None else self.page.stopped_at
+
+    @property
     def stated_conditions(self) -> tuple[leaflet_pages.Section, ...]:
         """The requirement and renewal sections the Commission put text under.
 
