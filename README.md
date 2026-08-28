@@ -12,9 +12,10 @@ page.
 > production or in a sandbox, and the CTIDs in this repository are not Registry-assigned.
 
 **Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations are
-modeled, tested, and published as JSON-LD; 19 vendored credential leaflets extend 22 of them
-with descriptions, requirements, or renewal terms. This is one worked example, not a
-complete representation of California educator credentials.
+modeled, tested, and published as JSON-LD; 22 of them are linked to one of the 19 vendored
+credential leaflets, 18 carry a description read from one, and 15 carry requirements or
+renewal terms. This is one worked example, not a complete representation of California
+educator credentials.
 
 ## Quickstart
 
