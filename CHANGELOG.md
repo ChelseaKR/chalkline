@@ -31,6 +31,19 @@ All notable changes to this project are documented here. The format follows
   Figures spelled as English words ("Ten leaflet pages were read; eighteen authorizations
   carry prose from one") are read as figures, which is four of the leaflet totals a reader
   meets.
+- `tests/test_performance.py`. Two claims this repository made in prose and checked nowhere.
+  `chalkline.site`'s docstring says "No external stylesheet, script, font, or image: the page
+  is one file and works offline", and the README's Performance row said a budget was not yet
+  enforced. Self-containment is now asserted against the rendered page (no script, link, img,
+  iframe, object, embed, media or track element, and no `@import` or `url()` in the inline
+  stylesheet), which is also what makes the Observability row's "no analytics on the published
+  page, by design" checkable rather than intended. The weight budget is a formula, 12,000
+  bytes of fixed overhead plus 2,200 per modeled authorization against 7,006 and 1,711 today,
+  so growth in the markup fails the gate and growth in the Commission's table does not; a test
+  asserts both halves of that, including that twice as many authorizations at today's weight
+  each would still pass. `credentials.jsonld` and `coverage.json` are deliberately not
+  budgeted, with the reason recorded: they are downloads a reader chooses rather than
+  page-load cost, and a cap on them would be a cap on how much of the source may be modeled.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
