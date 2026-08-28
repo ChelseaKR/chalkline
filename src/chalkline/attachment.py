@@ -210,6 +210,27 @@ class Attachment:
         return None if self.page is None else self.page.stopped_at
 
     @property
+    def classified_beyond_the_stop(self) -> tuple[str, ...]:
+        """Headings this project's own classifier recognises that the stop left unread.
+
+        The size of the omission :attr:`stopped_at` discloses. An empty tuple means the stop
+        cost this authorization nothing a heading would have offered, which is a different
+        answer from "reading stopped" and, until this was counted, indistinguishable from it.
+        Of the sixteen attached authorizations whose read stopped, exactly one is in that
+        position: the Reading and Literacy Added Authorization, whose CL-812 stops at a
+        heading with nothing classified after it. The other fifteen lose between one and five
+        headings each, the worst being the three Speech-Language Pathology Services Credential
+        entries, whose CL-879 stops before four "Requirements for ..." headings and a
+        "Terms and Definitions:".
+
+        Not a claim of loss. Where the stop was right, as at CL-380's move to the Special
+        Teaching Authorization in Health, these belong to another Commission document and not
+        reading them is the point. Telling that case from CL-879's, where the same rule fires
+        on a subsection of the leaflet's own subject, is issue #36 and is not decided here.
+        """
+        return () if self.page is None else self.page.classified_beyond_the_stop
+
+    @property
     def stated_conditions(self) -> tuple[leaflet_pages.Section, ...]:
         """The requirement and renewal sections the Commission put text under.
 

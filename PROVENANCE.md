@@ -361,7 +361,31 @@ Services Credential and then moves on to the Special Teaching Authorization in H
 Other Health Services Credentials, each with its own requirements section. Reading stops at
 the first heading that this project cannot classify **and** that names a credential, permit,
 certificate, certification, or authorization, and at the first heading that repeats one
-already seen. Everything past that point belongs to another document and is never read.
+already seen. Nothing past that point is read.
+
+That rule is right about `cl-380` and wrong elsewhere, and this document said "everything
+past that point belongs to another document" until 2026-08-27, which was the assumption
+rather than the finding. It is purely lexical: it fires on any unclassified heading
+containing one of five words, and it cannot tell a different Commission document from a
+subsection, an alternate pathway, or an add-on still about the leaflet's own subject. On
+`cl-879` it fires on "Special Class Authorization", an aside about an add-on, and four
+"Requirements for ..." headings for the Speech-Language Pathology Services Credential itself
+are never reached. Issue #36 has the analysis and stays open, because separating the two
+cases is an editorial judgement and getting it wrong attaches one document's requirements to
+another credential, which is worse than reading too little.
+
+What can be published without making that judgement is the size of the omission, and
+`site/coverage.json` now does:
+
+- `authorizations_with_a_leaflet_reading_stopped_before_the_end`, the reads that stopped;
+- `reading_stopped_at_heading`, the heading each stopped at;
+- `authorizations_whose_stop_left_a_classified_heading_unread`, the reads that stopped
+  before something this project's own vocabulary recognises, which is strictly fewer;
+- `headings_left_unread_beyond_the_stop`, which headings those were.
+
+The last two are an upper bound on what a corrected stop rule could recover, not a claim
+that any of it was wrongly dropped. Where the stop was right, those headings belong to
+another document and not reading them is the point.
 
 Within the readable range, only sections whose heading classifies contribute anything. The
 vocabulary is small and published in `src/chalkline/sources/leaflet_pages.py`: a heading

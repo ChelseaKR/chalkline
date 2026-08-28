@@ -81,6 +81,23 @@
       "Special Class Authorization": 3,
       "Special Teaching Authorization in Health": 1,
       "TPSL Authorizations": 2
+    },
+    "authorizations_whose_stop_left_a_classified_heading_unread": 15,
+    "headings_left_unread_beyond_the_stop": {
+      "Authorization": 2,
+      "Period of Validity": 8,
+      "Period of Validity:": 3,
+      "Requirements": 2,
+      "Requirements for the Clear Credential": 1,
+      "Requirements for the Clear Credential – For Individuals Prepared Out-of-State": 3,
+      "Requirements for the Clear Credential – For Individuals Prepared in California": 3,
+      "Requirements for the Special Teaching Authorization in Health": 1,
+      "Requirements for the Two-Year Preliminary Credential – For Individuals Prepared Out-of-State": 3,
+      "Requirements for the Two-Year Preliminary Credential – For Individuals Prepared in California": 3,
+      "Term of the Credential": 1,
+      "Terms And Definitions": 3,
+      "Terms and Definitions": 2,
+      "Terms and Definitions:": 3
     }
   },
   "excluded_by_reason": {
