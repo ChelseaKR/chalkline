@@ -6,7 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The README's prose quoted the build and nothing recomputed it. `tests/test_documented_counts.py`
+  bound every numeric row of the README and PROVENANCE tables, and its own docstring opened
+  "The numbers in the prose are the numbers the build produces", but the prose around those
+  tables was never in scope. Eight prose figures were replaced at once with plainly wrong
+  values (999 authorizations, 888 leaflets, 555 entities) and all 298 tests passed. One of
+  the eight was already wrong: the Status line read "19 vendored credential leaflets extend
+  22 of them with descriptions, requirements, or renewal terms", where 22 is the number of
+  authorizations linked to a leaflet and 18 is the number carrying anything read from one,
+  the other four being those whose leaflet page this project refuses to read on identity.
+  That same sentence was hand-corrected once before, on 2026-08-21, from a figure that had
+  been stale since 2026-08-08. It is now bound rather than corrected again.
+
 ### Added
+
+- Fifteen README sentences that quote a counted figure are bound to a freshly counted
+  coverage statement, in both directions. A claim whose sentence is reworded fails instead of
+  silently checking nothing; a new prose figure standing beside a counted noun fails until it
+  is bound or named in `NOT_A_BUILD_FIGURE` with the reason the build cannot produce it; and
+  four doctored-figure controls run the claims over an altered copy of the prose so a green
+  run is a statement about the figures rather than about the check being unable to fail.
+  Figures spelled as English words ("Ten leaflet pages were read; eighteen authorizations
+  carry prose from one") are read as figures, which is four of the leaflet totals a reader
+  meets.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
