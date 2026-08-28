@@ -6,10 +6,23 @@
 #
 # These jobs block. As of 2026-08-21 a `protect-main` ruleset on `main` requires `verify`,
 # `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` (from `codeql.yml`) by those exact
-# job names, plus `non_fast_forward` and `deletion`, with `current_user_can_bypass: never` --
-# not even an administrator can override it (`gh api repos/ChelseaKR/chalkline/rulesets`).
-# This was not taken on the API response's word: a throwaway PR (#29) with a deliberately
-# failing test was opened against a red `verify`, and both `gh pr merge` and
+# job names, plus `non_fast_forward` and `deletion`.
+#
+# An earlier version of this header added "with `current_user_can_bypass: never` -- not even
+# an administrator can override it". That was true when the ruleset was posted on 2026-08-21
+# and is not true now, so it has been removed. Re-read on 2026-08-28 (`gh api
+# repos/ChelseaKR/chalkline/rulesets/21156701`) the ruleset carries a `RepositoryRole` bypass
+# actor with `bypass_mode: always`, reports `current_user_can_bypass: always` for the owner,
+# and has an `updated_at` of 2026-08-26. That bypass is deliberate and the owner has confirmed
+# it: an agent once removed an admin bypass elsewhere and locked the owner out of the
+# repository, so a role-level way back in is kept on purpose. These checks therefore still
+# block a merge for anyone who cannot bypass, and deliberately do not block one for the owner.
+# `.github/rulesets/main.json` has not caught up and still declares `"bypass_actors": []`, so
+# it is the committed file that is stale rather than the live setting that is wrong.
+# `.github/rulesets/README.md` says so, and warns against re-applying the file as it stands.
+#
+# The refusal itself was not taken on the API response's word: a throwaway PR (#29) with a
+# deliberately failing test was opened against a red `verify`, and both `gh pr merge` and
 # `mergeStateStatus` confirmed the merge was refused ("the base branch policy prohibits the
 # merge") before the PR was closed unmerged. Two earlier versions of this header called these
 # gates merge-blocking while `main` carried no protection at all, which was the one claim in
