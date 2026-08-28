@@ -31,6 +31,27 @@ All notable changes to this project are documented here. The format follows
   Figures spelled as English words ("Ten leaflet pages were read; eighteen authorizations
   carry prose from one") are read as figures, which is four of the leaflet totals a reader
   meets.
+- Three accessibility defects in the generated page, found by the review the README's
+  Accessibility row had been recording as not yet performed. The exclusions table's four
+  `<th>` cells carried no `scope`, so nothing said whether they head a column or a row
+  (technique H63, for WCAG 1.3.1). `.counts` and `.subjects` are styled `list-style: none`,
+  and Safari drops list semantics from a list whose markers are removed, so 134 list items
+  were no longer announced as lists; `role="list"` restores what the styling took away.
+  `.wrap`, the one horizontally scrolling region on the page, could not be focused, so a
+  keyboard-only reader could not scroll the exclusions table at all (WCAG 2.1.1); it now
+  carries `tabindex="0"`, a region role, an accessible name, and a visible focus ring.
+
+### Added
+
+- `tests/test_accessibility.py`, an accessibility gate over the rendered page: page language,
+  page title, heading order, table header scope, list semantics under removed markers,
+  keyboard reach into scrolling regions, image alternatives, zoom not being pinned, and text
+  contrast across both palettes. It is a check against a named list, not an audit, and it
+  says so. Every check records how much it examined, so a check that ran over nothing is
+  distinguishable from one that ran over everything and found nothing, and every check is
+  exercised against a deliberately broken copy of the real page. A check with no such
+  breakage fails the suite, which is what stops the list growing by accretion of things that
+  cannot disagree with the page.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
