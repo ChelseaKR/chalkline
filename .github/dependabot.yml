@@ -12,6 +12,13 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+  # Subactions of one action are grouped, because they cannot move separately. `codeql.yml`
+  # uses `github/codeql-action/init` and `github/codeql-action/analyze`, and the action
+  # refuses to run with the two at different versions: "Loaded a configuration file for
+  # version '4.37.7', but running version '4.37.4'". Ungrouped, Dependabot opened one PR per
+  # subaction (#32 and #35), each of which pinned one half and left the other behind, so both
+  # failed the required `analyze` check and neither could merge without the other. A group
+  # makes that one PR carrying both SHAs.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -19,3 +26,7 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
