@@ -312,8 +312,8 @@ matching on the page's own title satisfies the check by construction; matching o
 code is not a title match at all and never permits a read.
 
 **Two leaflets are refused, and they are opposite cases.** `cl-893` is listed in the index as
-"American Indian Languages Credential" — exactly the title of the two authorizations that
-match it — and titles itself "American Indian Languages-Culture Credential". The sort table
+"American Indian Languages Credential" (exactly the title of the two authorizations that
+match it) and titles itself "American Indian Languages-Culture Credential". The sort table
 publishes *both* `AIL` and `AILC` as document codes, so the page's own name may well be the
 other document's; the two authorizations keep the leaflet link and get no prose. `cl-898` is
 matched by its document code alone, and its page titles itself "Mathematics Instructional
@@ -350,7 +350,7 @@ permit, because their leaflets head that breakdown "Education Specialist:" and d
 writing the Commission's key for it. The gap is counted in
 `leaflets.variant_qualifiers_no_heading_states` and printed on the page beside those two
 credentials, rather than closed by inference. `cl-902` heads its third breakdown "Special
-Education", which does match — and the authorization it would serve is one of the three the
+Education", which does match, and the authorization it would serve is one of the three the
 sort table gives no publishable scope, so it is excluded for that reason and gains nothing
 here.
 
