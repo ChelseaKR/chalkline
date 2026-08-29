@@ -17,9 +17,11 @@
 # it: an agent once removed an admin bypass elsewhere and locked the owner out of the
 # repository, so a role-level way back in is kept on purpose. These checks therefore still
 # block a merge for anyone who cannot bypass, and deliberately do not block one for the owner.
-# `.github/rulesets/main.json` has not caught up and still declares `"bypass_actors": []`, so
-# it is the committed file that is stale rather than the live setting that is wrong.
-# `.github/rulesets/README.md` says so, and warns against re-applying the file as it stands.
+# `.github/rulesets/main.json` declared `"bypass_actors": []` until 2026-08-29, which made the
+# committed file stale rather than the live setting wrong, and made the documented re-apply
+# command a way to strip the bypass and lock the owner out. The file now carries the same one
+# actor the live ruleset does, `{"actor_id": 5, "actor_type": "RepositoryRole",
+# "bypass_mode": "always"}`, and `tests/test_ruleset.py` fails if it stops carrying it.
 #
 # The refusal itself was not taken on the API response's word: a throwaway PR (#29) with a
 # deliberately failing test was opened against a red `verify`, and both `gh pr merge` and
