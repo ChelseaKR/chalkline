@@ -6,14 +6,23 @@
 #
 # These jobs block. As of 2026-08-21 a `protect-main` ruleset on `main` requires `verify`,
 # `audit`, `secret-scan`, `sast`, `zizmor` and `analyze` (from `codeql.yml`) by those exact
-# job names, plus `non_fast_forward` and `deletion`, with `current_user_can_bypass: never` --
-# not even an administrator can override it (`gh api repos/ChelseaKR/chalkline/rulesets`).
+# job names, plus `non_fast_forward` and `deletion` (`gh api repos/ChelseaKR/chalkline/rulesets`).
 # This was not taken on the API response's word: a throwaway PR (#29) with a deliberately
 # failing test was opened against a red `verify`, and both `gh pr merge` and
 # `mergeStateStatus` confirmed the merge was refused ("the base branch policy prohibits the
 # merge") before the PR was closed unmerged. Two earlier versions of this header called these
 # gates merge-blocking while `main` carried no protection at all, which was the one claim in
 # the file a reader was most likely to check and the one thing it got wrong twice. Issue #22.
+#
+# Exactly one actor can override the gate: the repository owner, whose standing bypass
+# (`RepositoryRole` 5, `bypass_mode: always`) the ruleset has carried since 2026-08-26 and
+# keeps deliberately, because an agent once applied a ruleset with no bypass and locked the
+# owner out of their own repository, and restoring access took a sweep across eighteen
+# repositories. A third version of this header said `current_user_can_bypass: never`, "not
+# even an administrator can override it", which was true when written and stopped being true
+# without the header noticing. These jobs block a merge for anyone who cannot bypass and
+# deliberately do not block one for the owner; see `.github/rulesets/README.md`, "Why the
+# owner can bypass".
 #
 # Every action is pinned to the full 40-char commit SHA of its tag, resolved 2026-08-07 via
 # `gh api repos/OWNER/REPO/commits/TAG`. Actions stay `@<sha> # vX.Y.Z` so the version is

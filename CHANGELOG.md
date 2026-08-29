@@ -8,6 +8,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `.github/rulesets/main.json` declared `"bypass_actors": []` while the live `protect-main`
+  ruleset carried the repository owner's standing bypass, so the re-apply command the ruleset
+  README documents would have stripped it. The file now records that bypass — `RepositoryRole`
+  5, `bypass_mode: always` — deliberately and permanently: an agent once applied a ruleset
+  with no bypass and locked the owner out of their own repository, and restoring access took a
+  sweep across eighteen repositories. An empty list there is not a stricter gate, it is the
+  lockout. `.github/rulesets/README.md` gains a "Why the owner can bypass" section and a
+  confirmation step that asks after the field by name, and the `ci.yml` header no longer says
+  "not even an administrator can override it". The 2026-08-21 entry below is left as written,
+  because `current_user_can_bypass` really was `never` on the day it was recorded; the bypass
+  was added 2026-08-26.
+
 - The README's prose quoted the build and nothing recomputed it. `tests/test_documented_counts.py`
   bound every numeric row of the README and PROVENANCE tables, and its own docstring opened
   "The numbers in the prose are the numbers the build produces", but the prose around those

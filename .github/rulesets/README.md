@@ -24,6 +24,11 @@ test so `verify` would go red for real. With `verify` red, `gh pr merge` was ref
 was closed unmerged and its branch deleted. `portfolio-standards/automation/conformance_check.py
 --repo` also reports `branch_protection_effective: PASS` against the live repository.
 
+The `current_user_can_bypass: "never"` in that table was the answer on 2026-08-21 and is not
+the answer now. The ruleset gained the repository owner's standing bypass on 2026-08-26 and
+keeps it; read "Why the owner can bypass" below before taking that row for the current
+posture.
+
 Checked before applying, 2026-08-15:
 
 | Query | Result |
@@ -69,6 +74,34 @@ a solo profile: that validator requires a `solo-governance` status check, and no
 exists here. Standing up an attestation job only so a validator passes would be the same
 kind of empty gate this file is trying to correct.
 
+## Why the owner can bypass
+
+`bypass_actors` holds exactly the repository owner's standing bypass -- `RepositoryRole` 5
+with `bypass_mode: "always"` -- deliberately and permanently: an agent once applied a ruleset
+with no bypass and locked the owner out of their own repository, and restoring access took a
+sweep across eighteen repositories. An empty list here is not a stricter gate, it is the
+lockout.
+
+Read off the live ruleset on 2026-08-28:
+
+| Query | Result |
+|---|---|
+| `gh api repos/ChelseaKR/chalkline/rulesets/21156701 --jq .bypass_actors` | `[{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]` |
+| `gh api repos/ChelseaKR/chalkline/rulesets/21156701 --jq .current_user_can_bypass` | `"always"` |
+
+Nothing else moved with it. The same six contexts are required, still with
+`strict_required_status_checks_policy`, and `deletion` and `non_fast_forward` still refuse.
+What the bypass buys is a way back in when a required check is wedged, when a workflow file
+is broken badly enough that CI stops reporting at all, or when the repository has to be
+recovered -- the cases whose only other route is a support ticket against your own
+repository. It is one actor, and it is a repository role rather than a team or a GitHub App:
+a second bypass actor turning up in this list would be a real finding, and this one is not.
+
+`main.json` declared `"bypass_actors": []` until 2026-08-28, which made the command in the
+next section a way to reproduce the lockout rather than a way to restore the posture. The
+file now records the bypass, so re-applying it is safe -- and the confirmation below asks
+after `bypass_actors` by name, because that is the field that goes missing quietly.
+
 ## Re-applying it
 
 The file is in the shape the REST API accepts, so it can be posted as-is:
@@ -80,11 +113,14 @@ reasons that did not reproduce as a documented API or `gh` behavior; DELETE-then
 If updating an existing ruleset in place ever matters again, try PATCH first and fall back to
 delete-then-recreate.)
 
-Confirm afterwards that `gh api repos/ChelseaKR/chalkline/rulesets` returns it and that
-`gh api repos/ChelseaKR/chalkline/branches/main` reports `"protected": true` -- and, because
-an API response is not the same thing as a merge actually being refused, confirm it with a
-real PR: push a commit that fails one of the required checks, open a PR against `main`, and
-confirm both `gh pr merge` and `mergeStateStatus` refuse it before closing the PR unmerged.
+Confirm afterwards that `gh api repos/ChelseaKR/chalkline/rulesets` returns it, that
+`gh api repos/ChelseaKR/chalkline/branches/main` reports `"protected": true`, and that
+`gh api repos/ChelseaKR/chalkline/rulesets/<id> --jq .current_user_can_bypass` still reads
+`"always"` -- a re-apply that quietly drops the owner's bypass looks like a clean 201. Then,
+because an API response is not the same thing as a merge actually being refused, confirm it
+with a real PR: push a commit that fails one of the required checks, open a PR against
+`main`, and confirm both `gh pr merge` and `mergeStateStatus` refuse it before closing the
+PR unmerged.
 
 `outcome-receipts/.github/rulesets/main.json` is the portfolio's reference for a complete
 committed profile. `ledger` has a live and working `protect-main` ruleset but no committed
