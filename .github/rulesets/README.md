@@ -104,6 +104,15 @@ after `bypass_actors` by name, because that is the field that goes missing quiet
 
 ## Re-applying it
 
+**Before running this, open `main.json` and check that `bypass_actors` still holds
+`{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}`.** The file
+declared `"bypass_actors": []` until 2026-08-28, and applying that version is how the owner
+gets locked out of this repository. Note that POST is not the safe half of the pair either:
+posting a second ruleset over `main` does not replace the live one, it adds to it, and rules
+from every applicable ruleset combine while bypass actors are per-ruleset. A new ruleset with
+an empty bypass list blocks the owner no matter what the existing one allows. Delete the
+ruleset that no longer matches before posting a replacement.
+
 The file is in the shape the REST API accepts, so it can be posted as-is:
 
 `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`
