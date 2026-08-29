@@ -38,7 +38,7 @@ edit an existing CTID; an identifier that has been handed out does not change qu
 make verify
 ```
 
-That runs ruff, mypy strict, the test suite with a 90% coverage floor, and the check that
+That runs ruff, mypy strict, the test suite with a 97% coverage floor, and the check that
 the committed `site/` matches a fresh build. All of it also runs in CI.
 
 ## Prose style
