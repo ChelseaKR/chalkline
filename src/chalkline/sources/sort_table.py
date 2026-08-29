@@ -154,7 +154,7 @@ def load(path: Path | None = None) -> tuple[SortTableRow, ...]:
     it as measured fact, the page renders nine count tiles reading zero, and `chalkline
     build` prints "0 authorizations modeled, 0 excluded" and exits 0. `leaflets.load` was
     given this same refusal for this same reason, and its docstring says `sort_table.load`
-    "has always refused its artifact on the same grounds" — which was true of every way the
+    "has always refused its artifact on the same grounds", which was true of every way the
     page could stop parsing, and not of the one way it could stop having rows.
     """
     rows = parse((path or SOURCE_PATH).read_text(encoding="utf-8"))

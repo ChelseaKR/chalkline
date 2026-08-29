@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check validate audit verify clean
+.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify clean
 
 install:
 	$(UV) sync --locked
@@ -34,6 +34,41 @@ format:
 
 typecheck:
 	$(UVRUN) mypy src tests scripts
+
+# CONTRIBUTING.md's prose style section says "No em dashes." Nothing checked it, and the rule
+# had 32 violations: README.md, CHANGELOG.md, PROVENANCE.md, .github/dependabot.yml and two
+# docstrings. A stated rule with no gate behind it is a preference someone wrote down once.
+#
+# `git grep` exits 0 when it matches, 1 when it does not, and 128 when it could not look: a
+# malformed pattern, no repository, an unreadable object. Folding 128 into the "no match"
+# branch is how a gate announces success for having failed to run, so the three outcomes are
+# kept apart here. There is no `set -e`: it would abort on the grep's own non-zero exit before
+# the status could be read, and "no match" is a non-zero exit.
+#
+# The exclusions are files this project transcribes or generates rather than writes. Under
+# data/source/ are verbatim copies of the Commission's own pages, and cl-562.html contains an
+# em dash: editing it would make the snapshot a paraphrase and break the sha256 PROVENANCE.md
+# publishes for it. site/ is build output that `chalkline check` holds byte for byte against a
+# fresh build, so its text is the sources' and the templates', and the templates are in src/
+# where this gate does read them. The CTDL schema and context are vendored. Nothing excluded
+# here is prose this project wrote, which is the whole of what the rule is about.
+#
+# En dashes are not checked. CONTRIBUTING.md bans em dashes and says nothing about en dashes,
+# and a gate is not the place to invent a rule the project never stated.
+no-dashes:
+	@out=$$(git grep -n -P '\x{2014}' -- ':!data/source' ':!site' ':!src/chalkline/ctdl' ':!uv.lock' 2>&1); \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+	  echo 'CONTRIBUTING.md says "No em dashes." These are em dashes:'; \
+	  echo "$$out"; \
+	  exit 1; \
+	elif [ $$status -eq 1 ]; then \
+	  echo "no em dashes"; \
+	else \
+	  echo "the em dash gate could not run (git grep exited $$status):"; \
+	  echo "$$out"; \
+	  exit 1; \
+	fi
 
 test:
 	$(UVRUN) pytest -q --cov --cov-report=term-missing --cov-report=xml
@@ -86,7 +121,7 @@ audit:
 # build rather than about whatever was last committed. `audit` runs last because it is the
 # one target here that reaches the network; everything before it is decided from the
 # committed tree alone.
-verify: lock-check lint typecheck test check validate audit
+verify: lock-check lint no-dashes typecheck test check validate audit
 	@echo "verify: ok"
 
 clean:
