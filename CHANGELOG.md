@@ -6,6 +6,21 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The page says what it is, and where it is. `site/index.html` carried a title
+  and nothing else: no `<meta name="description">`, no canonical, no Open Graph,
+  no Twitter card. It now carries all of them, built from one `TITLE` and one
+  `DESCRIPTION` constant so the share card cannot describe the page differently
+  from the page. The description keeps the word "unofficial" and states no
+  figure: the page counts its own tallies from the catalog at build time, and a
+  number in a meta tag would be a copy nothing derives. GitHub Pages serves this
+  repository at a path on an origin five sibling projects publish under, and
+  `https://chelseakr.github.io/` is itself a 404, so every absolute
+  self-reference carries `/chalkline/`. `tests/test_site.py` fails on a
+  canonical naming the bare origin, on a description that drops "unofficial" or
+  quotes a figure, and on any root-relative `href`, `src` or `content`.
+
 ### Fixed
 
 - The README's prose quoted the build and nothing recomputed it. `tests/test_documented_counts.py`
