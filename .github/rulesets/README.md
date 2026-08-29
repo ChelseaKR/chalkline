@@ -6,6 +6,9 @@ diff. CI-CD-STANDARD §5 asks for exactly that: "Branch protection is enforced t
 repository-owned GitHub Ruleset named `protect-main` and committed as a per-repo artifact so
 the posture is reviewable in-tree."
 
+It is currently stale in one field: `bypass_actors`. See the section below before re-applying
+it.
+
 ## Applied and verified, 2026-08-21
 
 Posted via `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`
@@ -23,6 +26,45 @@ test so `verify` would go red for real. With `verify` red, `gh pr merge` was ref
 ("the base branch policy prohibits the merge") and `mergeStateStatus` read `BLOCKED`. The PR
 was closed unmerged and its branch deleted. `portfolio-standards/automation/conformance_check.py
 --repo` also reports `branch_protection_effective: PASS` against the live repository.
+
+## The owner bypass is intended, and `main.json` is the file that is out of date
+
+Recorded 2026-08-26, re-read 2026-08-28. The live ruleset and `main.json` disagree about the
+bypass posture, and nothing about the required checks. **The live posture is the correct one.**
+
+| Query | Result, 2026-08-28 |
+|---|---|
+| `gh api repos/ChelseaKR/chalkline/rulesets/21156701 --jq .bypass_actors` | `[{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]` |
+| `... --jq .current_user_can_bypass` | `"always"` |
+| `... --jq .updated_at` | `2026-08-26T21:27:29.806-07:00` |
+| `... --jq .rules` | unchanged: `deletion`, `non_fast_forward`, and the same six required contexts, `strict_required_status_checks_policy: true` |
+
+The admin bypass was added deliberately, on 2026-08-26, and the owner has confirmed it. It
+stays. The reason is not hypothetical: an agent once removed an admin bypass from another
+repository and locked the owner out of it, with no path back in that did not go through
+support. A role-level `always` bypass is the way back in when a required check is wedged, a
+runner is unavailable, or an automated change makes the branch unmergeable by anyone.
+
+So this section records a documentation defect, not a configuration one. Every required check
+is still required and still strict; what changed is that the ruleset can now be bypassed by
+the repository role holding `actor_id: 5`, where on 2026-08-21 it could not be bypassed by
+anyone. `main.json` still declares `"bypass_actors": []` and is simply stale, and three places
+asserted "not even an administrator can override it": the 2026-08-21 table above, the `ci.yml`
+header, and the `CHANGELOG.md` entry for #30.
+
+The `ci.yml` header has been corrected to state the live posture. **The `CHANGELOG.md` entry
+has not been touched**, because that entry is a record of what #30 did on the day it did it;
+the change of posture belongs in a new entry, which is the owner's to write rather than
+something to backdate into an existing one.
+
+> **Do not re-apply `main.json` as committed.** The procedure below posts the file to the live
+> ruleset, and the file declares `"bypass_actors": []`, so running it today would strip the
+> intended bypass and reproduce the lockout described above. `main.json` needs its
+> `bypass_actors` updated to match the live ruleset first. That edit is left to the owner
+> rather than made here, because this file is what a re-apply executes and changing it changes
+> what that procedure does.
+
+Nothing in this section changed a repository setting.
 
 Checked before applying, 2026-08-15:
 
