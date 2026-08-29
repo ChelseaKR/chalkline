@@ -6,6 +6,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The committed ruleset was a lockout waiting to be re-applied.
+  `.github/rulesets/main.json` declared `"bypass_actors": []`, and
+  `.github/rulesets/README.md` documents applying it with
+  `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`,
+  so following this repository's own instructions would have stripped the
+  owner's standing bypass off live ruleset `21156701` and left her unable to
+  merge, push, or delete the ruleset blocking her. GitHub answers that apply
+  with 201 like any other, so nothing would have warned. The file now carries
+  the one actor the live ruleset carries,
+  `{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}`,
+  and every other field was already equal, checked field by field against the
+  API on 2026-08-29. `bypass_mode` is `always` rather than the `pull_request`
+  CI-CD-STANDARD asks for at CICD-15, because a bypass that only works inside a
+  pull request is no use when the pull request is the thing that is wedged. The
+  ruleset README and the `ci.yml` header both said the file was stale and
+  warned against re-applying it; both now say what the file carries, and the
+  README keeps the reversed instruction visible rather than deleting it. The
+  live posture change of 2026-08-26 is still unrecorded here, and stays the
+  owner's to write.
+
+### Added
+
+- `tests/test_ruleset.py`, so the empty list cannot come back quietly. Nothing
+  in `src/` or `tests/` read the committed ruleset before this, which is why it
+  could disagree with the live one for three days. `lockout_risk()` is a pure
+  function of a parsed document and is run against the five shapes that lose
+  the bypass -- an empty list, no key at all, a value that is not a list, a
+  different actor, and the right actor carrying `bypass_mode: pull_request` --
+  plus a positive control, so a pass is a statement about the file rather than
+  about a check that refuses everything. The loader fails on a missing or
+  unparseable file rather than reading an absent subject as nothing wrong: a
+  malformed file still contains the string `bypass_actors`, so the parse is
+  what catches it and a grep would not. A last test fails if the ruleset README
+  stops naming the actor the file carries, because the prose is what a person
+  follows when the two disagree.
+
 ### Added
 
 - The prose style rule is now a gate. CONTRIBUTING.md has said "No em dashes" for as long as
