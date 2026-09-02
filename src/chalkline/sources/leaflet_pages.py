@@ -50,19 +50,39 @@ Services Credential and then goes on to the Special Teaching Authorization in He
 Other Health Services Credentials, each with its own requirements. Attributing those to the
 School Nurse credential would be a wrong statement, not a rough one.
 
-So reading stops at the first heading that both fails to classify and names a credential,
-permit, certificate, certification, or authorization, and at the first heading that repeats
-one already seen. Everything before that point belongs to the document the leaflet is titled
-for; everything after it is another document's and is never read. Within the range, only
-sections whose heading classifies contribute anything, and the headings that were skipped
-are recorded so the omission is counted rather than silent.
+An unclassified heading that names a credential, permit, certificate, certification or
+authorization is where that happens, and **the Commission's own outline is what says whether
+it has happened.** Where such a heading has sub-headings under it, the leaflet has started a
+second document and given it a structure of its own, and the page ends there: nothing after
+it is read. Where it has none, it is one stretch of prose inside the outline of the document
+being described, so that heading and its prose are set aside and reading resumes with the
+next heading.
+
+That distinction is the whole of the fix for issue #36, and the leaflets are what argue for
+it. Naming a document was the entire test until 2026-08-29, so reading ended at CL-879's
+"Special Class Authorization" -- one paragraph about an add-on, sitting between the Speech
+Language Pathology Services Credential's "Authorization" section and its own four
+"Requirements for ..." sections, none of which were ever reached. Fourteen of the nineteen
+vendored pages stopped early, twelve of them before something this module classifies, and
+CL-537 stopped at its first heading and published nothing at all. Five stop now, each at a
+document the Commission gave its own outline to.
+
+Reading also ends where a classified heading repeats one already read, because the
+Commission does not head two statements of one document's requirements with one string. That
+test applies to classified headings only: leaflets repeat unclassified sub-headings on
+purpose, and applying it to those ended CL-529 one heading before its "Period Of Validity"
+and CL-879 in the middle of its requirements.
+
+Within the range, only sections whose heading classifies contribute anything, and the
+headings that were skipped are recorded so the omission is counted rather than silent. So are
+the stop, what a stop left unread, and what was set aside.
 """
 
 from __future__ import annotations
 
 import html
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final
 
@@ -104,9 +124,14 @@ CREDENTIAL_NOUNS: Final = (
     "certification",
     "authorization",
 )
-"""Words that make an unclassified heading a claim about some document. A section headed
-with one of these that this module cannot classify is where reading stops, because the
-leaflet has moved on to a document other than the one it is titled for."""
+"""Words that make an unclassified heading a claim about some document.
+
+A heading carrying one of these that this module cannot classify is a heading about a
+document, and the question is whether it is *this* document. These five words cannot answer
+that, and treating them as though they could is what issue #36 is about: "TPSL
+Authorizations" on the Teaching Permit for Statutory Leave's own leaflet carries one of them
+and is about that same permit. :func:`_has_sub_headings` is what answers it, and this tuple
+is only what raises the question."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,25 +166,46 @@ class LeafletPage:
     """The sections in scope, classified. Out-of-scope sections are not here at all."""
 
     stopped_at: str | None
-    """The heading that ended the readable range, if one did."""
+    """The heading at which the leaflet moved on to another document, if it did.
+
+    Nothing after this heading is read. It is set where the page began describing a second
+    Commission document and gave that document sub-headings of its own, and where a
+    classified heading repeated one already read. See :func:`_read_heading`.
+    """
 
     classified_beyond_the_stop: tuple[str, ...]
     """Headings after :attr:`stopped_at` that :func:`classify` recognises, in page order.
 
-    The size of what a stop leaves behind, and nothing more. It is an upper bound on what a
-    corrected stop rule could recover, not a claim that any of it was wrongly dropped: where
-    the stop was right, as at CL-380's move to the Special Teaching Authorization in Health,
-    these headings belong to a different Commission document and not reading them is the
-    point. Where the stop was wrong, as at CL-879's "Special Class Authorization", they are
-    this leaflet's own later requirements. This module cannot tell those two apart (issue
-    #36), so it publishes the number and leaves the judgement to a reader.
+    The size of what a stop leaves behind, and nothing more. It is not a claim that any of it
+    was wrongly dropped: past a stop the page is describing another Commission document, and
+    these are that document's own statements. CL-380 stops at the Special Teaching
+    Authorization in Health, and the "Requirements for the Clear Credential" and "Term of the
+    Credential" behind that stop belong to the Other Health Services Credentials rather than
+    to the School Nurse Services Credential the leaflet is titled for. Reading them would be
+    a wrong statement, and the count is here so that not reading them is a visible one.
 
-    Twelve of the nineteen vendored pages stop before something classified. CL-797 is the
-    largest, stopping before nine headings that include the requirements for every level of
-    the Child Development Permit; no authorization is attached to it, so that one costs the
-    published graph nothing today and would cost it a great deal the day one is.
+    Until 2026-08-29 this measured something much larger and much less defensible. The stop
+    rule fired on any unclassified heading naming a document, so it fired on asides inside
+    the leaflet's own outline, and what sat behind those stops was the leaflet's own later
+    requirements (issue #36). Five of the vendored pages stop today where fourteen did.
 
     Empty when reading was not stopped, which is a different fact from an unread page.
+    """
+
+    set_aside: tuple[str, ...]
+    """Headings whose subject is not the leaflet's own, read past rather than read.
+
+    The other half of the correction to issue #36. An unclassified heading that names a
+    document but has no sub-headings under it is an aside inside the outline of the document
+    being described -- CL-902's "TPSL Authorizations", CL-879's "Special Class
+    Authorization", the "Bilingual Authorizations" paragraph three permits carry. Its own
+    prose is never read, because this module cannot say whose statement it is; the page after
+    it is, because the outline says the Commission has gone back to the subject it was
+    describing.
+
+    Listed rather than counted so that a reader can see what was set aside and disagree. The
+    judgement is this module's and it is the weakest one it makes: unlike a stop it does not
+    end the page, so a wrong call here reads one paragraph less rather than a page less.
     """
 
     skipped_headings: tuple[str, ...]
@@ -221,21 +267,63 @@ def _names_a_document(heading: str) -> bool:
     return any(noun in _normalize_heading(heading) for noun in CREDENTIAL_NOUNS)
 
 
-def _stops_reading(heading: str, key: str, seen: set[str]) -> bool:
-    """Whether this heading ends the range the leaflet describes its own subject in.
-
-    Two conditions, and the module docstring argues both: a heading already seen means the
-    page has looped back into a structure it has been through, and an unclassified heading
-    naming a document means it has moved on to one. Named here rather than written inline so
-    that :func:`_sections` reads as a walk and the rule issue #36 is about has one place to
-    live.
-    """
-    return key in seen or (classify(heading) == UNCLASSIFIED and _names_a_document(heading))
-
-
 def _prose(block: re.Match[str]) -> str:
     """The text of a paragraph or list item block."""
     return _text(block.group("para") if block.group("para") is not None else block.group("item"))
+
+
+@dataclass(frozen=True, slots=True)
+class _Block:
+    """One heading or one paragraph of the page, in the order the Commission wrote it."""
+
+    heading: bool
+    text: str
+    level: int
+
+
+def _walk(markup: str) -> list[_Block]:
+    """The page as a list rather than an iterator, because the rule needs to look ahead.
+
+    Whether a heading has sub-headings under it cannot be answered from the heading itself,
+    and it is the question :func:`_has_sub_headings` asks. Reading the blocks into a list
+    first is what makes that answerable without a second pass over the markup.
+    """
+    blocks: list[_Block] = []
+    for block in _BLOCK_RE.finditer(markup):
+        if block.group("heading") is not None:
+            text = _text(block.group("heading"))
+            if text:
+                blocks.append(_Block(True, text, int(block.group("h")[1])))
+            continue
+        text = _prose(block)
+        if text:
+            blocks.append(_Block(False, text, 0))
+    return blocks
+
+
+def _has_sub_headings(blocks: list[_Block], index: int) -> bool:
+    """Whether the Commission gave the heading at ``index`` a structure of its own.
+
+    The next heading on the page is the whole of the answer. A deeper one is this heading's
+    child, so the heading is a section with an outline under it; a heading at the same level
+    or shallower ends it, so the heading is a single stretch of prose with nothing beneath.
+
+    This is the distinction the stop rule turns on, and the leaflets are what argue for it.
+    CL-380's "Special Teaching Authorization in Health" is followed by "Requirements for the
+    Special Teaching Authorization in Health" one level down: the Commission has started
+    describing a second document and given it its own requirements, and the tail of that page
+    really does belong to other documents (its closing "Term of the Credential" reads
+    "Qualified applicants will receive a Clear Health Services Credential issued for five
+    calendar years", which is not the School Nurse Services Credential this leaflet is titled
+    for). CL-902's "TPSL Authorizations" is followed by "Period of Validity" at the same
+    level: it is one paragraph about what this same permit's own variants authorize, and the
+    page goes straight back to the permit afterwards.
+    """
+    level = blocks[index].level
+    for block in blocks[index + 1 :]:
+        if block.heading:
+            return block.level > level
+    return False
 
 
 def _body(markup: str) -> str:
@@ -284,7 +372,7 @@ def parse(markup: str, code: str) -> LeafletPage:
         )
     page_title = parsed.group("title")
 
-    lead, sections, stopped_at, beyond, skipped = _sections(body[found.end() :])
+    lead, sections, stopped_at, beyond, set_aside, skipped = _sections(body[found.end() :])
     return LeafletPage(
         code=code,
         page_title=page_title,
@@ -292,6 +380,7 @@ def parse(markup: str, code: str) -> LeafletPage:
         sections=sections,
         stopped_at=stopped_at,
         classified_beyond_the_stop=beyond,
+        set_aside=set_aside,
         skipped_headings=skipped,
     )
 
@@ -337,57 +426,151 @@ def _close(
     return enclosing
 
 
+@dataclass(slots=True)
+class _Reading:
+    """The state of one walk down a leaflet page.
+
+    A class rather than a stack of locals so that the rule in :func:`_read_heading` reads as
+    the three things a heading can be -- a section to open, a subject to set aside, or the
+    end of the page -- instead of as bookkeeping.
+    """
+
+    lead: list[str] = field(default_factory=list)
+    sections: list[Section] = field(default_factory=list)
+    seen: set[str] = field(default_factory=set)
+    """Normalized headings of the classified sections already read. See :func:`_read_heading`
+    for why unclassified headings are not recorded here."""
+
+    open_heading: str | None = None
+    open_level: int = 0
+    open_blocks: list[str] = field(default_factory=list)
+    enclosing: tuple[int, str] | None = None
+    """The innermost classified section still open, as (heading level, kind). A heading at or
+    above that level closes it, which is what "sits inside" means in an outline."""
+
+    stopped_at: str | None = None
+    beyond: list[str] = field(default_factory=list)
+    set_aside: list[str] = field(default_factory=list)
+    within_set_aside: bool = False
+
+    def close(self) -> None:
+        """Finish the open section, if one is open."""
+        self.enclosing = _close(
+            self.sections, self.open_heading, self.open_level, self.open_blocks, self.enclosing
+        )
+        self.open_heading = None
+
+    def prose(self, text: str) -> None:
+        """File one paragraph under the open section, the lead, or nothing at all."""
+        if self.stopped_at is not None or self.within_set_aside:
+            return
+        (self.open_blocks if self.open_heading is not None else self.lead).append(text)
+
+    def begin(self, block: _Block, kind: str, key: str) -> None:
+        """Open a section for a heading that belongs to the document the leaflet is titled for."""
+        if kind != UNCLASSIFIED:
+            self.seen.add(key)
+        self.open_heading, self.open_level, self.open_blocks = block.text, block.level, []
+        self.within_set_aside = False
+
+    def stop(self, heading: str) -> None:
+        """End the page here. Nothing after this is read."""
+        self.stopped_at = heading
+        self.within_set_aside = False
+
+    def aside(self, heading: str) -> None:
+        """Set this heading and its prose aside, and go on reading after it."""
+        self.set_aside.append(heading)
+        self.within_set_aside = True
+
+
+def _read_heading(reading: _Reading, blocks: list[_Block], index: int) -> None:
+    """Open a section at this heading, set it aside, or stop the page here.
+
+    The whole of the scope rule, in the order it decides.
+
+    A **classified heading whose words a classified heading already used** ends the page. The
+    Commission does not head two statements of one document's requirements with one string,
+    so a repeat is the page having looped into a structure it has been through. The
+    restriction to classified headings is the correction: the rule used to apply to every
+    heading, and leaflets repeat unclassified sub-headings on purpose. CL-529 heads the
+    out-of-state paragraph under each of its three specializations "Out-of-State Applicants",
+    and the second one used to end the page one heading before "Period Of Validity"; CL-879
+    heads the alternatives under each of its four requirement sections "Option 1" and
+    "Option 2". Neither is a second document.
+
+    An **unclassified heading naming a document** is the case issue #36 is about, and it is
+    two cases. Where the Commission gave it sub-headings, the leaflet has moved on to another
+    document and given that document its own structure, so the page ends there: CL-380's
+    "Special Teaching Authorization in Health" is followed by that authorization's own
+    requirements, and everything past it belongs to documents other than the School Nurse
+    Services Credential the leaflet is titled for. Where it has no sub-headings, it is an
+    aside inside the outline of the document being described, so it is set aside -- its own
+    prose is never read, because this module cannot say whose it is -- and reading resumes at
+    the next heading. CL-879's "Special Class Authorization", CL-902's "TPSL Authorizations"
+    and CL-562's "National Board for Professional Teaching Standards Certification" are all
+    that shape, and treating them as the end of the page dropped four "Requirements for ..."
+    sections, a "Period of Validity" and a "Terms and Definitions:" that this project's own
+    classifier recognises and that plainly belong to the leaflet's own subject.
+
+    Everything else opens a section.
+    """
+    block = blocks[index]
+    kind = classify(block.text)
+    key = _normalize_heading(block.text)
+    reading.close()
+    if kind != UNCLASSIFIED:
+        if key in reading.seen:
+            reading.stop(block.text)
+        else:
+            reading.begin(block, kind, key)
+        return
+    if not _names_a_document(block.text):
+        reading.begin(block, kind, key)
+        return
+    if _has_sub_headings(blocks, index):
+        reading.stop(block.text)
+    else:
+        reading.aside(block.text)
+
+
 def _sections(
     markup: str,
-) -> tuple[tuple[str, ...], tuple[Section, ...], str | None, tuple[str, ...], tuple[str, ...]]:
+) -> tuple[
+    tuple[str, ...],
+    tuple[Section, ...],
+    str | None,
+    tuple[str, ...],
+    tuple[str, ...],
+    tuple[str, ...],
+]:
     """Walk the page's blocks into a lead and a list of sections, stopping where it must.
 
     Past the stop nothing is read: no section, no block, no text. The walk continues anyway,
     over headings alone, because how much of the page a stop leaves behind is the size of
     the omission, and an omission this project cannot close is one it can at least measure.
     """
-    lead: list[str] = []
-    sections: list[Section] = []
-    seen: set[str] = set()
-    heading: str | None = None
-    level = 0
-    blocks: list[str] = []
-    stopped_at: str | None = None
-    beyond: list[str] = []
-    # The innermost classified section still open, as (heading level, kind). A heading at or
-    # above that level closes it, which is what "sits inside" means in an outline.
-    enclosing: tuple[int, str] | None = None
-
-    for block in _BLOCK_RE.finditer(markup):
-        if block.group("heading") is None:
-            text = _prose(block)
-            if text and stopped_at is None:
-                (blocks if heading is not None else lead).append(text)
+    blocks = _walk(markup)
+    reading = _Reading()
+    for index, block in enumerate(blocks):
+        if not block.heading:
+            reading.prose(block.text)
             continue
-        text = _text(block.group("heading"))
-        if not text:
+        if reading.stopped_at is not None:
+            if classify(block.text) != UNCLASSIFIED:
+                reading.beyond.append(block.text)
             continue
-        if stopped_at is not None:
-            if classify(text) != UNCLASSIFIED:
-                beyond.append(text)
-            continue
-        key = _normalize_heading(text)
-        enclosing = _close(sections, heading, level, blocks, enclosing)
-        if _stops_reading(text, key, seen):
-            stopped_at = text
-            heading = None
-            continue
-        seen.add(key)
-        heading, level, blocks = text, int(block.group("h")[1]), []
-    if stopped_at is None:
-        enclosing = _close(sections, heading, level, blocks, enclosing)
+        _read_heading(reading, blocks, index)
+    if reading.stopped_at is None:
+        reading.close()
 
     return (
-        tuple(lead),
-        tuple(sections),
-        stopped_at,
-        tuple(beyond),
-        tuple(section.heading for section in sections if section.kind == UNCLASSIFIED),
+        tuple(reading.lead),
+        tuple(reading.sections),
+        reading.stopped_at,
+        tuple(reading.beyond),
+        tuple(reading.set_aside),
+        tuple(s.heading for s in reading.sections if s.kind == UNCLASSIFIED),
     )
 
 

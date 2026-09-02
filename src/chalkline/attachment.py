@@ -216,19 +216,30 @@ class Attachment:
         The size of the omission :attr:`stopped_at` discloses. An empty tuple means the stop
         cost this authorization nothing a heading would have offered, which is a different
         answer from "reading stopped" and, until this was counted, indistinguishable from it.
-        Of the sixteen attached authorizations whose read stopped, exactly one is in that
-        position: the Reading and Literacy Added Authorization, whose CL-812 stops at a
-        heading with nothing classified after it. The other fifteen lose between one and five
-        headings each, the worst being the three Speech-Language Pathology Services Credential
-        entries, whose CL-879 stops before four "Requirements for ..." headings and a
-        "Terms and Definitions:".
 
-        Not a claim of loss. Where the stop was right, as at CL-380's move to the Special
-        Teaching Authorization in Health, these belong to another Commission document and not
-        reading them is the point. Telling that case from CL-879's, where the same rule fires
-        on a subsection of the leaflet's own subject, is issue #36 and is not decided here.
+        Not a claim of loss, and since issue #36 was fixed it is no longer a claim of
+        uncertainty either. A stop now means the leaflet started a second Commission document
+        and gave it sub-headings of its own, so what sits behind the stop is that document's
+        statements: behind CL-380's Special Teaching Authorization in Health are the Other
+        Health Services Credentials' requirements and their term, and reading them would
+        attribute another document's rules to the School Nurse Services Credential.
+
+        The figure this once carried was much larger and was the bug. Sixteen attached
+        authorizations had a stopped read and fifteen of them lost between one and five
+        headings, because the stop rule fired on any unclassified heading naming a document
+        and so fired on asides inside the leaflet's own outline.
         """
         return () if self.page is None else self.page.classified_beyond_the_stop
+
+    @property
+    def set_aside(self) -> tuple[str, ...]:
+        """Headings the leaflet gave to another subject, read past rather than read.
+
+        Empty where there is no page, which is the same answer as a page that set nothing
+        aside and a different fact from either. What separates them is
+        :attr:`refusal` and :attr:`page`, which the coverage statement reports beside this.
+        """
+        return () if self.page is None else self.page.set_aside
 
     @property
     def stated_conditions(self) -> tuple[leaflet_pages.Section, ...]:

@@ -13,7 +13,7 @@ page.
 
 **Status:** Beta. Version `0.1.0`, first signed tag not yet cut. 133 authorizations are
 modeled, tested, and published as JSON-LD; 22 of them are linked to one of the 19 vendored
-credential leaflets, 18 carry a description read from one, and 15 carry requirements or
+credential leaflets, 18 carry a description read from one, and 18 carry requirements or
 renewal terms. This is one worked example, not a complete representation of California
 educator credentials.
 
@@ -51,8 +51,8 @@ credential leaflets, retrieved 2026-08-07 and 2026-08-19:
 | Subject alignments emitted | 1,014 |
 | Of those, supplied by following a published cross-reference | 538 |
 | Authorizations carrying `ceterms:description` | 53 |
-| Authorizations carrying requirements or renewal terms | 15 |
-| `ceterms:ConditionProfile` nodes emitted | 36 |
+| Authorizations carrying requirements or renewal terms | 18 |
+| `ceterms:ConditionProfile` nodes emitted | 57 |
 | Authorizations linked to a CTC leaflet | 22 |
 | Leaflet pages vendored | 19 |
 | Of those, retrieved and attached to nothing | 7 |

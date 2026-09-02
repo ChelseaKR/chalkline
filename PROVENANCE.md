@@ -128,9 +128,9 @@ Recomputed from the emitted graph at build time and written to `site/coverage.js
 | Authorizations the Commission publishes as `NONE` (not subject-coded) | 66 |
 | Authorizations carrying `ceterms:description` | 53 |
 | Of those, described in a Commission leaflet | 18 |
-| Authorizations carrying `ceterms:requires` | 15 |
-| Authorizations carrying `ceterms:renewal` | 9 |
-| `ceterms:ConditionProfile` nodes emitted | 36 |
+| Authorizations carrying `ceterms:requires` | 18 |
+| Authorizations carrying `ceterms:renewal` | 12 |
+| `ceterms:ConditionProfile` nodes emitted | 57 |
 | Authorizations linked to a CTC leaflet | 22 |
 | Of those, carrying requirements the leaflet states for their own variant | 6 |
 | Leaflet pages read | 10 |
@@ -215,7 +215,7 @@ None of the eight fell into any of those, and `tests/test_model.py` exercises ea
 | `ceterms:audienceLevelType` | Grade ranges appear as prose in the Notes column. Mapping that prose onto CTDL's audience level concept scheme would be an interpretation the Commission has not published. The prose is carried verbatim on the subject alignment instead. |
 | Competency framework | The sort table publishes subject names, not competency statements, and `ceterms:targetCompetency` is not in the domain of `ceterms:License`. See [docs/MODELING.md](docs/MODELING.md). |
 | `ceterms:description` on 82 of 133 licenses | No leaflet is matched to them and the Commission published no Notes that apply to the whole authorization. Absence, not a placeholder. |
-| `ceterms:requires` on 120 of 133, `ceterms:renewal` on 126 | The leaflet those licenses would need either was not matched, was not read, or states its requirements under headings this project does not classify. Counted, not hidden. |
+| `ceterms:requires` on 115 of 133, `ceterms:renewal` on 121 | The leaflet those licenses would need either was not matched, was not read, or states its requirements under headings this project does not classify. Counted, not hidden. |
 | `ceterms:renewalFrequency` | The leaflets state validity in prose ("issued for five calendar years"). Turning that into a `schema:Duration` would be this project parsing a sentence into a datatype the Commission never wrote. The sentence rides `ceterms:renewal` verbatim instead. |
 | `ceterms:codedNotation` | Not in the domain of `ceterms:License`. The codes ride `ceterms:identifier` instead. |
 
@@ -354,38 +354,50 @@ Education", which does match, and the authorization it would serve is one of the
 sort table gives no publishable scope, so it is excluded for that reason and gains nothing
 here.
 
-### Where reading stops
+### Where reading stops, and what is set aside
 
 Several leaflets describe more than one document. `cl-380` is titled for the School Nurse
 Services Credential and then moves on to the Special Teaching Authorization in Health and the
-Other Health Services Credentials, each with its own requirements section. Reading stops at
-the first heading that this project cannot classify **and** that names a credential, permit,
-certificate, certification, or authorization, and at the first heading that repeats one
-already seen. Nothing past that point is read.
+Other Health Services Credentials, each with its own requirements section. Attributing those
+to the School Nurse credential would be a wrong statement rather than a rough one, and its
+closing "Term of the Credential" really does read "Qualified applicants will receive a Clear
+Health Services Credential issued for five calendar years".
 
-That rule is right about `cl-380` and wrong elsewhere, and this document said "everything
-past that point belongs to another document" until 2026-08-27, which was the assumption
-rather than the finding. It is purely lexical: it fires on any unclassified heading
-containing one of five words, and it cannot tell a different Commission document from a
-subsection, an alternate pathway, or an add-on still about the leaflet's own subject. On
-`cl-879` it fires on "Special Class Authorization", an aside about an add-on, and four
-"Requirements for ..." headings for the Speech-Language Pathology Services Credential itself
-are never reached. Issue #36 has the analysis and stays open, because separating the two
-cases is an editorial judgement and getting it wrong attaches one document's requirements to
-another credential, which is worse than reading too little.
+An unclassified heading naming a credential, permit, certificate, certification or
+authorization is where that happens, and **the Commission's own outline is what says whether
+it has happened.** Where such a heading has sub-headings under it, the leaflet has started a
+second document and given it a structure of its own, and nothing after it is read. Where it
+has none, it is one stretch of prose inside the outline of the document being described: that
+heading and its prose are set aside, and reading resumes with the next heading. Reading also
+ends where a **classified** heading repeats one already read, because the Commission does not
+head two statements of one document's requirements with one string.
 
-What can be published without making that judgement is the size of the omission, and
-`site/coverage.json` now does:
+Until 2026-08-29 naming a document was the whole of the test, and this document asserted
+"everything past that point belongs to another document", which was the assumption the rule
+was written on rather than a finding about the leaflets. It was wrong about most of them.
+Fourteen of the nineteen vendored pages stopped early and twelve stopped before something
+this project classifies: `cl-879` ended at "Special Class Authorization", one paragraph about
+an add-on, so the Speech-Language Pathology Services Credential's own four "Requirements
+for ..." headings were never reached and its three licenses carried no `ceterms:requires` at
+all; `cl-902` ended at "TPSL Authorizations", an overview of what that same permit's variants
+authorize, one heading before its "Period of Validity"; `cl-562` ended at an alternate route
+to the same Teacher Librarian Services Credential; and `cl-537` ended at its own title,
+publishing nothing. That was issue #36, and the fix is the outline test above. Six pages stop
+now, `cl-380` among them and at the same heading it always stopped at.
+
+Both judgements are published, and separately, because they are not equally strong:
 
 - `authorizations_with_a_leaflet_reading_stopped_before_the_end`, the reads that stopped;
 - `reading_stopped_at_heading`, the heading each stopped at;
 - `authorizations_whose_stop_left_a_classified_heading_unread`, the reads that stopped
-  before something this project's own vocabulary recognises, which is strictly fewer;
-- `headings_left_unread_beyond_the_stop`, which headings those were.
-
-The last two are an upper bound on what a corrected stop rule could recover, not a claim
-that any of it was wrongly dropped. Where the stop was right, those headings belong to
-another document and not reading them is the point.
+  before something this project's own vocabulary recognises;
+- `headings_left_unread_beyond_the_stop`, which headings those were. They belong to the
+  other document the leaflet moved on to, so not reading them is the point, and the count is
+  what lets a reader tell that from a leaflet that was read whole and said nothing more.
+- `authorizations_whose_leaflet_set_a_subject_aside` and
+  `headings_set_aside_as_another_subject`, the weaker call. Every set-aside heading is
+  listed with a count rather than summarised, because this is the judgement most likely to
+  be wrong, and unlike a stop it costs one paragraph rather than a page.
 
 Within the readable range, only sections whose heading classifies contribute anything. The
 vocabulary is small and published in `src/chalkline/sources/leaflet_pages.py`: a heading

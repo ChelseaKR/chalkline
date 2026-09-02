@@ -8,6 +8,53 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The leaflet parser's "moved to another document" rule fired on headings that were still
+  about the leaflet's own subject, and silently dropped real requirements and renewal terms
+  from licenses already published in `site/credentials.jsonld`. Reading stopped at the first
+  unclassified heading containing "credential", "permit", "certificate", "certification" or
+  "authorization", which is a purely lexical test and cannot tell a second Commission
+  document from an aside, an add-on or an alternate pathway. Fourteen of the nineteen
+  vendored pages stopped early and twelve stopped before a heading `classify()` recognises.
+  The three Speech-Language Pathology Services Credential licenses carried no
+  `ceterms:requires` at all, because `cl-879` ended at "Special Class Authorization" and its
+  own four "Requirements for ..." sections sat behind that; both Teaching Permit for
+  Statutory Leave entries lost their period of validity to "TPSL Authorizations", which is
+  an overview of what that same permit's variants authorize; `cl-562` ended at an alternate
+  route to the same Teacher Librarian Services Credential; `cl-537` ended at its own title
+  and published nothing at all. Issue #36.
+
+  The Commission's own outline decides it now. A heading naming a document that has
+  sub-headings under it is a second document with a structure of its own, and the page ends
+  there; one with no sub-headings is a stretch of prose inside the outline being described,
+  so it is set aside -- its own prose is still never read, because this module cannot say
+  whose it is -- and reading resumes at the next heading. `cl-380`, the page the rule exists
+  for, stops exactly where it always did: the Commission gave the Special Teaching
+  Authorization in Health its own requirements section, and the "Term of the Credential"
+  that page closes on reads "Qualified applicants will receive a Clear Health Services
+  Credential issued for five calendar years", which is not the School Nurse Services
+  Credential the leaflet is titled for. Six pages stop now.
+
+  The repeat-heading stop was narrowed to classified headings in the same change, because
+  leaflets reuse unclassified sub-headings on purpose: `cl-529` heads the out-of-state
+  paragraph under each of three specializations "Out-of-State Applicants", and the second one
+  ended the page one heading before its "Period Of Validity".
+
+  The graph gains what was being dropped: `ceterms:requires` on 18 authorizations rather than
+  15, `ceterms:renewal` on 12 rather than 9, and 57 `ceterms:ConditionProfile` nodes rather
+  than 36. `site/`, the README and PROVENANCE.md figures are rebuilt to match, and
+  `tests/test_documented_counts.py` is what caught each one that was not.
+
+### Added
+
+- `LeafletPage.set_aside` and `Attachment.set_aside`, with
+  `authorizations_whose_leaflet_set_a_subject_aside` and
+  `headings_set_aside_as_another_subject` in `site/coverage.json`. The stop and the aside are
+  two judgements of different strength and they are published separately: a wrong stop costs
+  a page and a wrong aside costs a paragraph, so every set-aside heading is listed with a
+  count rather than summarised, and a reader can check each call. The two stop counts fell
+  from 16 and 15 to 6 and 6 with the fix above, which is less dropped rather than less
+  disclosed.
+
 - The committed ruleset was a lockout waiting to be re-applied.
   `.github/rulesets/main.json` declared `"bypass_actors": []`, and
   `.github/rulesets/README.md` documents applying it with

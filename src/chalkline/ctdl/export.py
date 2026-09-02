@@ -418,33 +418,41 @@ def _leaflet_coverage(
         ),
         "refused_by_reason": _tally(a.refusal for a in attached if a.refusal is not None),
         "headings_read_past_but_not_classified": dict(sorted(skipped.items())),
-        # A page this project stopped reading partway (see leaflet_pages._names_a_document)
-        # looks, in every property count above, exactly like a page that was read whole and
-        # simply states nothing further -- both show zero requirements or zero renewal terms
-        # on the license. That is a real gap: the heading a stop fires on is not always a
-        # different Commission document (issue #36), so a stop can silently drop this
-        # authorization's own later requirements or renewal terms with nothing here to show
-        # for it. Counting it does not recover the dropped content -- only a human reading
-        # the leaflet can decide whether the stop was the right call -- but it turns "reads
-        # as zero" into a disclosed, checkable limit rather than an invisible one.
+        # A page this project stopped reading partway looks, in every property count above,
+        # exactly like a page that was read whole and simply states nothing further -- both
+        # show zero requirements or zero renewal terms on the license. So a stop is counted,
+        # and so is what it left behind: "reads as zero" becomes a disclosed limit rather
+        # than an invisible one.
+        #
+        # Both figures dropped sharply on 2026-08-29 when issue #36 was fixed. A stop now
+        # means the leaflet started a second Commission document and gave it sub-headings of
+        # its own (leaflet_pages._read_heading), so what sits behind a stop is that other
+        # document's statements and not reading them is the point. Before the fix, any
+        # unclassified heading naming a document ended the page, including asides inside the
+        # leaflet's own outline, and that dropped the leaflet's own later requirements: 16
+        # attached authorizations had a stopped read where 6 do now, and 15 of those 16 lost
+        # between one and five classified headings where 3 do now.
         "authorizations_with_a_leaflet_reading_stopped_before_the_end": sum(
             1 for a in attached if a.stopped_at is not None
         ),
         "reading_stopped_at_heading": _tally(
             a.stopped_at for a in attached if a.stopped_at is not None
         ),
-        # How large the omission above is, which the count of stops alone does not say. One
-        # of the sixteen stopped reads loses nothing this project could have classified; the
-        # other fifteen lose between one and five headings each. An upper bound on what a
-        # corrected stop rule could recover, not a claim that any of it was wrongly dropped:
-        # where the stop was right, as at cl-380's move to the Special Teaching Authorization
-        # in Health, the headings belong to another Commission document and not reading them
-        # is the point. Issue #36 is which is which, and it stays open.
         "authorizations_whose_stop_left_a_classified_heading_unread": sum(
             1 for a in attached if a.classified_beyond_the_stop
         ),
         "headings_left_unread_beyond_the_stop": _tally(
             heading for a in attached for heading in a.classified_beyond_the_stop
+        ),
+        # The weaker of the two judgements, and separated from the stop because it is weaker.
+        # An unclassified heading naming a document that has no sub-headings under it is read
+        # past rather than read: its own prose is not attributed to this authorization, and
+        # the page after it is. Listing the headings rather than only counting them is what
+        # lets a reader check the call, which matters because this is the judgement most
+        # likely to be wrong.
+        "authorizations_whose_leaflet_set_a_subject_aside": sum(1 for a in attached if a.set_aside),
+        "headings_set_aside_as_another_subject": _tally(
+            heading for a in attached for heading in a.set_aside
         ),
     }
 
