@@ -8,6 +8,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `live-integrity.yml` was left on `astral-sh/setup-uv` v9.0.0 by #34, which bumped
+  `ci.yml` and `pages.yml` to v10.0.1. The sentinel workflow did not exist when
+  Dependabot opened that PR, so it was created against the old pin and the two never met.
+  All four jobs now install uv the same way, which is the point of pinning at all: a
+  sentinel that says the served site disagrees with the build is worth less if it can
+  disagree because it built with a different tool. `tests/test_workflow_pins.py` is what
+  keeps the four in step: it fails when one action carries two pins across the workflow
+  files, fails when any `uses:` is not a full 40-character SHA (which would otherwise be
+  invisible to the first check), and asserts its own denominator so a pass is about the
+  workflows rather than about a scan that read nothing.
+
 - The leaflet parser's "moved to another document" rule fired on headings that were still
   about the leaflet's own subject, and silently dropped real requirements and renewal terms
   from licenses already published in `site/credentials.jsonld`. Reading stopped at the first
