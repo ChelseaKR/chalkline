@@ -38,10 +38,13 @@ edit an existing CTID; an identifier that has been handed out does not change qu
 make verify
 ```
 
-That runs ruff, mypy strict, the test suite with a 97% coverage floor, and the check that
-the committed `site/` matches a fresh build. All of it also runs in CI.
+That runs ruff, mypy strict, the em dash check, the test suite with a 97% coverage floor,
+and the check that the committed `site/` matches a fresh build. All of it also runs in CI.
 
 ## Prose style
 
-No em dashes. Do not characterize the Commission as deficient; the framing throughout is
-that no machine-readable representation exists yet and this is what one could look like.
+No em dashes; `make no-dashes` is part of `make verify` and fails on one. Files under
+`data/source/`, the generated `site/`, and the vendored CTDL schema are outside it, because
+they are transcribed or produced rather than written. Do not characterize the Commission as
+deficient; the framing throughout is that no machine-readable representation exists yet and
+this is what one could look like.

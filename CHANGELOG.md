@@ -46,6 +46,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The prose style rule is now a gate. CONTRIBUTING.md has said "No em dashes" for as long as
+  it has existed and nothing checked it, so the repository held 32 of them: 16 in README.md,
+  9 in CHANGELOG.md, 3 in PROVENANCE.md, 2 in `.github/dependabot.yml` and one each in a
+  `sort_table` docstring and a `test_sort_table` docstring. All 32 are rewritten here without
+  changing what any of them says. `make no-dashes` runs inside `make verify`, which CI runs
+  byte for byte. It keeps `git grep`'s three exit statuses apart, so a gate that could not run
+  fails rather than announcing success. `data/source/`, the generated `site/` and the vendored
+  CTDL schema are outside it, because they are transcribed or produced rather than written:
+  `data/source/leaflets/cl-562.html` does contain an em dash, and editing the Commission's own
+  page would make the snapshot a paraphrase and break the sha256 PROVENANCE.md publishes for
+  it. En dashes are not checked, because CONTRIBUTING.md does not ban them.
+
 - The page says what it is, and where it is. `site/index.html` carried a title
   and nothing else: no `<meta name="description">`, no canonical, no Open Graph,
   no Twitter card. It now carries all of them, built from one `TITLE` and one
@@ -60,6 +72,20 @@ All notable changes to this project are documented here. The format follows
   quotes a figure, and on any root-relative `href`, `src` or `content`.
 
 ### Fixed
+
+- The README published tool floors a release behind the ones `pyproject.toml` pins. The Code
+  Quality row said "ruff >= 0.16.2, mypy >= 2.3.0" while the pins read `ruff>=0.16.4` and
+  `mypy>=2.3.1`. That is drift with a motor behind it: Dependabot raises the floor in
+  `pyproject.toml`, the merged PR touches no prose, and the sentence describing the pins falls
+  one release further behind on every bump. `tests/test_documented_counts.py` could never have
+  caught it, and correctly so: its figure regex excludes version strings, dates and leaflet
+  codes by design, because none of those is a count of anything the build emits. That
+  exclusion is untouched. `tests/test_documented_floors.py` reads the floors out of
+  `pyproject.toml` instead, which is where they come from, and holds the Python, ruff, mypy
+  and complexity floors and the 97% coverage floor (stated in two README rows and in
+  CONTRIBUTING.md) to what is actually pinned. It carries the same doctored-copy control the
+  counts module uses, so a passing run is a statement about the floors rather than about the
+  check being unable to fail.
 
 - The README's prose quoted the build and nothing recomputed it. `tests/test_documented_counts.py`
   bound every numeric row of the README and PROVENANCE tables, and its own docstring opened
@@ -98,7 +124,7 @@ All notable changes to this project are documented here. The format follows
 
 - `make verify` now runs `make audit` as its last step. Until 2026-08-21 a local `make verify`
   was green without `pip-audit` ever having run, while CI additionally required a separate
-  `audit` job to pass — so `make verify` did not tell the truth about what CI required, which
+  `audit` job to pass, so `make verify` did not tell the truth about what CI required, which
   is the one thing a target named `verify` cannot afford to get wrong (issue #22).
 - The README's Status line said "twelve credential leaflets" since 2026-08-08 and was never
   updated as leaflet coverage moved; it now reads 19 vendored leaflets extending 22
@@ -124,7 +150,7 @@ All notable changes to this project are documented here. The format follows
   `credentials.jsonld` and `coverage.json` to. `make validate` now runs the `--check` form,
   and `tests/test_ctdl_validate_evidence.py` runs it again from the test suite, including a
   control test that mutates one `ceterms:ctid` into a bare UUID and asserts the validator
-  catches it — so a clean report proves the graph was actually read, not merely that the
+  catches it, so a clean report proves the graph was actually read, not merely that the
   file exists. Today: `0 findings` on all 134 entities. Closes #21.
 - `.pre-commit-config.yaml`: ruff, mypy, and gitleaks as a pre-flight, run
   through `uv run --locked` so the versions are the lockfile's and cannot drift
@@ -169,7 +195,7 @@ All notable changes to this project are documented here. The format follows
 - `make validate` runs [`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate) `0.2.1`,
   an independently written CTDL structural checker, over the committed graph, and `make
   verify` depends on it. It checks a different rule family from this project's own validator
-  — CTID grammar, identifier kinds, reference targets, class pairings — so neither subsumes
+  (CTID grammar, identifier kinds, reference targets, class pairings), so neither subsumes
   the other and the interesting outcome is a disagreement. It reports `0 findings` on all 134
   entities today; rewriting one `ceterms:ctid` to a bare UUID makes it report `CTID_BARE_UUID`
   and exit 1, so the zero is being earned. It makes no network calls and the gate stays
@@ -182,8 +208,8 @@ All notable changes to this project are documented here. The format follows
 
 - The leaflet index publishes a document code beside each title, and this project read only
   the link and its text, taking the first non-empty text for a path. The index also carries a
-  redirection row for each retired document — the retired code in the code column and "CL-740
-  has been replaced by CL-828." where a title would go — and prints it *above* the leaflet's
+  redirection row for each retired document (the retired code in the code column and "CL-740
+  has been replaced by CL-828." where a title would go) and prints it *above* the leaflet's
   own row. So six leaflets were published under a sentence about a document that no longer
   exists, and their real titles were never read: `cl-828` came out titled "CL-740 has been
   replaced by CL-828." rather than "General Education Limited Assignment Teaching Permit".
@@ -226,8 +252,8 @@ All notable changes to this project are documented here. The format follows
 
 - `chalkline.sources.sort_table.load` returned `()` for an artifact that kept the
   Commission's six headers and lost every row under them. That page satisfies all four of
-  the parser's structural refusals — one `<table>`, at least one `<tr>`, the expected
-  headers, full-width rows — so nothing objected, and the empty read propagated as fact:
+  the parser's structural refusals (one `<table>`, at least one `<tr>`, the expected
+  headers, full-width rows), so nothing objected, and the empty read propagated as fact:
   a catalog of nothing, a graph holding the Commission and no licences, a `validate.check`
   that passed because that graph is not empty, a coverage statement counting zero of
   everything, a page of nine zeroed tiles, and `chalkline build` printing
@@ -243,7 +269,7 @@ All notable changes to this project are documented here. The format follows
   every key unassigned, mints a fresh UUIDv4 for each, and `save_ledger` writes the result
   over the file. A `ctids` key renamed, dropped in a merge, or truncated away would
   therefore have been repaired by re-minting all 134 identifiers, reporting the new count as
-  a successful run and exiting 0, with none of the committed CTIDs surviving — the one thing
+  a successful run and exiting 0, with none of the committed CTIDs surviving: the one thing
   the module's own docstring says cannot happen. A missing file still reads as empty, an
   explicit `"ctids": {}` is still an allowed statement that nothing has been assigned, and
   a file that cannot be read now stops the run. A non-string assignment is reported as a
