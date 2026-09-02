@@ -433,6 +433,19 @@ def _leaflet_coverage(
         "reading_stopped_at_heading": _tally(
             a.stopped_at for a in attached if a.stopped_at is not None
         ),
+        # How large the omission above is, which the count of stops alone does not say. One
+        # of the sixteen stopped reads loses nothing this project could have classified; the
+        # other fifteen lose between one and five headings each. An upper bound on what a
+        # corrected stop rule could recover, not a claim that any of it was wrongly dropped:
+        # where the stop was right, as at cl-380's move to the Special Teaching Authorization
+        # in Health, the headings belong to another Commission document and not reading them
+        # is the point. Issue #36 is which is which, and it stays open.
+        "authorizations_whose_stop_left_a_classified_heading_unread": sum(
+            1 for a in attached if a.classified_beyond_the_stop
+        ),
+        "headings_left_unread_beyond_the_stop": _tally(
+            heading for a in attached for heading in a.classified_beyond_the_stop
+        ),
     }
 
 

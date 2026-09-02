@@ -238,3 +238,81 @@ def test_every_vendored_leaflet_either_parses_or_says_why(
 
 def test_available_is_empty_when_there_is_no_snapshot_directory(tmp_path: Path) -> None:
     assert leaflet_pages.available(tmp_path / "nowhere") == ()
+
+
+def test_a_stop_records_the_classified_headings_it_left_unread() -> None:
+    """How much a stop costs, which the stop heading alone does not say.
+
+    "Special Class Authorization" is unclassified and names a document, so reading stops
+    there. What sits behind it is this leaflet's own requirements, under headings
+    ``classify`` recognises. Nothing reads them, and until they were counted a leaflet that
+    stopped one heading short of the end and one that stopped before five looked the same.
+    """
+    parsed = leaflet_pages.parse(
+        page(
+            "Speech-Language Pathology Services Credential (CL-1)",
+            "<h2>Authorization</h2><p>What it lets you do.</p>"
+            "<h3>Special Class Authorization</h3><p>An add-on.</p>"
+            "<h3>Requirements for the Clear Credential</h3><p>Hold a master's degree.</p>"
+            "<h3>Terms and Definitions</h3><p>Words.</p>",
+        ),
+        "cl-1",
+    )
+    assert parsed.stopped_at == "Special Class Authorization"
+    assert parsed.classified_beyond_the_stop == (
+        "Requirements for the Clear Credential",
+        "Terms and Definitions",
+    )
+    assert [section.heading for section in parsed.sections] == ["Authorization"]
+    assert all("master" not in block for section in parsed.sections for block in section.blocks), (
+        "text beyond the stop was read into a section, which is exactly what must not happen"
+    )
+
+
+def test_a_stop_with_nothing_classified_behind_it_records_nothing() -> None:
+    """The distinction the count exists to make, from the other side."""
+    parsed = leaflet_pages.parse(
+        page(
+            "A Credential (CL-1)",
+            "<h2>Requirements</h2><p>Hold a degree.</p>"
+            "<h2>Some Other Certificate</h2><p>Not this document.</p>"
+            "<h3>A subsection with no kind</h3><p>More.</p>",
+        ),
+        "cl-1",
+    )
+    assert parsed.stopped_at == "Some Other Certificate"
+    assert parsed.classified_beyond_the_stop == ()
+
+
+def test_a_page_read_to_the_end_records_no_headings_beyond_a_stop() -> None:
+    parsed = leaflet_pages.parse(
+        page("A Credential (CL-1)", "<h2>Requirements</h2><p>Hold a degree.</p>"),
+        "cl-1",
+    )
+    assert parsed.stopped_at is None
+    assert parsed.classified_beyond_the_stop == ()
+
+
+def test_the_vendored_leaflets_stop_before_content_this_project_classifies() -> None:
+    """Asserted against the vendored bytes, because the figure is the point of the count.
+
+    Twelve of the nineteen snapshots stop before at least one heading ``classify`` would
+    have recognised. CL-879 is the case issue #36 opens with: reading stops at "Special
+    Class Authorization", an aside about an add-on, and four "Requirements for ..." headings
+    for the credential the leaflet is actually titled for are never reached.
+    """
+    stopped = {
+        code: leaflet_pages.load(code).classified_beyond_the_stop
+        for code in leaflet_pages.available()
+        if leaflet_pages.load(code).stopped_at is not None
+    }
+    assert len(stopped) == 14, f"{len(stopped)} vendored pages stop, not 14"
+    assert sum(1 for beyond in stopped.values() if beyond) == 12
+    assert stopped["cl-812"] == (), "cl-812 stops at the last thing on the page"
+    assert [heading[:36] for heading in stopped["cl-879"]] == [
+        "Requirements for the Two-Year Prelim",
+        "Requirements for the Clear Credentia",
+        "Requirements for the Two-Year Prelim",
+        "Requirements for the Clear Credentia",
+        "Terms and Definitions:",
+    ]
