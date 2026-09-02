@@ -86,10 +86,11 @@ stylesheet.
 
 FIXED_OVERHEAD_BUDGET: Final = 12_000
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
-head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 8,102
-today, so this is 1.5x headroom. The stylesheet is 2,797 of it, the head metadata added with
-the canonical link is 890, and the accessibility fixes (`scope`, `role`, `tabindex`, the
-region label and its focus ring) are 206."""
+head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 8,690
+today, so this is 1.38x headroom. The stylesheet is 2,797 of it, the head metadata added with
+the canonical link is 890, the share-card tags (`og:image` and its type, dimensions and alt
+text, plus `twitter:image`) are 588, and the accessibility fixes (`scope`, `role`,
+`tabindex`, the region label and its focus ring) are 206."""
 
 PER_AUTHORIZATION_BUDGET: Final = 2_200
 """Bytes the page may spend per modeled authorization. The mean is 1,868 today and the

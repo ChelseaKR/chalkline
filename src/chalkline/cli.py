@@ -46,6 +46,11 @@ PUBLISHED_BY_ANOTHER_GATE: dict[str, str] = {
         "written by scripts/validate_evidence.py and held byte-for-byte to a fresh "
         "ctdl-validate run by `make validate` and tests/test_ctdl_validate_evidence.py"
     ),
+    "og-card.png": (
+        "the share image named by the page's og:image, committed rather than derived "
+        "from any source; tests/test_site.py holds it to being a PNG of exactly the "
+        "dimensions the head declares, and to being the file the head names"
+    ),
 }
 
 

@@ -55,7 +55,12 @@ NOT_PUBLISHED: frozenset[str] = frozenset()
 # The floor under the comparison set. A sentinel that finds nothing to compare
 # and prints OK is worse than no sentinel, so a set smaller than this is a
 # failure and not a pass.
-MINIMUM_FILES = 4
+#
+# Five since og-card.png joined the tree: the page, the graph, the coverage
+# statement, the ctdl-validate report and the share card. The floor tracks what
+# is actually published rather than staying at whatever it was first set to,
+# because a floor below the real count silently stops guarding the difference.
+MINIMUM_FILES = 5
 
 # Regenerating the published tree before comparing it, so the bytes checked
 # against the deployment are bytes the code still produces. None where the

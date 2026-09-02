@@ -49,6 +49,28 @@ DESCRIPTION: Final = (
     "Authorization Sort Table and its credential leaflets."
 )
 
+# The share image. Absolute, and carrying the project path, for the same reason
+# SITE_URL is: a preview fetcher retrieves it from its own machine with no page
+# context, so a relative name resolves against whatever it takes the base to be
+# and a root-relative one lands on a sibling project's site.
+#
+# It is not written by `chalkline build`, being committed art rather than
+# derived data, so it is registered in cli.PUBLISHED_BY_ANOTHER_GATE with the
+# test that holds it. That registry exists precisely so a file published from
+# site/ cannot sit there unaccounted for.
+#
+# The card repeats the disclaimer. The page leads with "Unofficial" and the
+# whole project turns on not being mistaken for the Commission's own; a link
+# preview is the one surface where that notice is dropped by default, and it is
+# also the surface a stranger sees first.
+CARD_FILENAME: Final = "og-card.png"
+CARD_URL: Final = SITE_URL + CARD_FILENAME
+CARD_WIDTH: Final = 1200
+CARD_HEIGHT: Final = 630
+CARD_ALT: Final = (
+    "Chalkline, marked unofficial: California educator credential authorizations as CTDL."
+)
+
 STYLE: Final = """
 :root { color-scheme: light dark; --ink: #1a1c1e; --bg: #fbfaf7; --muted: #5a5f66;
   --rule: #d9d5cc; --accent: #7a3b12; --panel: #f3f0e9; }
@@ -309,7 +331,14 @@ def render(
 <meta property="og:url" content="{_e(SITE_URL)}">
 <meta property="og:title" content="{_e(TITLE)}">
 <meta property="og:description" content="{_e(DESCRIPTION)}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="{_e(CARD_URL)}">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="{CARD_WIDTH}">
+<meta property="og:image:height" content="{CARD_HEIGHT}">
+<meta property="og:image:alt" content="{_e(CARD_ALT)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{_e(CARD_URL)}">
+<meta name="twitter:image:alt" content="{_e(CARD_ALT)}">
 <style>{STYLE}</style>
 </head>
 <body>

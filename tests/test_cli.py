@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -57,11 +58,24 @@ def test_check_fails_on_a_file_the_build_does_not_produce(
 def test_check_accounts_for_the_evidence_file_another_gate_owns(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The one exclusion, and it has to name the gate that does hold that file."""
+    """Every exclusion has to name the gate that does hold that file.
+
+    The rule used to be spelled ``"validate" in reason``, which read as a check and was a
+    coincidence: there was one entry and its gate happened to be called ctdl-validate. The
+    second entry, the share card, is held by a test rather than by a validator, and the
+    substring would have rejected a correct reason while still accepting any prose with the
+    word in it. So the requirement is stated as what it always meant: the reason has to name
+    a file in this repository, and that file has to be there.
+    """
     cli.build(tmp_path)
     for name, reason in cli.PUBLISHED_BY_ANOTHER_GATE.items():
         (tmp_path / name).write_text("{}", encoding="utf-8")
-        assert "validate" in reason, f"{name} is excluded without naming a gate"
+        named = [
+            candidate
+            for candidate in re.findall(r"[\w./-]+\.py", reason)
+            if (cli.REPO_ROOT / candidate).is_file()
+        ]
+        assert named, f"{name} is excluded without naming a gate that exists: {reason!r}"
     assert cli.check(tmp_path) == 0
     assert "not built here" in capsys.readouterr().out
 
