@@ -10,6 +10,15 @@ from chalkline.sources import leaflet_pages, leaflets
 
 FOOTER = '<div class="et_pb_with_border et_pb_section et_pb_section_5" ><p>Get Involved</p></div>'
 
+EN_DASH = "\u2013"
+"""The Commission separates a requirements heading from its qualifier with an en dash.
+
+Written as an escape because ruff refuses the literal character in a string (RUF001, the
+ambiguous-character rule) and because a reader of this file cannot otherwise tell it from a
+hyphen. `leaflets.normalize_title` folds all three dashes together for comparison; these
+assertions are against the heading verbatim, so the exact character matters here.
+"""
+
 
 def page(title: str, body: str, footer: str = FOOTER) -> str:
     return (
@@ -228,9 +237,11 @@ def test_every_vendored_leaflet_either_parses_or_says_why(
             assert code in str(refusal)
             continue
         assert parsed.code == code
-        # A page that yields nothing has to say why it yielded nothing. CL-537 opens with a
-        # heading repeating its own title, which is where reading stops, so it contributes no
-        # prose at all: an empty read with a recorded stop, not an empty read full stop.
+        # A page that yields nothing has to say why it yielded nothing. CL-628b and CL-898
+        # open with a heading the Commission gave an outline to, which is where reading
+        # stops, so they contribute no prose at all: an empty read with a recorded stop, not
+        # an empty read full stop. CL-537 was in that position until issue #36 was fixed,
+        # because its first heading repeats its own title and used to end the page.
         assert parsed.lead or parsed.sections or parsed.stopped_at
         read += 1
     assert read == 19, f"only {read} snapshots parsed, so the assertions above ran {read} times"
@@ -240,13 +251,15 @@ def test_available_is_empty_when_there_is_no_snapshot_directory(tmp_path: Path) 
     assert leaflet_pages.available(tmp_path / "nowhere") == ()
 
 
-def test_a_stop_records_the_classified_headings_it_left_unread() -> None:
-    """How much a stop costs, which the stop heading alone does not say.
+def test_a_document_heading_with_no_outline_under_it_is_set_aside_not_a_stop() -> None:
+    """Issue #36, in the shape CL-879 has it.
 
-    "Special Class Authorization" is unclassified and names a document, so reading stops
-    there. What sits behind it is this leaflet's own requirements, under headings
-    ``classify`` recognises. Nothing reads them, and until they were counted a leaflet that
-    stopped one heading short of the end and one that stopped before five looked the same.
+    "Special Class Authorization" is unclassified and names a document, and it used to end
+    the page. It is one paragraph about an add-on, sitting between this credential's own
+    "Authorization" section and its own requirements, and the Commission gave it no
+    sub-headings. So it is set aside, its prose unread because this module cannot say whose
+    it is, and the requirements after it are read, which is what the published graph was
+    missing.
     """
     parsed = leaflet_pages.parse(
         page(
@@ -258,15 +271,150 @@ def test_a_stop_records_the_classified_headings_it_left_unread() -> None:
         ),
         "cl-1",
     )
-    assert parsed.stopped_at == "Special Class Authorization"
-    assert parsed.classified_beyond_the_stop == (
+    assert parsed.stopped_at is None
+    assert parsed.classified_beyond_the_stop == ()
+    assert parsed.set_aside == ("Special Class Authorization",)
+    assert [section.heading for section in parsed.sections] == [
+        "Authorization",
         "Requirements for the Clear Credential",
         "Terms and Definitions",
+    ]
+    assert "An add-on." not in str(parsed.sections), (
+        "the prose under a set-aside heading was read into a section, which is what must "
+        "not happen: this module does not know whose statement it is"
     )
-    assert [section.heading for section in parsed.sections] == ["Authorization"]
-    assert all("master" not in block for section in parsed.sections for block in section.blocks), (
-        "text beyond the stop was read into a section, which is exactly what must not happen"
+    assert parsed.of_kind(leaflet_pages.REQUIREMENTS)[0].blocks == ("Hold a master's degree.",)
+
+
+def test_a_document_heading_with_an_outline_under_it_still_ends_the_page() -> None:
+    """The other half, in the shape CL-380 has it. Narrowing the rule must not widen it.
+
+    The Commission gave this heading a requirements section of its own, which is what
+    starting a second document looks like, so nothing after it is read: those requirements
+    belong to the Special Teaching Authorization in Health rather than to the School Nurse
+    Services Credential, and so does the term the page closes on.
+    """
+    parsed = leaflet_pages.parse(
+        page(
+            "School Nurse Services Credential (CL-1)",
+            "<h2>Requirements for the Clear Credential</h2><p>Mine.</p>"
+            "<h2>Special Teaching Authorization in Health</h2><p>Another document.</p>"
+            "<h3>Requirements for the Special Teaching Authorization in Health</h3>"
+            "<p>Not mine.</p>"
+            "<h2>Term of the Credential</h2><p>Not mine either.</p>",
+        ),
+        "cl-1",
     )
+    assert parsed.stopped_at == "Special Teaching Authorization in Health"
+    assert parsed.set_aside == ()
+    assert parsed.classified_beyond_the_stop == (
+        "Requirements for the Special Teaching Authorization in Health",
+        "Term of the Credential",
+    )
+    assert [section.heading for section in parsed.sections] == [
+        "Requirements for the Clear Credential"
+    ]
+    assert "Not mine" not in str(parsed.sections)
+
+
+def test_a_repeated_unclassified_heading_does_not_end_the_page() -> None:
+    """CL-529's shape: one heading reused under each of three specializations.
+
+    The repeat rule reads a heading it has seen before as the page having looped into a
+    structure it has been through. That is true of a classified heading, because the
+    Commission does not head two statements of one document's requirements with one string,
+    and false of an unclassified sub-heading, which leaflets reuse on purpose. Applying it to
+    both ended CL-529 one heading before its "Period Of Validity".
+    """
+    parsed = leaflet_pages.parse(
+        page(
+            "Specialist Instruction Credentials (CL-1)",
+            "<h2>Agriculture</h2><p>One.</p>"
+            "<h2>Out-of-State Applicants</h2><p>First.</p>"
+            "<h2>Gifted Education</h2><p>Two.</p>"
+            "<h2>Out-of-State Applicants</h2><p>Second.</p>"
+            "<h2>Period Of Validity</h2><p>Five years.</p>",
+        ),
+        "cl-1",
+    )
+    assert parsed.stopped_at is None
+    assert [s.heading for s in parsed.of_kind(leaflet_pages.VALIDITY)] == ["Period Of Validity"]
+
+
+def test_the_three_leaflets_issue_36_names_now_read_past_the_aside() -> None:
+    """The three vendored pages the issue names, each asserted against the vendored bytes.
+
+    Every one of them stopped at an unclassified heading naming a document that the
+    Commission had given no sub-headings, and every one of them had classified content for
+    its own subject behind that heading.
+
+    CL-562 is the one that still stops. Its "National Board for Professional Teaching
+    Standards Certification" is an alternate route to the same Teacher Librarian Services
+    Credential and is now read past; what stops the page is the "Special Class Authorization"
+    after it, which the Commission did give an outline of its own (an authorization, its
+    requirements, its period of validity and its terms), and which is a different document.
+    The stop moved to the right heading rather than going away.
+    """
+    speech = leaflet_pages.load("cl-879")
+    assert speech.stopped_at != "Special Class Authorization"
+    assert "Special Class Authorization" in speech.set_aside
+    assert [s.heading for s in speech.of_kind(leaflet_pages.REQUIREMENTS)] == [
+        f"Requirements for the Two-Year Preliminary Credential {EN_DASH} For Individuals "
+        "Prepared in California",
+        f"Requirements for the Clear Credential {EN_DASH} For Individuals Prepared in California",
+        f"Requirements for the Two-Year Preliminary Credential {EN_DASH} For Individuals "
+        "Prepared Out-of-State",
+        f"Requirements for the Clear Credential {EN_DASH} For Individuals Prepared Out-of-State",
+    ], "CL-879 publishes no requirements, which is the defect issue #36 opens with"
+
+    tpsl = leaflet_pages.load("cl-902")
+    assert tpsl.stopped_at is None
+    assert tpsl.set_aside == ("TPSL Authorizations",)
+    assert [s.heading for s in tpsl.of_kind(leaflet_pages.VALIDITY)] == ["Period of Validity"]
+
+    librarian = leaflet_pages.load("cl-562")
+    assert librarian.set_aside == (
+        "National Board for Professional Teaching Standards Certification",
+    )
+    assert librarian.stopped_at == "Special Class Authorization"
+    assert [s.heading for s in librarian.sections] == [
+        "Authorization",
+        "Requirements for the Clear Credential",
+    ]
+
+
+def _snapshot(code: str) -> str:
+    """One vendored leaflet's bytes, for a test that needs the outline and not the parse."""
+    return (leaflet_pages.SOURCE_DIR / f"{code}.html").read_text(encoding="utf-8")
+
+
+def test_every_vendored_stop_is_a_heading_the_commission_gave_an_outline_to() -> None:
+    """The rule holds over the corpus, not only over the pages the issue named.
+
+    Both halves are asserted, because either one alone is satisfiable by a rule that has
+    stopped working: a stop must be a heading with sub-headings under it or a repeat, and a
+    set-aside heading must have none. The counts are asserted too, so a parser that stopped
+    finding either case would fail rather than pass over an empty set.
+    """
+    stops = 0
+    asides = 0
+    for code in leaflet_pages.available():
+        parsed = leaflet_pages.load(code)
+        blocks = leaflet_pages._walk(leaflet_pages._body(_snapshot(code)))
+        headings = {b.text: i for i, b in enumerate(blocks) if b.heading}
+        for heading in parsed.set_aside:
+            asides += 1
+            assert not leaflet_pages._has_sub_headings(blocks, headings[heading]), (
+                f"{code}: {heading!r} was set aside although the Commission gave it an "
+                "outline of its own, which is a stop rather than an aside"
+            )
+        if parsed.stopped_at is None:
+            continue
+        stops += 1
+        assert leaflet_pages.classify(parsed.stopped_at) != leaflet_pages.UNCLASSIFIED or (
+            leaflet_pages._has_sub_headings(blocks, headings[parsed.stopped_at])
+        ), f"{code}: reading stopped at {parsed.stopped_at!r}, which has nothing under it"
+    assert (stops, asides) == (6, 14), f"{stops} stops and {asides} set-aside headings"
 
 
 def test_a_stop_with_nothing_classified_behind_it_records_nothing() -> None:
@@ -296,23 +444,38 @@ def test_a_page_read_to_the_end_records_no_headings_beyond_a_stop() -> None:
 def test_the_vendored_leaflets_stop_before_content_this_project_classifies() -> None:
     """Asserted against the vendored bytes, because the figure is the point of the count.
 
-    Twelve of the nineteen snapshots stop before at least one heading ``classify`` would
-    have recognised. CL-879 is the case issue #36 opens with: reading stops at "Special
-    Class Authorization", an aside about an add-on, and four "Requirements for ..." headings
-    for the credential the leaflet is actually titled for are never reached.
+    Six of the nineteen snapshots stop, and every one of them has something classified behind
+    the stop: a stop is the leaflet starting a second Commission document with an outline of
+    its own, and that document states its own requirements. What is behind CL-380's stop is
+    the Special Teaching Authorization in Health's requirements, the Other Health Services
+    Credentials' requirements, and the term of a Health Services Credential. Not reading
+    those is the point; counting them is how a reader can tell that from a leaflet that was
+    read whole and simply said nothing more.
+
+    This is where the fix for issue #36 shows up as a number. Fourteen pages stopped before
+    it, twelve of them before something classified, and what sat behind most of those stops
+    was the leaflet's own later requirements rather than another document's.
     """
     stopped = {
         code: leaflet_pages.load(code).classified_beyond_the_stop
         for code in leaflet_pages.available()
         if leaflet_pages.load(code).stopped_at is not None
     }
-    assert len(stopped) == 14, f"{len(stopped)} vendored pages stop, not 14"
-    assert sum(1 for beyond in stopped.values() if beyond) == 12
-    assert stopped["cl-812"] == (), "cl-812 stops at the last thing on the page"
-    assert [heading[:36] for heading in stopped["cl-879"]] == [
-        "Requirements for the Two-Year Prelim",
-        "Requirements for the Clear Credentia",
-        "Requirements for the Two-Year Prelim",
-        "Requirements for the Clear Credentia",
-        "Terms and Definitions:",
-    ]
+    assert len(stopped) == 6, f"{len(stopped)} vendored pages stop, not 6"
+    assert sum(1 for beyond in stopped.values() if beyond) == 6, (
+        "a stop with nothing classified behind it would mean the page ended at a heading "
+        "the Commission gave an outline to but no statements under"
+    )
+    assert "cl-812" not in stopped, (
+        "CL-812 stopped at its last heading, an aside with nothing after it, and reading "
+        "past that heading is part of the fix rather than a regression"
+    )
+    assert stopped["cl-380"] == (
+        "Requirements for the Special Teaching Authorization in Health",
+        "Requirements for the Clear Credential",
+        "Term of the Credential",
+    ), "CL-380 is the page the stop rule exists for and its stop must not have moved"
+    assert stopped["cl-879"] == ("Terms and Definitions:",), (
+        "CL-879's four 'Requirements for ...' headings are read now; only the definitions "
+        "list behind its upgrade section is left, and that section has an outline of its own"
+    )

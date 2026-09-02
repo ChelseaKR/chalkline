@@ -271,6 +271,7 @@ def attachment_with(*sections: leaflet_pages.Section) -> Attachment:
         sections=sections,
         stopped_at=None,
         classified_beyond_the_stop=(),
+        set_aside=(),
         skipped_headings=(),
     )
     return Attachment(
@@ -383,12 +384,17 @@ def test_the_vendored_leaflets_include_at_least_one_stopped_read(
     real_catalog: Catalog,
     real_attachments: dict[str, Attachment],
 ) -> None:
-    """Pins the real, currently-open gap (issue #36) so the count cannot quietly go stale.
+    """Pins a real stop so the count cannot quietly go stale.
 
-    `cl-879` ("Speech-Language Pathology Services Credential") stops at "Special Class
-    Authorization", a heading still about the leaflet's own subject, before ever reaching the
-    "Requirements for the ... Credential" headings further down the same page -- and this is
-    the count that says so, where nothing did before.
+    ``cl-562`` ("Teacher Librarian Services Credential") stops at "Special Class
+    Authorization", which is a different Commission document and which the Commission gave an
+    outline of its own: an authorization, its requirements, its period of validity and its
+    terms. Everything before it belongs to the Teacher Librarian Services Credential and is
+    read; nothing after it does.
+
+    That heading used to be reached only after the page had already ended at "National Board
+    for Professional Teaching Standards Certification", which is an alternate route to the
+    same credential and is now read past (issue #36).
     """
     statement = export.coverage({"@graph": []}, real_catalog, real_attachments, INDEX, VENDORED)
     leaflets_counted = statement["leaflets"]
@@ -409,11 +415,11 @@ def test_the_coverage_statement_sizes_what_a_stopped_read_left_behind(
 ) -> None:
     """A stop is disclosed; this is how large it is.
 
-    ``authorizations_with_a_leaflet_reading_stopped_before_the_end`` says sixteen reads
-    stopped early. It does not say whether that cost anything: one of the sixteen stops at a
-    heading with nothing classified after it, and three stop before four "Requirements for
-    ..." headings apiece. Those two cases publish identical property counts and, without
-    this, identical coverage.
+    Both figures fell hard when issue #36 was fixed: sixteen attached authorizations had a
+    stopped read and fifteen of those lost a classified heading, against six and six now. The
+    difference is not that less is disclosed, it is that less is dropped. What is behind a
+    stop today is another Commission document's own statements, which is what the rule was
+    always meant to exclude.
     """
     document = export.project_graph(real_catalog, ctid_module.load_ledger(), real_attachments)
     leaflets = export.coverage(
@@ -424,21 +430,50 @@ def test_the_coverage_statement_sizes_what_a_stopped_read_left_behind(
     lost = leaflets["authorizations_whose_stop_left_a_classified_heading_unread"]
     headings = leaflets["headings_left_unread_beyond_the_stop"]
 
-    assert stopped == 16
-    assert lost == 15, "fifteen of the sixteen stopped reads left a classified heading unread"
-    assert stopped - lost == 1, "and exactly one did not, which is the distinction being made"
+    assert stopped == 6
+    assert lost == 6, "every stop today is a document the Commission gave its own statements"
     assert sum(headings.values()) == sum(
         len(attachment.classified_beyond_the_stop) for attachment in real_attachments.values()
     ), "the tally and the attachments disagree about how many headings were left unread"
-    clear_in_california = [
-        heading
-        for heading in headings
-        if heading.startswith("Requirements for the Clear Credential")
-        and heading.endswith("For Individuals Prepared in California")
-    ]
-    assert len(clear_in_california) == 1, clear_in_california
-    assert headings[clear_in_california[0]] == 3, (
-        "the three Speech-Language Pathology entries each lose CL-879's own clear requirements"
+    assert headings["Requirements for the Special Teaching Authorization in Health"] == 1, (
+        "CL-380's stop is the one the rule exists for, and what it leaves unread is the "
+        "Special Teaching Authorization in Health's own requirements"
+    )
+    assert all(count > 0 for count in headings.values())
+
+
+def test_the_coverage_statement_names_what_was_set_aside_rather_than_read(
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+    real_index: leaflets_module.Index,
+    vendored_pages: tuple[str, ...],
+) -> None:
+    """The weaker judgement is published in full, because it is the weaker judgement.
+
+    A heading naming a document that the Commission gave no sub-headings is read past rather
+    than read: its prose is not attributed to this authorization, and the page after it is.
+    Every such heading is listed with a count rather than summarised, so a reader can check
+    the call on each one. "TPSL Authorizations" is the case to check: it is an overview of
+    what the Teaching Permit for Statutory Leave's own variants authorize, on that permit's
+    own leaflet, and reading it as another document is what used to cost both TPSL entries
+    their period of validity.
+    """
+    document = export.project_graph(real_catalog, ctid_module.load_ledger(), real_attachments)
+    leaflets = export.coverage(
+        document, real_catalog, real_attachments, real_index, vendored_pages
+    )["leaflets"]
+
+    set_aside = leaflets["authorizations_whose_leaflet_set_a_subject_aside"]
+    headings = leaflets["headings_set_aside_as_another_subject"]
+
+    assert set_aside == sum(1 for a in real_attachments.values() if a.set_aside)
+    assert set_aside > 0, "nothing was set aside, so this check is checking nothing"
+    assert sum(headings.values()) == sum(
+        len(attachment.set_aside) for attachment in real_attachments.values()
+    ), "the tally and the attachments disagree about how many headings were set aside"
+    assert headings["TPSL Authorizations"] == 2
+    assert "TPSL Authorizations" not in leaflets["reading_stopped_at_heading"], (
+        "the heading issue #36 names is set aside now, not the end of the page"
     )
     assert all(count > 0 for count in headings.values())
 

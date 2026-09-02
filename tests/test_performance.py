@@ -92,10 +92,16 @@ the canonical link is 890, and the accessibility fixes (`scope`, `role`, `tabind
 region label and its focus ring) are 206."""
 
 PER_AUTHORIZATION_BUDGET: Final = 2_200
-"""Bytes the page may spend per modeled authorization. The mean is 1,711 today and the
-largest single block is 12,932 (an authorization with a long subject list), so the budget is
-on the total rather than on any one block: 1.29x headroom on the average, which is enough
-for another property or two per credential and not enough to absorb a doubling."""
+"""Bytes the page may spend per modeled authorization. The mean is 1,868 today and the
+largest single block is 13,189 (an authorization with a long subject list), so the budget is
+on the total rather than on any one block: 1.18x headroom on the average, which is enough
+for another property or two per credential and not enough to absorb a doubling.
+
+The mean was 1,711 until the leaflet stop rule was fixed (issue #36), which added
+requirements and renewal terms to six authorizations that had been publishing none. The
+budget was deliberately not raised for it: the whole point of expressing this as a formula
+was that a page carrying more of what the Commission published is the project working, and
+1.18x is still headroom rather than a number chosen after the fact to fit."""
 
 
 @dataclass(frozen=True, slots=True)
