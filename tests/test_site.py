@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import re
 from html.parser import HTMLParser
+from pathlib import Path
 
 from chalkline import ctid as ctid_module
 from chalkline.attachment import Attachment
@@ -15,6 +16,8 @@ from chalkline.sources import leaflets as leaflets_module
 from tests.conftest import row, table
 
 VOID = {"meta", "br", "hr", "img", "input", "link", "source", "area", "col"}
+
+SITE = Path(__file__).resolve().parents[1] / "site"
 
 
 class _Balance(HTMLParser):
@@ -104,7 +107,65 @@ def test_the_page_describes_itself(real_catalog: Catalog) -> None:
     assert f'<meta property="og:title" content="{titled.group(1)}">' in head
     assert '<meta property="og:type" content="website">' in head
     assert '<meta property="og:site_name" content="Chalkline">' in head
-    assert '<meta name="twitter:card" content="summary">' in head
+    assert '<meta name="twitter:card" content="summary_large_image">' in head
+
+
+def test_the_page_names_a_share_image(real_catalog: Catalog) -> None:
+    # The head described the page in words and named no picture, so a shared
+    # link rendered as a grey box: a preview with no og:image falls back to a
+    # placeholder, not to anything on the page. That is invisible from inside a
+    # browser, which loads the page rather than the card, so it is checked here.
+    head = head_of(render(real_catalog, ctid_module.load_ledger(), {}))
+    imaged = re.search(r'<meta property="og:image" content="([^"]+)"', head)
+    assert imaged is not None
+    assert imaged.group(1).strip()
+    # Written out rather than imported, for the reason at the top of this
+    # section: an expectation built from the constant under test moves with the
+    # mistake. Absolute and carrying the project path, or it names a sibling
+    # project's file.
+    assert imaged.group(1) == f"{PUBLISHED_AT}og-card.png"
+    # One picture, not two. og:image and twitter:image are read by different
+    # consumers and nothing but this holds them to the same file.
+    assert f'<meta name="twitter:image" content="{imaged.group(1)}">' in head
+
+    described = re.search(r'<meta property="og:image:alt" content="([^"]+)"', head)
+    assert described is not None
+    assert "unofficial" in described.group(1).lower(), (
+        f"the card's alt text drops the disclaimer the page leads with: {described.group(1)!r}"
+    )
+
+
+def test_the_share_image_is_committed_and_is_the_size_the_head_declares() -> None:
+    # site/ is uploaded as it stands, so a head naming a file that is not there
+    # publishes a card that 404s on somebody else's screen and in no log here.
+    # The dimensions are declared in the head because previews use them to
+    # reserve space before the image arrives; declaring them makes them a claim,
+    # and this is what checks it.
+    card = SITE / "og-card.png"
+    assert card.is_file(), "site/og-card.png is missing"
+    header = card.read_bytes()[:24]
+    assert header[:8] == b"\x89PNG\r\n\x1a\n", "site/og-card.png is not a PNG"
+    # Big-endian 32-bit width and height, at their fixed offsets in the IHDR
+    # chunk that a PNG is required to open with.
+    width = int.from_bytes(header[16:20], "big")
+    height = int.from_bytes(header[20:24], "big")
+    assert (width, height) == (1200, 630)
+
+    head = head_of((SITE / "index.html").read_text(encoding="utf-8"))
+    assert f'<meta property="og:image:width" content="{width}">' in head
+    assert f'<meta property="og:image:height" content="{height}">' in head
+
+
+def test_the_share_image_is_accounted_for_as_a_published_file() -> None:
+    # `chalkline check` refuses any file under site/ that no gate explains,
+    # because Pages uploads the directory whole. The card is committed art
+    # rather than derived data, so it is explained there rather than built.
+    from chalkline.cli import PUBLISHED_BY_ANOTHER_GATE
+
+    assert "og-card.png" in PUBLISHED_BY_ANOTHER_GATE
+    assert "tests/test_site.py" in PUBLISHED_BY_ANOTHER_GATE["og-card.png"], (
+        "the reason recorded for og-card.png does not name the gate that holds it"
+    )
 
 
 def test_the_description_claims_nothing_the_page_does_not(real_catalog: Catalog) -> None:
