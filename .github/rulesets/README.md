@@ -6,6 +6,10 @@ diff. CI-CD-STANDARD §5 asks for exactly that: "Branch protection is enforced t
 repository-owned GitHub Ruleset named `protect-main` and committed as a per-repo artifact so
 the posture is reviewable in-tree."
 
+It agrees with the live ruleset in every field it declares, `bypass_actors` included. It did
+not until 2026-08-29, and the section below records what was stale, which way the reasoning
+was reversed to fix it, and what to confirm after any re-apply.
+
 ## Applied and verified, 2026-08-21
 
 Posted via `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`
@@ -23,6 +27,78 @@ test so `verify` would go red for real. With `verify` red, `gh pr merge` was ref
 ("the base branch policy prohibits the merge") and `mergeStateStatus` read `BLOCKED`. The PR
 was closed unmerged and its branch deleted. `portfolio-standards/automation/conformance_check.py
 --repo` also reports `branch_protection_effective: PASS` against the live repository.
+
+## The owner bypass is intended, and `main.json` carries it
+
+Recorded 2026-08-26, re-read 2026-08-28 and again 2026-08-29. The live ruleset and `main.json`
+disagreed about the bypass posture and about nothing else. **The live posture was the correct
+one**, so on 2026-08-29 `main.json` was changed to match it rather than the other way around.
+
+| Query | Result, 2026-08-28, re-read unchanged 2026-08-29 |
+|---|---|
+| `gh api repos/ChelseaKR/chalkline/rulesets/21156701 --jq .bypass_actors` | `[{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]` |
+| `... --jq .current_user_can_bypass` | `"always"` |
+| `... --jq .updated_at` | `2026-08-26T21:27:29.806-07:00` |
+| `... --jq .rules` | unchanged: `deletion`, `non_fast_forward`, and the same six required contexts, `strict_required_status_checks_policy: true` |
+| the same response compared field by field against `main.json` | `name`, `enforcement`, `conditions`, `rules` and `bypass_actors` all equal, 2026-08-29 |
+
+The admin bypass was added deliberately, on 2026-08-26, and the owner has confirmed it. It
+stays. The reason is not hypothetical: an agent once removed an admin bypass from another
+repository and locked the owner out of it, with no path back in that did not go through
+support. A role-level `always` bypass is the way back in when a required check is wedged, a
+runner is unavailable, or an automated change makes the branch unmergeable by anyone.
+
+So this section recorded a documentation defect, not a configuration one. Every required check
+is still required and still strict; what changed on 2026-08-26 is that the ruleset can be
+bypassed by the repository role holding `actor_id: 5`, where on 2026-08-21 it could not be
+bypassed by anyone. `main.json` went on declaring `"bypass_actors": []` for three days after
+that, and three places asserted "not even an administrator can override it": the 2026-08-21
+table above, the `ci.yml` header, and the `CHANGELOG.md` entry for #30.
+
+The `ci.yml` header has been corrected to state the live posture, and its note that the
+committed file had not caught up was dropped on 2026-08-29, when the file caught up. **The
+`CHANGELOG.md` entry has not been touched**, because that entry is a record of what #30 did on
+the day it did it; the change of posture belongs in a new entry, which is the owner's to write
+rather than something to backdate into an existing one.
+
+> **This paragraph used to say the opposite, and the reversal is the point.** From 2026-08-26
+> to 2026-08-29 it read "Do not re-apply `main.json` as committed", because the procedure below
+> posts the file to the live ruleset, the file declared `"bypass_actors": []`, and running it
+> would have stripped the intended bypass and reproduced the lockout described above. That was
+> correct for exactly as long as the field was stale. What it asked for was the edit, not the
+> warning: `main.json` now carries the one bypass actor the live ruleset carries, so the
+> committed file and the apply command finally say the same thing. Confirm it after an apply
+> anyway, per "Re-applying it" below. An apply that lands every rule and loses the bypass
+> returns 201 like any other.
+
+### `bypass_actors`: the repository owner, and nobody else
+
+`main.json` carries exactly one bypass actor, and it is the whole of the list:
+
+`{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}`
+
+`RepositoryRole` 5 is the admin role. The mode is `always` rather than the `pull_request`
+CI-CD-STANDARD asks for at CICD-15 ("one designated maintainer, **PR-only**
+(`bypass_mode: pull_request`); direct admin pushes remain blocked"), and the departure is
+deliberate rather than an oversight: a bypass that only works inside a pull request is no use
+when the thing that is wedged is the pull request. A repository role rather than a team or a
+GitHub App, and one entry rather than two: a second entry here would be a real finding, and
+this one is not.
+
+An empty list is not a stricter reading of the same rule, it is the lockout. It leaves no
+break-glass path, so the owner cannot merge, cannot push, and cannot delete the ruleset that
+is blocking them, and GitHub returns 201 for that apply exactly as it does for any other.
+
+`tests/test_ruleset.py` is what keeps the field from regressing, because correcting it once is
+not the same as it staying corrected. That module parses this file rather than grepping it, so
+a malformed file that still contains the string `bypass_actors` fails instead of passing; it
+fails on a missing or unparseable file rather than reading an absent subject as nothing wrong;
+and it rejects the five shapes an edit can lose the bypass in, which are an empty list, no key
+at all, a value that is not a list, a different actor, and the right actor carrying
+`bypass_mode: pull_request`. It also fails if this README stops naming the actor the file
+carries, because the prose is what a person follows when the two disagree.
+
+Nothing in this section changed a repository setting.
 
 Checked before applying, 2026-08-15:
 
@@ -80,7 +156,13 @@ reasons that did not reproduce as a documented API or `gh` behavior; DELETE-then
 If updating an existing ruleset in place ever matters again, try PATCH first and fall back to
 delete-then-recreate.)
 
-Confirm afterwards that `gh api repos/ChelseaKR/chalkline/rulesets` returns it and that
+POST creates a ruleset rather than replacing one, which is why the 2026-08-21 update went
+DELETE-then-POST; a bypass list belongs to the ruleset that carries it, so posting this file
+on top of a live `protect-main` leaves two rulesets over `main` rather than one.
+
+Confirm afterwards that `gh api repos/ChelseaKR/chalkline/rulesets` returns it, that
+`gh api repos/ChelseaKR/chalkline/rulesets/<id> --jq .bypass_actors` holds exactly the one
+actor `main.json` names and `--jq .current_user_can_bypass` reads `"always"`, and that
 `gh api repos/ChelseaKR/chalkline/branches/main` reports `"protected": true` -- and, because
 an API response is not the same thing as a merge actually being refused, confirm it with a
 real PR: push a commit that fails one of the required checks, open a PR against `main`, and

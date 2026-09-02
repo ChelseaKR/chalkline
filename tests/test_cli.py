@@ -36,6 +36,44 @@ def test_check_fails_when_output_is_stale(tmp_path: Path) -> None:
     assert cli.check(tmp_path) == 1
 
 
+def test_check_fails_on_a_file_the_build_does_not_produce(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An orphan under site/ is published to Pages and held to no code at all.
+
+    `check` used to iterate the artifacts it produces and look for each one in the output
+    directory, which cannot see a file the build has *stopped* producing. A renamed
+    output, or a hand-added file, would sit in site/ indefinitely: green here, and served,
+    because `.github/workflows/pages.yml` uploads the whole directory. The `git status`
+    step in that workflow catches an untracked stray and says nothing about a committed
+    one. So the directory is enumerated, and anything unaccounted for fails.
+    """
+    cli.build(tmp_path)
+    (tmp_path / "orphan.json").write_text('{"stale": true}', encoding="utf-8")
+    assert cli.check(tmp_path) == 1
+    assert "produced by nothing" in capsys.readouterr().err
+
+
+def test_check_accounts_for_the_evidence_file_another_gate_owns(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The one exclusion, and it has to name the gate that does hold that file."""
+    cli.build(tmp_path)
+    for name, reason in cli.PUBLISHED_BY_ANOTHER_GATE.items():
+        (tmp_path / name).write_text("{}", encoding="utf-8")
+        assert "validate" in reason, f"{name} is excluded without naming a gate"
+    assert cli.check(tmp_path) == 0
+    assert "not built here" in capsys.readouterr().out
+
+
+def test_every_committed_site_file_is_accounted_for() -> None:
+    """The denominator, named: site/ holds nothing but built output and the evidence file."""
+    published = set(cli._published_files(cli.SITE_DIR))
+    built = set(cli._artifacts(cli._catalog()))
+    assert published, "site/ is empty"
+    assert published - built - set(cli.PUBLISHED_BY_ANOTHER_GATE) == set()
+
+
 def test_mint_is_a_no_op_once_the_ledger_is_complete(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
