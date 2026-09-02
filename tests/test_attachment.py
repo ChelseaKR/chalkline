@@ -121,6 +121,7 @@ def test_description_is_the_lead_then_the_authorization_section() -> None:
         ),
         stopped_at=None,
         classified_beyond_the_stop=(),
+        set_aside=(),
         skipped_headings=(),
     )
     leaflet = leaflets.Leaflet(code="cl-1", title="A Thing", url="https://example.gov/1/")
@@ -162,6 +163,7 @@ def leaflet_page(
         sections=sections,
         stopped_at=None,
         classified_beyond_the_stop=(),
+        set_aside=(),
         skipped_headings=tuple(s.heading for s in sections if s.kind == leaflet_pages.UNCLASSIFIED),
     )
 

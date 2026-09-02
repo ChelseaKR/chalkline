@@ -249,6 +249,7 @@ def test_leaflet_prose_and_conditions_are_shown() -> None:
         ),
         stopped_at=None,
         classified_beyond_the_stop=(),
+        set_aside=(),
         skipped_headings=(),
     )
     rendered_page = render(catalog, ctids, attached(catalog, leaflet_page, None))
@@ -274,6 +275,7 @@ def test_a_section_with_no_text_renders_nothing() -> None:
         ),
         stopped_at=None,
         classified_beyond_the_stop=(),
+        set_aside=(),
         skipped_headings=(),
     )
     page = render(catalog, ctids, attached(catalog, empty, None))

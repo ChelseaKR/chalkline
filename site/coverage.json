@@ -9,14 +9,14 @@
     "ceterms:CredentialOrganization": 1,
     "ceterms:License": 133,
     "ceterms:CredentialAlignmentObject": 1014,
-    "ceterms:ConditionProfile": 36
+    "ceterms:ConditionProfile": 57
   },
   "authorizations": {
     "published_in_source": 136,
     "modeled": 133,
     "excluded": 3,
     "with_subject_codes": 67,
-    "with_requirements_or_renewal_terms": 15,
+    "with_requirements_or_renewal_terms": 18,
     "published_as_not_subject_coded": 66,
     "scope_resolved_by_cross_reference": 8,
     "subject_alignments_from_a_cross_reference": 538
@@ -30,8 +30,8 @@
     "ceterms:ownedBy": 133,
     "ceterms:regulatedIn": 133,
     "ceterms:identifier": 133,
-    "ceterms:requires": 15,
-    "ceterms:renewal": 9,
+    "ceterms:requires": 18,
+    "ceterms:renewal": 12,
     "ceterms:subject": 67
   },
   "leaflets": {
@@ -64,40 +64,44 @@
       "cl-898: this leaflet was identified by the document code its title names, not by a title, and the page titles itself 'Mathematics Instructional MILS and MIAA', which is not the authorization's published title; a code says which document the leaflet is for and not which of its words describe that document": 2
     },
     "headings_read_past_but_not_classified": {
+      "Acute Staffing Need": 3,
+      "Audiology": 3,
       "Commission-Approved Staff Development Agencies:": 1,
       "Education Specialist:": 6,
       "How to Apply": 2,
       "Multiple Subject": 1,
       "Multiple Subject:": 4,
+      "Option 1 – Verification of Examination Scores and Clinical Experience/Supervised Practicum": 6,
+      "Option 2 – Verification of California Speech-Language Pathology License": 6,
       "Single Subject": 1,
       "Single Subject:": 4,
       "Special Education": 2
     },
-    "authorizations_with_a_leaflet_reading_stopped_before_the_end": 16,
+    "authorizations_with_a_leaflet_reading_stopped_before_the_end": 6,
     "reading_stopped_at_heading": {
+      "Special Class Authorization": 2,
+      "Special Teaching Authorization in Health": 1,
+      "Upgrading a Clinical or Rehabilitative Services Credential to a Speech-Language Pathology Services Credential": 3
+    },
+    "authorizations_whose_stop_left_a_classified_heading_unread": 6,
+    "headings_left_unread_beyond_the_stop": {
+      "Authorization": 2,
+      "Period of Validity": 2,
+      "Requirements": 2,
+      "Requirements for the Clear Credential": 1,
+      "Requirements for the Special Teaching Authorization in Health": 1,
+      "Term of the Credential": 1,
+      "Terms and Definitions": 2,
+      "Terms and Definitions:": 3
+    },
+    "authorizations_whose_leaflet_set_a_subject_aside": 15,
+    "headings_set_aside_as_another_subject": {
       "Bilingual Authorizations": 4,
       "Bilingual Authorizations:": 3,
       "National Board for Professional Teaching Standards Certification": 3,
+      "Option 3 – American Speech-Language-Hearing Association (ASHA) Verification of Certification Letter": 6,
       "Special Class Authorization": 3,
-      "Special Teaching Authorization in Health": 1,
       "TPSL Authorizations": 2
-    },
-    "authorizations_whose_stop_left_a_classified_heading_unread": 15,
-    "headings_left_unread_beyond_the_stop": {
-      "Authorization": 2,
-      "Period of Validity": 8,
-      "Period of Validity:": 3,
-      "Requirements": 2,
-      "Requirements for the Clear Credential": 1,
-      "Requirements for the Clear Credential – For Individuals Prepared Out-of-State": 3,
-      "Requirements for the Clear Credential – For Individuals Prepared in California": 3,
-      "Requirements for the Special Teaching Authorization in Health": 1,
-      "Requirements for the Two-Year Preliminary Credential – For Individuals Prepared Out-of-State": 3,
-      "Requirements for the Two-Year Preliminary Credential – For Individuals Prepared in California": 3,
-      "Term of the Credential": 1,
-      "Terms And Definitions": 3,
-      "Terms and Definitions": 2,
-      "Terms and Definitions:": 3
     }
   },
   "excluded_by_reason": {
