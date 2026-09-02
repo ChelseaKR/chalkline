@@ -125,7 +125,7 @@ All notable changes to this project are documented here. The format follows
   canonical link is the only `<link>` on the page so the exemption cannot hide one the
   scanner never saw. Exempting the element would have let a stylesheet in behind it.
   The weight budget is a formula, 12,000
-  bytes of fixed overhead plus 2,200 per modeled authorization against 7,896 and 1,711 today,
+  bytes of fixed overhead plus 2,200 per modeled authorization against 8,102 and 1,717 today,
   so growth in the markup fails the gate and growth in the Commission's table does not; a test
   asserts both halves of that, including that twice as many authorizations at today's weight
   each would still pass. `credentials.jsonld` and `coverage.json` are deliberately not
@@ -134,7 +134,8 @@ All notable changes to this project are documented here. The format follows
   The README's Performance row publishes both budgets and what the page spends against them,
   and all four figures are bound to the rendered page here. The spend had already drifted:
   the row said 7,006 bytes of fixed overhead when the head metadata added with the canonical
-  link had taken it to 7,896. `tests/test_documented_counts.py` binds the README's prose
+  link had taken it to 7,896, and the accessibility fixes have since taken it to 8,102, which
+  this check is what noticed. `tests/test_documented_counts.py` binds the README's prose
   figures to the coverage statement but only where one stands beside a counted noun, and
   "bytes" is not one of them, so these two figures sat outside every check the repository
   had.
@@ -157,6 +158,28 @@ All notable changes to this project are documented here. The format follows
   was written on rather than a finding about the leaflets, and issue #36 disproves it on
   three vendored pages. The section now states the rule, names what it gets wrong, and points
   at the figures that size it.
+
+- Three accessibility defects in the generated page, found by the review the README's
+  Accessibility row had been recording as not yet performed. The exclusions table's four
+  `<th>` cells carried no `scope`, so nothing said whether they head a column or a row
+  (technique H63, for WCAG 1.3.1). `.counts` and `.subjects` are styled `list-style: none`,
+  and Safari drops list semantics from a list whose markers are removed, so 134 list items
+  were no longer announced as lists; `role="list"` restores what the styling took away.
+  `.wrap`, the one horizontally scrolling region on the page, could not be focused, so a
+  keyboard-only reader could not scroll the exclusions table at all (WCAG 2.1.1); it now
+  carries `tabindex="0"`, a region role, an accessible name, and a visible focus ring.
+
+### Added
+
+- `tests/test_accessibility.py`, an accessibility gate over the rendered page: page language,
+  page title, heading order, table header scope, list semantics under removed markers,
+  keyboard reach into scrolling regions, image alternatives, zoom not being pinned, and text
+  contrast across both palettes. It is a check against a named list, not an audit, and it
+  says so. Every check records how much it examined, so a check that ran over nothing is
+  distinguishable from one that ran over everything and found nothing, and every check is
+  exercised against a deliberately broken copy of the real page. A check with no such
+  breakage fails the suite, which is what stops the list growing by accretion of things that
+  cannot disagree with the page.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
