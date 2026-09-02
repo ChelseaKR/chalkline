@@ -79,7 +79,7 @@ def test_load_rejects_an_artifact_that_kept_its_headers_and_lost_its_rows(
 
     `parse` refuses a page with no `<table>`, no `<tr>`, renamed columns, or a short row. A
     page holding the Commission's six headers and nothing under them satisfies all four, so
-    `parse` returns `()` — correctly, it read no rows. Read as an artifact that is what a
+    `parse` returns `()` (correctly: it read no rows). Read as an artifact that is what a
     catalog of nothing looks like, and the whole pipeline publishes it: zero licences, a
     coverage statement counting zero of everything as measured fact, a page of nine zeroed
     tiles, and `chalkline build` exiting 0.
