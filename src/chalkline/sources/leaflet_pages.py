@@ -143,6 +143,25 @@ class LeafletPage:
     stopped_at: str | None
     """The heading that ended the readable range, if one did."""
 
+    classified_beyond_the_stop: tuple[str, ...]
+    """Headings after :attr:`stopped_at` that :func:`classify` recognises, in page order.
+
+    The size of what a stop leaves behind, and nothing more. It is an upper bound on what a
+    corrected stop rule could recover, not a claim that any of it was wrongly dropped: where
+    the stop was right, as at CL-380's move to the Special Teaching Authorization in Health,
+    these headings belong to a different Commission document and not reading them is the
+    point. Where the stop was wrong, as at CL-879's "Special Class Authorization", they are
+    this leaflet's own later requirements. This module cannot tell those two apart (issue
+    #36), so it publishes the number and leaves the judgement to a reader.
+
+    Twelve of the nineteen vendored pages stop before something classified. CL-797 is the
+    largest, stopping before nine headings that include the requirements for every level of
+    the Child Development Permit; no authorization is attached to it, so that one costs the
+    published graph nothing today and would cost it a great deal the day one is.
+
+    Empty when reading was not stopped, which is a different fact from an unread page.
+    """
+
     skipped_headings: tuple[str, ...]
     """In-scope headings this module could not classify, and therefore did not read."""
 
@@ -202,6 +221,23 @@ def _names_a_document(heading: str) -> bool:
     return any(noun in _normalize_heading(heading) for noun in CREDENTIAL_NOUNS)
 
 
+def _stops_reading(heading: str, key: str, seen: set[str]) -> bool:
+    """Whether this heading ends the range the leaflet describes its own subject in.
+
+    Two conditions, and the module docstring argues both: a heading already seen means the
+    page has looped back into a structure it has been through, and an unclassified heading
+    naming a document means it has moved on to one. Named here rather than written inline so
+    that :func:`_sections` reads as a walk and the rule issue #36 is about has one place to
+    live.
+    """
+    return key in seen or (classify(heading) == UNCLASSIFIED and _names_a_document(heading))
+
+
+def _prose(block: re.Match[str]) -> str:
+    """The text of a paragraph or list item block."""
+    return _text(block.group("para") if block.group("para") is not None else block.group("item"))
+
+
 def _body(markup: str) -> str:
     """The Commission's own content of a leaflet page, footer chrome removed.
 
@@ -248,13 +284,14 @@ def parse(markup: str, code: str) -> LeafletPage:
         )
     page_title = parsed.group("title")
 
-    lead, sections, stopped_at, skipped = _sections(body[found.end() :])
+    lead, sections, stopped_at, beyond, skipped = _sections(body[found.end() :])
     return LeafletPage(
         code=code,
         page_title=page_title,
         lead=lead,
         sections=sections,
         stopped_at=stopped_at,
+        classified_beyond_the_stop=beyond,
         skipped_headings=skipped,
     )
 
@@ -285,10 +322,30 @@ def _closed(
     return section, (enclosing if kind == UNCLASSIFIED else (level, kind))
 
 
+def _close(
+    sections: list[Section],
+    heading: str | None,
+    level: int,
+    blocks: list[str],
+    enclosing: tuple[int, str] | None,
+) -> tuple[int, str] | None:
+    """Append the open section, if one is open, and give back the scope open after it."""
+    if heading is None:
+        return enclosing
+    section, enclosing = _closed(heading, level, blocks, enclosing)
+    sections.append(section)
+    return enclosing
+
+
 def _sections(
     markup: str,
-) -> tuple[tuple[str, ...], tuple[Section, ...], str | None, tuple[str, ...]]:
-    """Walk the page's blocks into a lead and a list of sections, stopping where it must."""
+) -> tuple[tuple[str, ...], tuple[Section, ...], str | None, tuple[str, ...], tuple[str, ...]]:
+    """Walk the page's blocks into a lead and a list of sections, stopping where it must.
+
+    Past the stop nothing is read: no section, no block, no text. The walk continues anyway,
+    over headings alone, because how much of the page a stop leaves behind is the size of
+    the omission, and an omission this project cannot close is one it can at least measure.
+    """
     lead: list[str] = []
     sections: list[Section] = []
     seen: set[str] = set()
@@ -296,46 +353,40 @@ def _sections(
     level = 0
     blocks: list[str] = []
     stopped_at: str | None = None
+    beyond: list[str] = []
     # The innermost classified section still open, as (heading level, kind). A heading at or
     # above that level closes it, which is what "sits inside" means in an outline.
     enclosing: tuple[int, str] | None = None
 
-    def close() -> None:
-        nonlocal enclosing
-        if heading is None:
-            return
-        section, enclosing = _closed(heading, level, blocks, enclosing)
-        sections.append(section)
-
     for block in _BLOCK_RE.finditer(markup):
-        if block.group("heading") is not None:
-            text = _text(block.group("heading"))
-            if not text:
-                continue
-            key = _normalize_heading(text)
-            kind = classify(text)
-            if key in seen or (kind == UNCLASSIFIED and _names_a_document(text)):
-                stopped_at = text
-                break
-            close()
-            seen.add(key)
-            heading, level, blocks = text, int(block.group("h")[1]), []
+        if block.group("heading") is None:
+            text = _prose(block)
+            if text and stopped_at is None:
+                (blocks if heading is not None else lead).append(text)
             continue
-        text = _text(
-            block.group("para") if block.group("para") is not None else block.group("item")
-        )
+        text = _text(block.group("heading"))
         if not text:
             continue
-        (blocks if heading is not None else lead).append(text)
-    else:
-        close()
-    if stopped_at is not None:
-        close()
+        if stopped_at is not None:
+            if classify(text) != UNCLASSIFIED:
+                beyond.append(text)
+            continue
+        key = _normalize_heading(text)
+        enclosing = _close(sections, heading, level, blocks, enclosing)
+        if _stops_reading(text, key, seen):
+            stopped_at = text
+            heading = None
+            continue
+        seen.add(key)
+        heading, level, blocks = text, int(block.group("h")[1]), []
+    if stopped_at is None:
+        enclosing = _close(sections, heading, level, blocks, enclosing)
 
     return (
         tuple(lead),
         tuple(sections),
         stopped_at,
+        tuple(beyond),
         tuple(section.heading for section in sections if section.kind == UNCLASSIFIED),
     )
 

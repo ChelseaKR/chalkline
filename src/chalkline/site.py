@@ -23,6 +23,32 @@ from chalkline.sources.sort_table import SOURCE_URL as SORT_TABLE_URL
 
 TITLE: Final = "Chalkline: California educator credential authorizations as CTDL"
 
+# Where this page is served from, in full, including the project path.
+#
+# GitHub Pages serves this repository at a path under chelseakr.github.io,
+# which five sibling projects also publish under, and
+# https://chelseakr.github.io/ is itself a 404. A canonical or an og:url naming
+# the bare origin would therefore not be a shorter spelling of the same
+# address: it would tell a crawler that six unrelated projects are one page,
+# and a root-relative href would land on another project or on nothing.
+# tests/test_site.py holds this to the project path.
+SITE_URL: Final = "https://chelseakr.github.io/chalkline/"
+
+# What the page is, said the way the page says it. Every clause is on the page
+# already: the h1 names the modeling, the paragraph under it names the sort
+# table and the leaflets as the only sources, and the notice above both says
+# the project is unofficial.
+#
+# No count. The page prints its own tallies, counted from the catalog at build
+# time by _counts_block, and tests/test_documented_counts.py holds the prose
+# figures to the same data. A number repeated here would be a third copy that
+# nothing derives and nothing checks.
+DESCRIPTION: Final = (
+    "An unofficial model of California educator credential authorizations as CTDL "
+    "JSON-LD, built only from the Commission on Teacher Credentialing's published "
+    "Authorization Sort Table and its credential leaflets."
+)
+
 STYLE: Final = """
 :root { color-scheme: light dark; --ink: #1a1c1e; --bg: #fbfaf7; --muted: #5a5f66;
   --rule: #d9d5cc; --accent: #7a3b12; --panel: #f3f0e9; }
@@ -276,6 +302,14 @@ def render(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_e(TITLE)}</title>
+<meta name="description" content="{_e(DESCRIPTION)}">
+<link rel="canonical" href="{_e(SITE_URL)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chalkline">
+<meta property="og:url" content="{_e(SITE_URL)}">
+<meta property="og:title" content="{_e(TITLE)}">
+<meta property="og:description" content="{_e(DESCRIPTION)}">
+<meta name="twitter:card" content="summary">
 <style>{STYLE}</style>
 </head>
 <body>

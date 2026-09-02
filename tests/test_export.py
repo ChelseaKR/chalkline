@@ -270,6 +270,7 @@ def attachment_with(*sections: leaflet_pages.Section) -> Attachment:
         lead=("Leaflet prose.",),
         sections=sections,
         stopped_at=None,
+        classified_beyond_the_stop=(),
         skipped_headings=(),
     )
     return Attachment(
@@ -398,3 +399,62 @@ def test_the_vendored_leaflets_include_at_least_one_stopped_read(
         == directly_counted
     )
     assert "Special Class Authorization" in leaflets_counted["reading_stopped_at_heading"]
+
+
+def test_the_coverage_statement_sizes_what_a_stopped_read_left_behind(
+    real_catalog: Catalog,
+    real_attachments: dict[str, Attachment],
+    real_index: leaflets_module.Index,
+    vendored_pages: tuple[str, ...],
+) -> None:
+    """A stop is disclosed; this is how large it is.
+
+    ``authorizations_with_a_leaflet_reading_stopped_before_the_end`` says sixteen reads
+    stopped early. It does not say whether that cost anything: one of the sixteen stops at a
+    heading with nothing classified after it, and three stop before four "Requirements for
+    ..." headings apiece. Those two cases publish identical property counts and, without
+    this, identical coverage.
+    """
+    document = export.project_graph(real_catalog, ctid_module.load_ledger(), real_attachments)
+    leaflets = export.coverage(
+        document, real_catalog, real_attachments, real_index, vendored_pages
+    )["leaflets"]
+
+    stopped = leaflets["authorizations_with_a_leaflet_reading_stopped_before_the_end"]
+    lost = leaflets["authorizations_whose_stop_left_a_classified_heading_unread"]
+    headings = leaflets["headings_left_unread_beyond_the_stop"]
+
+    assert stopped == 16
+    assert lost == 15, "fifteen of the sixteen stopped reads left a classified heading unread"
+    assert stopped - lost == 1, "and exactly one did not, which is the distinction being made"
+    assert sum(headings.values()) == sum(
+        len(attachment.classified_beyond_the_stop) for attachment in real_attachments.values()
+    ), "the tally and the attachments disagree about how many headings were left unread"
+    clear_in_california = [
+        heading
+        for heading in headings
+        if heading.startswith("Requirements for the Clear Credential")
+        and heading.endswith("For Individuals Prepared in California")
+    ]
+    assert len(clear_in_california) == 1, clear_in_california
+    assert headings[clear_in_california[0]] == 3, (
+        "the three Speech-Language Pathology entries each lose CL-879's own clear requirements"
+    )
+    assert all(count > 0 for count in headings.values())
+
+
+def test_an_attachment_whose_page_was_refused_reports_no_headings_beyond_a_stop(
+    real_attachments: dict[str, Attachment],
+) -> None:
+    """No page means no measurement, and an empty tuple is the honest answer, not a zero.
+
+    The four authorizations whose leaflet page this project refuses on identity have no read
+    to have stopped. They must not appear in the tally above as if their leaflet had been
+    read to the end.
+    """
+    refused = [a for a in real_attachments.values() if a.refusal is not None]
+    assert len(refused) == 4, f"{len(refused)} refused attachments, expected 4"
+    for attachment in refused:
+        assert attachment.page is None
+        assert attachment.stopped_at is None
+        assert attachment.classified_beyond_the_stop == ()

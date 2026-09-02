@@ -8,6 +8,85 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The committed ruleset was a lockout waiting to be re-applied.
+  `.github/rulesets/main.json` declared `"bypass_actors": []`, and
+  `.github/rulesets/README.md` documents applying it with
+  `gh api repos/ChelseaKR/chalkline/rulesets -X POST --input .github/rulesets/main.json`,
+  so following this repository's own instructions would have stripped the
+  owner's standing bypass off live ruleset `21156701` and left her unable to
+  merge, push, or delete the ruleset blocking her. GitHub answers that apply
+  with 201 like any other, so nothing would have warned. The file now carries
+  the one actor the live ruleset carries,
+  `{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}`,
+  and every other field was already equal, checked field by field against the
+  API on 2026-08-29. `bypass_mode` is `always` rather than the `pull_request`
+  CI-CD-STANDARD asks for at CICD-15, because a bypass that only works inside a
+  pull request is no use when the pull request is the thing that is wedged. The
+  ruleset README and the `ci.yml` header both said the file was stale and
+  warned against re-applying it; both now say what the file carries, and the
+  README keeps the reversed instruction visible rather than deleting it. The
+  live posture change of 2026-08-26 is still unrecorded here, and stays the
+  owner's to write.
+
+### Added
+
+- `tests/test_ruleset.py`, so the empty list cannot come back quietly. Nothing
+  in `src/` or `tests/` read the committed ruleset before this, which is why it
+  could disagree with the live one for three days. `lockout_risk()` is a pure
+  function of a parsed document and is run against the five shapes that lose
+  the bypass -- an empty list, no key at all, a value that is not a list, a
+  different actor, and the right actor carrying `bypass_mode: pull_request` --
+  plus a positive control, so a pass is a statement about the file rather than
+  about a check that refuses everything. The loader fails on a missing or
+  unparseable file rather than reading an absent subject as nothing wrong: a
+  malformed file still contains the string `bypass_actors`, so the parse is
+  what catches it and a grep would not. A last test fails if the ruleset README
+  stops naming the actor the file carries, because the prose is what a person
+  follows when the two disagree.
+
+### Added
+
+- The prose style rule is now a gate. CONTRIBUTING.md has said "No em dashes" for as long as
+  it has existed and nothing checked it, so the repository held 32 of them: 16 in README.md,
+  9 in CHANGELOG.md, 3 in PROVENANCE.md, 2 in `.github/dependabot.yml` and one each in a
+  `sort_table` docstring and a `test_sort_table` docstring. All 32 are rewritten here without
+  changing what any of them says. `make no-dashes` runs inside `make verify`, which CI runs
+  byte for byte. It keeps `git grep`'s three exit statuses apart, so a gate that could not run
+  fails rather than announcing success. `data/source/`, the generated `site/` and the vendored
+  CTDL schema are outside it, because they are transcribed or produced rather than written:
+  `data/source/leaflets/cl-562.html` does contain an em dash, and editing the Commission's own
+  page would make the snapshot a paraphrase and break the sha256 PROVENANCE.md publishes for
+  it. En dashes are not checked, because CONTRIBUTING.md does not ban them.
+
+- The page says what it is, and where it is. `site/index.html` carried a title
+  and nothing else: no `<meta name="description">`, no canonical, no Open Graph,
+  no Twitter card. It now carries all of them, built from one `TITLE` and one
+  `DESCRIPTION` constant so the share card cannot describe the page differently
+  from the page. The description keeps the word "unofficial" and states no
+  figure: the page counts its own tallies from the catalog at build time, and a
+  number in a meta tag would be a copy nothing derives. GitHub Pages serves this
+  repository at a path on an origin five sibling projects publish under, and
+  `https://chelseakr.github.io/` is itself a 404, so every absolute
+  self-reference carries `/chalkline/`. `tests/test_site.py` fails on a
+  canonical naming the bare origin, on a description that drops "unofficial" or
+  quotes a figure, and on any root-relative `href`, `src` or `content`.
+
+### Fixed
+
+- The README published tool floors a release behind the ones `pyproject.toml` pins. The Code
+  Quality row said "ruff >= 0.16.2, mypy >= 2.3.0" while the pins read `ruff>=0.16.4` and
+  `mypy>=2.3.1`. That is drift with a motor behind it: Dependabot raises the floor in
+  `pyproject.toml`, the merged PR touches no prose, and the sentence describing the pins falls
+  one release further behind on every bump. `tests/test_documented_counts.py` could never have
+  caught it, and correctly so: its figure regex excludes version strings, dates and leaflet
+  codes by design, because none of those is a count of anything the build emits. That
+  exclusion is untouched. `tests/test_documented_floors.py` reads the floors out of
+  `pyproject.toml` instead, which is where they come from, and holds the Python, ruff, mypy
+  and complexity floors and the 97% coverage floor (stated in two README rows and in
+  CONTRIBUTING.md) to what is actually pinned. It carries the same doctored-copy control the
+  counts module uses, so a passing run is a statement about the floors rather than about the
+  check being unable to fail.
+
 - The README's prose quoted the build and nothing recomputed it. `tests/test_documented_counts.py`
   bound every numeric row of the README and PROVENANCE tables, and its own docstring opened
   "The numbers in the prose are the numbers the build produces", but the prose around those
@@ -31,6 +110,26 @@ All notable changes to this project are documented here. The format follows
   Figures spelled as English words ("Ten leaflet pages were read; eighteen authorizations
   carry prose from one") are read as figures, which is four of the leaflet totals a reader
   meets.
+- `site/coverage.json` now says how much a stopped leaflet read left behind, not only that
+  one stopped. `authorizations_whose_stop_left_a_classified_heading_unread` and
+  `headings_left_unread_beyond_the_stop` join the two counts added alongside them. Sixteen
+  attached authorizations have a leaflet whose read stopped early; exactly one of those stops
+  costs nothing this project would have read, and the other fifteen lose between one and five
+  headings apiece. Those two cases published identical property counts and, until now,
+  identical coverage. `LeafletPage.classified_beyond_the_stop` carries the measurement, and
+  the parser walks the headings past a stop without reading a word of them to take it. It is
+  an upper bound on what a corrected stop rule could recover and not a claim that any of it
+  was wrongly dropped: where the stop was right the headings belong to another Commission
+  document. Issue #36, the judgement about which is which, stays open.
+
+### Fixed
+
+- `PROVENANCE.md`'s "Where reading stops" asserted that "everything past that point belongs
+  to another document and is never read". The first half of that is the assumption the rule
+  was written on rather than a finding about the leaflets, and issue #36 disproves it on
+  three vendored pages. The section now states the rule, names what it gets wrong, and points
+  at the figures that size it.
+
 - Three accessibility defects in the generated page, found by the review the README's
   Accessibility row had been recording as not yet performed. The exclusions table's four
   `<th>` cells carried no `scope`, so nothing said whether they head a column or a row
@@ -66,7 +165,7 @@ All notable changes to this project are documented here. The format follows
 
 - `make verify` now runs `make audit` as its last step. Until 2026-08-21 a local `make verify`
   was green without `pip-audit` ever having run, while CI additionally required a separate
-  `audit` job to pass — so `make verify` did not tell the truth about what CI required, which
+  `audit` job to pass, so `make verify` did not tell the truth about what CI required, which
   is the one thing a target named `verify` cannot afford to get wrong (issue #22).
 - The README's Status line said "twelve credential leaflets" since 2026-08-08 and was never
   updated as leaflet coverage moved; it now reads 19 vendored leaflets extending 22
@@ -92,7 +191,7 @@ All notable changes to this project are documented here. The format follows
   `credentials.jsonld` and `coverage.json` to. `make validate` now runs the `--check` form,
   and `tests/test_ctdl_validate_evidence.py` runs it again from the test suite, including a
   control test that mutates one `ceterms:ctid` into a bare UUID and asserts the validator
-  catches it — so a clean report proves the graph was actually read, not merely that the
+  catches it, so a clean report proves the graph was actually read, not merely that the
   file exists. Today: `0 findings` on all 134 entities. Closes #21.
 - `.pre-commit-config.yaml`: ruff, mypy, and gitleaks as a pre-flight, run
   through `uv run --locked` so the versions are the lockfile's and cannot drift
@@ -137,7 +236,7 @@ All notable changes to this project are documented here. The format follows
 - `make validate` runs [`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate) `0.2.1`,
   an independently written CTDL structural checker, over the committed graph, and `make
   verify` depends on it. It checks a different rule family from this project's own validator
-  — CTID grammar, identifier kinds, reference targets, class pairings — so neither subsumes
+  (CTID grammar, identifier kinds, reference targets, class pairings), so neither subsumes
   the other and the interesting outcome is a disagreement. It reports `0 findings` on all 134
   entities today; rewriting one `ceterms:ctid` to a bare UUID makes it report `CTID_BARE_UUID`
   and exit 1, so the zero is being earned. It makes no network calls and the gate stays
@@ -150,8 +249,8 @@ All notable changes to this project are documented here. The format follows
 
 - The leaflet index publishes a document code beside each title, and this project read only
   the link and its text, taking the first non-empty text for a path. The index also carries a
-  redirection row for each retired document — the retired code in the code column and "CL-740
-  has been replaced by CL-828." where a title would go — and prints it *above* the leaflet's
+  redirection row for each retired document (the retired code in the code column and "CL-740
+  has been replaced by CL-828." where a title would go) and prints it *above* the leaflet's
   own row. So six leaflets were published under a sentence about a document that no longer
   exists, and their real titles were never read: `cl-828` came out titled "CL-740 has been
   replaced by CL-828." rather than "General Education Limited Assignment Teaching Permit".
@@ -194,8 +293,8 @@ All notable changes to this project are documented here. The format follows
 
 - `chalkline.sources.sort_table.load` returned `()` for an artifact that kept the
   Commission's six headers and lost every row under them. That page satisfies all four of
-  the parser's structural refusals — one `<table>`, at least one `<tr>`, the expected
-  headers, full-width rows — so nothing objected, and the empty read propagated as fact:
+  the parser's structural refusals (one `<table>`, at least one `<tr>`, the expected
+  headers, full-width rows), so nothing objected, and the empty read propagated as fact:
   a catalog of nothing, a graph holding the Commission and no licences, a `validate.check`
   that passed because that graph is not empty, a coverage statement counting zero of
   everything, a page of nine zeroed tiles, and `chalkline build` printing
@@ -211,7 +310,7 @@ All notable changes to this project are documented here. The format follows
   every key unassigned, mints a fresh UUIDv4 for each, and `save_ledger` writes the result
   over the file. A `ctids` key renamed, dropped in a merge, or truncated away would
   therefore have been repaired by re-minting all 134 identifiers, reporting the new count as
-  a successful run and exiting 0, with none of the committed CTIDs surviving — the one thing
+  a successful run and exiting 0, with none of the committed CTIDs surviving: the one thing
   the module's own docstring says cannot happen. A missing file still reads as empty, an
   explicit `"ctids": {}` is still an allowed statement that nothing has been assigned, and
   a file that cannot be read now stops the run. A non-string assignment is reported as a

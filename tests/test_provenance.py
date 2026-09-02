@@ -21,13 +21,51 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 LEAFLET_SNAPSHOTS = tuple(sorted((REPO_ROOT / "data" / "source" / "leaflets").glob("*.html")))
 
-VENDORED = (
-    REPO_ROOT / "data" / "source" / "authorization-sort-table.html",
-    REPO_ROOT / "data" / "source" / "credential-leaflets.html",
-    REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-context.json",
-    REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-schema.json",
-    *LEAFLET_SNAPSHOTS,
+SORT_TABLE = REPO_ROOT / "data" / "source" / "authorization-sort-table.html"
+LEAFLET_INDEX = REPO_ROOT / "data" / "source" / "credential-leaflets.html"
+CTDL_CONTEXT = REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-context.json"
+CTDL_SCHEMA = REPO_ROOT / "src" / "chalkline" / "ctdl" / "ctdl-schema.json"
+
+SIDECAR_SUFFIX = ".source.json"
+
+#: Every directory that holds a vendored third-party artifact. `VENDORED` used to be a
+#: literal tuple naming four files plus a glob over the leaflet snapshots, which meant a
+#: new capture dropped anywhere but `leaflets/` was bound by nothing: not the hash test,
+#: not the size test, not the requirement that PROVENANCE.md publish a row for it. Adding
+#: `data/source/new-capture.html` and running this module passed, 89 tests green. So the
+#: set is discovered from the tree instead, in both directions -- a sidecar whose artifact
+#: is missing fails, and an artifact with no sidecar fails -- and the four named constants
+#: above are asserted to still be in what discovery finds, so discovery going vacuous or
+#: silently narrowing is itself a failure.
+#: `(directory, suffixes)`. `suffixes` is `None` where every file in the directory is a
+#: vendored artifact, and a tuple where the directory holds this project's own code too:
+#: `src/chalkline/ctdl/` is a Python package whose vendored content is the two JSON
+#: specification documents, so a `.py` there is authored, not captured. Stating it as data
+#: keeps the judgement reviewable instead of buried in a filename test.
+VENDORED_ROOTS: tuple[tuple[Path, tuple[str, ...] | None], ...] = (
+    (REPO_ROOT / "data" / "source", None),
+    (REPO_ROOT / "src" / "chalkline" / "ctdl", (".json",)),
 )
+
+
+def _discovered() -> tuple[tuple[Path, ...], tuple[Path, ...]]:
+    """`(artifacts, orphans)`: every file under a vendored root, split by sidecar."""
+    artifacts: list[Path] = []
+    orphans: list[Path] = []
+    for root, suffixes in VENDORED_ROOTS:
+        for path in sorted(root.rglob("*")):
+            if not path.is_file() or path.name.endswith(SIDECAR_SUFFIX):
+                continue
+            if suffixes is not None and path.suffix not in suffixes:
+                continue
+            if path.with_suffix(SIDECAR_SUFFIX).is_file():
+                artifacts.append(path)
+            else:
+                orphans.append(path)
+    return tuple(artifacts), tuple(orphans)
+
+
+VENDORED, UNSIDECARED = _discovered()
 
 
 def sidecar(path: Path) -> dict[str, object]:
@@ -51,6 +89,46 @@ def test_each_artifact_records_a_source_and_a_date(path: Path) -> None:
     url = meta.get("final_url") or meta.get("source_url")
     assert isinstance(url, str) and url.startswith("https://")
     assert isinstance(meta["retrieved"], str) and len(meta["retrieved"]) == 10
+
+
+def test_every_vendored_artifact_is_discovered_not_listed() -> None:
+    """The denominator has to come off the tree, or a new capture is bound by nothing.
+
+    Adding `data/source/new-capture.html` to the previous version of this module changed
+    nothing: 89 tests passed with an unhashed, unsourced, unpublished third-party capture
+    sitting in the repository. Every check below reads `VENDORED`, so `VENDORED` is the
+    one thing that must not be a hand-maintained list.
+    """
+    assert VENDORED, "no vendored artifact was discovered; every check below would be empty"
+    for named in (SORT_TABLE, LEAFLET_INDEX, CTDL_CONTEXT, CTDL_SCHEMA):
+        assert named in VENDORED, f"discovery no longer finds {named.name}"
+    for snapshot in LEAFLET_SNAPSHOTS:
+        assert snapshot in VENDORED, f"discovery no longer finds {snapshot.name}"
+
+
+def test_no_vendored_file_is_here_without_a_sidecar() -> None:
+    """A capture with no sidecar has no recorded URL, date, size or hash to check."""
+    assert UNSIDECARED == (), (
+        "these files sit under a vendored root with no "
+        f"{SIDECAR_SUFFIX} beside them, so nothing records where they came from: "
+        + ", ".join(str(path.relative_to(REPO_ROOT)) for path in UNSIDECARED)
+    )
+
+
+def test_no_sidecar_describes_a_file_that_is_not_there() -> None:
+    """The other direction: a sidecar whose artifact is gone is provenance for nothing."""
+    found = 0
+    for root, _ in VENDORED_ROOTS:
+        for meta_path in sorted(root.rglob(f"*{SIDECAR_SUFFIX}")):
+            named = str(json.loads(meta_path.read_text(encoding="utf-8"))["file"])
+            artifact = meta_path.parent / named
+            assert artifact.is_file(), f"{meta_path.name} names {named}, which is not here"
+            assert artifact in VENDORED, f"{named} is described but not checked"
+            found += 1
+    assert found == len(VENDORED), (
+        f"{found} sidecars describe {len(VENDORED)} discovered artifacts; the two sets "
+        "have to be the same or one side is unchecked"
+    )
 
 
 PROVENANCE = REPO_ROOT / "PROVENANCE.md"
@@ -108,15 +186,13 @@ def test_the_hash_provenance_publishes_is_the_hash_on_disk(path: Path) -> None:
 
 
 def test_the_parsers_point_at_the_urls_the_sidecars_record() -> None:
-    table_meta = sidecar(VENDORED[0])
-    assert table_meta["final_url"] == sort_table.SOURCE_URL
-    leaflet_meta = sidecar(VENDORED[1])
-    assert leaflet_meta["final_url"] == leaflets.SOURCE_URL
+    assert sidecar(SORT_TABLE)["final_url"] == sort_table.SOURCE_URL
+    assert sidecar(LEAFLET_INDEX)["final_url"] == leaflets.SOURCE_URL
 
 
 def test_the_commission_address_is_printed_in_the_vendored_artifact() -> None:
     """The organization address is transcribed from the page footer, so the page must say it."""
-    page = VENDORED[0].read_text(encoding="utf-8")
+    page = SORT_TABLE.read_text(encoding="utf-8")
     assert export.ORGANIZATION_ADDRESS["street"] in page
     assert export.ORGANIZATION_ADDRESS["locality"] in page
     assert export.ORGANIZATION_ADDRESS["postal_code"] in page
@@ -130,8 +206,8 @@ def test_the_published_scope_statement_is_still_on_the_page() -> None:
     artifact class not covered by the hash test above (it hashes the payload, not the file
     beside it), so blanking this field would have satisfied the containment test in silence.
     """
-    page = VENDORED[0].read_text(encoding="utf-8")
-    quoted = str(sidecar(VENDORED[0])["scope_statement_published_on_page"])
+    page = SORT_TABLE.read_text(encoding="utf-8")
+    quoted = str(sidecar(SORT_TABLE)["scope_statement_published_on_page"])
     assert len(quoted) > 40, f"the recorded scope statement is {len(quoted)} characters"
     assert quoted in " ".join(page.split())
 

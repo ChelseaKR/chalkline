@@ -19,8 +19,8 @@ chalkline = "chalkline.cli:main"
 
 [dependency-groups]
 dev = [
-  "ruff>=0.16.2",
-  "mypy>=2.3.0",
+  "ruff>=0.16.4",
+  "mypy>=2.3.1",
   "pytest>=9.1.1",
   "pytest-cov>=7.1.0",
   "pytest-xdist>=3.8.0",
@@ -76,5 +76,11 @@ markers = [
 branch = true
 source = ["src"]
 [tool.coverage.report]
-fail_under = 90   # libraries and data projects: >=90% — CODE-QUALITY-STANDARD §2
+# CODE-QUALITY-STANDARD §2 sets the libraries and data projects minimum at >=90%.
+# That is the standard's minimum, not this repo's floor. The suite measures 100.00%
+# branch coverage over 320 tests (2026-08-29), so a floor of 90 left ten points in
+# which untested code could enter the tree and still leave the build green. The gate
+# now sits three points under what is measured: enough slack that an unrelated change
+# does not fail the build, not enough to hide a real loss of covered code.
+fail_under = 97
 show_missing = true
