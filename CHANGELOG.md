@@ -123,7 +123,8 @@ All notable changes to this project are documented here. The format follows
   `rel="alternate stylesheet"` cannot slip past a cleared first token, a `<link>` with no
   `rel` at all is refused as undeclared rather than harmless, and a separate test asserts the
   canonical link is the only `<link>` on the page so the exemption cannot hide one the
-  scanner never saw. Exempting the element would have let a stylesheet in behind it. The weight budget is a formula, 12,000
+  scanner never saw. Exempting the element would have let a stylesheet in behind it.
+  The weight budget is a formula, 12,000
   bytes of fixed overhead plus 2,200 per modeled authorization against 7,896 and 1,711 today,
   so growth in the markup fails the gate and growth in the Commission's table does not; a test
   asserts both halves of that, including that twice as many authorizations at today's weight
@@ -137,6 +138,25 @@ All notable changes to this project are documented here. The format follows
   figures to the coverage statement but only where one stands beside a counted noun, and
   "bytes" is not one of them, so these two figures sat outside every check the repository
   had.
+- `site/coverage.json` now says how much a stopped leaflet read left behind, not only that
+  one stopped. `authorizations_whose_stop_left_a_classified_heading_unread` and
+  `headings_left_unread_beyond_the_stop` join the two counts added alongside them. Sixteen
+  attached authorizations have a leaflet whose read stopped early; exactly one of those stops
+  costs nothing this project would have read, and the other fifteen lose between one and five
+  headings apiece. Those two cases published identical property counts and, until now,
+  identical coverage. `LeafletPage.classified_beyond_the_stop` carries the measurement, and
+  the parser walks the headings past a stop without reading a word of them to take it. It is
+  an upper bound on what a corrected stop rule could recover and not a claim that any of it
+  was wrongly dropped: where the stop was right the headings belong to another Commission
+  document. Issue #36, the judgement about which is which, stays open.
+
+### Fixed
+
+- `PROVENANCE.md`'s "Where reading stops" asserted that "everything past that point belongs
+  to another document and is never read". The first half of that is the assumption the rule
+  was written on rather than a finding about the leaflets, and issue #36 disproves it on
+  three vendored pages. The section now states the rule, names what it gets wrong, and points
+  at the figures that size it.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
