@@ -251,9 +251,15 @@ is four figures and two of the leaflet totals a reader meets."""
 _FIGURE_TOKEN = re.compile(
     rf"(?<![\w.-])(?:[0-9][0-9,]*|{'|'.join(NUMBER_WORDS)})(?![\w.-])", re.IGNORECASE
 )
-"""One figure as the README writes it. The lookarounds keep version strings (`0.16.2`),
+"""One figure as the README writes it. The lookarounds keep version strings (`0.16.4`),
 dates (`2026-08-07`) and leaflet codes (`CL-902`) out: each of those is a figure glued to a
-dot, a dash or a word, and none of them is a count of anything the build emits."""
+dot, a dash or a word, and none of them is a count of anything the build emits.
+
+That exclusion is right and stays. It did mean the pinned tool floors were the one class of
+figure in the README that nothing read at all, and they had drifted a release behind the
+pins. `tests/test_documented_floors.py` reads those out of `pyproject.toml` instead, which is
+where they come from; loosening this pattern to reach them would only have made a count check
+into a worse version-string check."""
 
 
 def as_int(token: str) -> int:

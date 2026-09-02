@@ -56,6 +56,82 @@ def test_the_page_says_it_is_unofficial(real_catalog: Catalog) -> None:
     assert "Credential Engine" in page
 
 
+# ---------------------------------------------------------------------------
+# The head, and the shared origin it has to survive
+#
+# The page is served at a path under chelseakr.github.io, which five sibling
+# projects also publish under, and https://chelseakr.github.io/ is itself a
+# 404. A canonical naming the bare origin, or a root-relative href, is invisible
+# in a browser and wrong to everything that reads a head. So it is checked here.
+#
+# The expected address is written out rather than imported from
+# chalkline.site.SITE_URL. A check that builds its expectation out of the
+# constant it is checking moves with the mistake and stays green, which is the
+# shape of check that cannot fail.
+# ---------------------------------------------------------------------------
+
+PUBLISHED_AT = "https://chelseakr.github.io/chalkline/"
+
+
+def head_of(page: str) -> str:
+    return page.split("</head>", 1)[0]
+
+
+def test_the_page_carries_a_self_referencing_canonical(real_catalog: Catalog) -> None:
+    head = head_of(render(real_catalog, ctid_module.load_ledger(), {}))
+    assert f'<link rel="canonical" href="{PUBLISHED_AT}">' in head
+    assert f'<meta property="og:url" content="{PUBLISHED_AT}">' in head
+
+
+def test_the_constant_the_page_is_built_from_is_the_published_path() -> None:
+    from chalkline.site import SITE_URL
+
+    assert SITE_URL == PUBLISHED_AT
+
+
+def test_the_page_describes_itself(real_catalog: Catalog) -> None:
+    # The page had a title and no description at all, so anything that reads a
+    # head had nothing to read but the title.
+    head = head_of(render(real_catalog, ctid_module.load_ledger(), {}))
+    described = re.search(r'<meta name="description" content="([^"]+)"', head)
+    assert described is not None
+    assert described.group(1).strip()
+    # The card and the page are two statements about one thing, so they are
+    # held equal rather than each checked for being non-empty.
+    assert f'<meta property="og:description" content="{described.group(1)}">' in head
+    titled = re.search(r"<title>([^<]+)</title>", head)
+    assert titled is not None
+    assert f'<meta property="og:title" content="{titled.group(1)}">' in head
+    assert '<meta property="og:type" content="website">' in head
+    assert '<meta property="og:site_name" content="Chalkline">' in head
+    assert '<meta name="twitter:card" content="summary">' in head
+
+
+def test_the_description_claims_nothing_the_page_does_not(real_catalog: Catalog) -> None:
+    # This project is unofficial and says so on its face. A description that
+    # dropped the word, or that quoted a figure, would be a claim made in a
+    # place no reader of the page can see and no other test reads.
+    head = head_of(render(real_catalog, ctid_module.load_ledger(), {}))
+    described = re.search(r'<meta name="description" content="([^"]+)"', head)
+    assert described is not None
+    description = described.group(1)
+    assert "unofficial" in description.lower()
+    assert re.search(r"\b[0-9]+\b", description) is None, (
+        f"the description states a figure nothing derives: {description!r}"
+    )
+
+
+def test_the_page_makes_no_root_relative_reference(
+    real_catalog: Catalog, real_attachments: dict[str, Attachment]
+) -> None:
+    # `href="/x"` resolves against chelseakr.github.io, not against
+    # /chalkline/, so it lands on another project or on nothing. Protocol-
+    # relative `//host/x` is a different thing and is excluded deliberately.
+    page = render(real_catalog, ctid_module.load_ledger(), real_attachments)
+    rooted = re.findall(r'(?:href|src|content)="(/(?!/)[^"]*)"', page)
+    assert rooted == [], f"root-relative references escape /chalkline/: {rooted}"
+
+
 def test_counts_come_from_the_catalog(real_catalog: Catalog) -> None:
     page = render(real_catalog, ctid_module.load_ledger(), {})
     assert f"<b>{len(real_catalog.authorizations)}</b>" in page

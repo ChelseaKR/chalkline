@@ -100,14 +100,14 @@ You do not have to take that on this repository's word. `make verify` runs
 [`ctdl-validate`](https://github.com/ChelseaKR/ctdl-validate) `0.2.1`, an independently
 written structural checker for CTDL JSON-LD, over the committed graph, and the gate fails if
 it reports an ERROR finding. It checks a different rule family from this project's own
-validator — CTID grammar, identifier kinds, reference targets, class pairings, each finding
-citing the published rule it came from — so neither tool subsumes the other, and the
+validator (CTID grammar, identifier kinds, reference targets, class pairings, each finding
+citing the published rule it came from), so neither tool subsumes the other, and the
 interesting outcome is a disagreement rather than a pass. Today it reports `0 findings` on
 all 134 entities, and the report is committed at
 [`site/ctdl-validate.json`](site/ctdl-validate.json): `scripts/validate_evidence.py` runs the
 tool as a separate process against `site/credentials.jsonld` and writes its `--format json`
 output verbatim, and `tests/test_ctdl_validate_evidence.py` re-runs it on every test run and
-fails if the committed file is not what a fresh run reports — including a control test that
+fails if the committed file is not what a fresh run reports, including a control test that
 mutates one `ceterms:ctid` into a bare UUID and asserts `ctdl-validate` catches it, so a clean
 report is a statement about this build rather than a stale file nobody re-checks. It makes no
 network calls, so the gate stays offline.
@@ -146,8 +146,8 @@ else. Three rules: an exact title match, a title match with one trailing parenth
 qualifier removed, and a document code the leaflet's own title names in parentheses that is
 character-for-character a whole Document Title cell in the sort table.
 
-A leaflet has up to two published titles — the one the Commission's index gives it and the
-one the leaflet page gives itself — and the first two rules are applied to both. That is not
+A leaflet has up to two published titles (the one the Commission's index gives it and the
+one the leaflet page gives itself), and the first two rules are applied to both. That is not
 a loosening: it is the same equality against the other name the Commission published for the
 same document. It matters for exactly one leaflet, and decisively. `CL-902` is indexed as
 "The Teaching Permit for Statutory Leave (TPSL)", which matches nothing, and titles itself
@@ -233,21 +233,21 @@ result says so instead of being left out.
 
 | Standard | State | Evidence |
 |---|---|---|
-| Responsible-Tech Framework | Applies — the unofficial status, the fact that nothing has been published to the Credential Registry, and the refusal to circumvent bot protection or access controls are stated at the top of this README, in the generated page, and in [SECURITY.md](SECURITY.md). **Not yet written:** there is no separate responsible-technology audit document. | [PROVENANCE.md](PROVENANCE.md) records every source, every exclusion with its reason, and every property deliberately not emitted. |
-| Code Quality | Applies | `make verify` is the gate and CI runs that exact target: `uv lock --check --offline`, ruff lint and format check, mypy over `src tests scripts`, pytest with a 90% coverage floor, and the build-output check. Floors are pinned in `pyproject.toml`: Python >= 3.12, ruff >= 0.16.2, mypy >= 2.3.0, complexity <= 10. Every invocation is `uv run --locked`, so a drifted lockfile fails rather than being silently repaired. |
+| Responsible-Tech Framework | Applies: the unofficial status, the fact that nothing has been published to the Credential Registry, and the refusal to circumvent bot protection or access controls are stated at the top of this README, in the generated page, and in [SECURITY.md](SECURITY.md). **Not yet written:** there is no separate responsible-technology audit document. | [PROVENANCE.md](PROVENANCE.md) records every source, every exclusion with its reason, and every property deliberately not emitted. |
+| Code Quality | Applies | `make verify` is the gate and CI runs that exact target: `uv lock --check --offline`, ruff lint and format check, the em dash check CONTRIBUTING.md's prose style section calls for, mypy over `src tests scripts`, pytest with a 97% coverage floor, and the build-output check. Floors are pinned in `pyproject.toml`: Python >= 3.12, ruff >= 0.16.4, mypy >= 2.3.1, complexity <= 10. Every invocation is `uv run --locked`, so a drifted lockfile fails rather than being silently repaired. |
 | Security & Supply-Chain | Applies | [SECURITY.md](SECURITY.md) names the confidential reporting channel and the real risk surface. CI runs gitleaks over full history, Semgrep, and `pip-audit --strict`. There are no runtime dependencies; dev dependencies are locked in `uv.lock` and updated by Dependabot with a cooldown, and every GitHub Action is pinned to a full commit SHA. |
 | CI/CD | Applies | `.github/workflows/ci.yml` runs `make verify` byte for byte with the local target, plus separate audit, secret-scan, and SAST jobs; `pages.yml` republishes only when the committed `site/` still matches what the code produces. Every workflow declares a top-level least-privilege `permissions:` block. |
-| Release & Versioning | Applies — no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. |
-| Observability | Applies — the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml` |
-| Performance | Applies — the published output is three static files served from GitHub Pages, with no client-side data fetch and no runtime. **Not yet enforced:** no performance budget is measured and none is gated. | [`site/`](site/) |
-| Accessibility | Applies — the published page is human-facing, so it is in scope. **Not met:** there is no automated accessibility gate in CI, and no manual review of the generated page has been performed. This row is a declared obligation, not a passing result. | none yet |
-| Internationalization | Applies — English only today. The source material is the Commission's English-language publications and credential names are quoted verbatim rather than translated. **Not yet built:** no catalog, no scope declaration, and no EN/ES parity. | none yet |
-| AI Evaluation | N/A — deterministic parsing and CTDL modelling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
+| Release & Versioning | Applies: no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. |
+| Observability | Applies: the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml` |
+| Performance | Applies: the published output is three static files served from GitHub Pages, with no client-side data fetch and no runtime. **Not yet enforced:** no performance budget is measured and none is gated. | [`site/`](site/) |
+| Accessibility | Applies: the published page is human-facing, so it is in scope. **Not met:** there is no automated accessibility gate in CI, and no manual review of the generated page has been performed. This row is a declared obligation, not a passing result. | none yet |
+| Internationalization | Applies: English only today. The source material is the Commission's English-language publications and credential names are quoted verbatim rather than translated. **Not yet built:** no catalog, no scope declaration, and no EN/ES parity. | none yet |
+| AI Evaluation | N/A: deterministic parsing and CTDL modelling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
 | Documentation | Applies | This README, [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CITATION.cff](CITATION.cff), [PROVENANCE.md](PROVENANCE.md), the modelling notes in `docs/MODELING.md` and `docs/IDENTIFIERS.md`, and five ADRs in [docs/adr/](docs/adr/). |
-| Quality & Metrics | Applies — the merge-blocking gate is `make verify` with a 90% coverage floor, and the coverage statement the build publishes is counted from the graph at build time rather than asserted by hand. **Not yet written:** there is no separate metrics ledger document. | `pyproject.toml`, [`site/coverage.json`](site/coverage.json) |
-| AI Development Measurement | Applies — no AI-development baseline is recorded in this repository, and no activity counter (sessions, tokens, lines changed, percent AI-generated) is tracked or gated. The gates that do exist are outcome-side: `make verify` on every change. | `Makefile`, `.github/workflows/ci.yml` |
-| Incident Response | Applies — the confidential reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
-| Data Governance | Applies — every input is public information published by a California state agency, and there is no personal data anywhere in this repository. Source snapshots are committed and hash-checked, so a change to one is visible in review. | [PROVENANCE.md](PROVENANCE.md) records each source URL, retrieval date, byte count, and sha256; CTIDs come from a committed ledger rather than being minted per build ([ADR 0003](docs/adr/0003-uuidv4-ctids-from-a-committed-ledger.md)). |
+| Quality & Metrics | Applies: the merge-blocking gate is `make verify` with a 97% coverage floor, and the coverage statement the build publishes is counted from the graph at build time rather than asserted by hand. **Not yet written:** there is no separate metrics ledger document. | `pyproject.toml`, [`site/coverage.json`](site/coverage.json) |
+| AI Development Measurement | Applies: no AI-development baseline is recorded in this repository, and no activity counter (sessions, tokens, lines changed, percent AI-generated) is tracked or gated. The gates that do exist are outcome-side: `make verify` on every change. | `Makefile`, `.github/workflows/ci.yml` |
+| Incident Response | Applies: the confidential reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
+| Data Governance | Applies: every input is public information published by a California state agency, and there is no personal data anywhere in this repository. Source snapshots are committed and hash-checked, so a change to one is visible in review. | [PROVENANCE.md](PROVENANCE.md) records each source URL, retrieval date, byte count, and sha256; CTIDs come from a committed ledger rather than being minted per build ([ADR 0003](docs/adr/0003-uuidv4-ctids-from-a-committed-ledger.md)). |
 
 ## License
 
