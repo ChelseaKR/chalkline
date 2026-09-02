@@ -86,6 +86,7 @@ summary { cursor: pointer; color: var(--muted); }
 .conditions { margin: 0.6rem 0 0; padding-left: 1.1rem; }
 .conditions li { margin-bottom: 0.3rem; }
 .wrap { overflow-x: auto; }
+.wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 table { border-collapse: collapse; width: 100%; font-size: 0.88rem; margin-top: 0.5rem; }
 th, td { text-align: left; padding: 0.45rem 0.7rem; border-bottom: 1px solid var(--rule);
   vertical-align: top; }
@@ -114,7 +115,7 @@ def _counts_block(catalog: Catalog, tallies: Mapping[str, int]) -> str:
         (tallies["conditions"], "carrying requirements or renewal terms"),
     ]
     cells = "".join(f"<li><b>{value}</b><span>{_e(label)}</span></li>" for value, label in items)
-    return f'<ul class="counts">{cells}</ul>'
+    return f'<ul class="counts" role="list">{cells}</ul>'
 
 
 def _resolution_block(authorization: Authorization) -> str:
@@ -215,7 +216,7 @@ def _credential_block(
         noun = "subject" if count == 1 else "subjects"
         parts.append(
             f"<details><summary>{count} authorized {noun}</summary>"
-            f'<ul class="subjects">{rows}</ul></details>'
+            f'<ul class="subjects" role="list">{rows}</ul></details>'
         )
     elif authorization.declares_no_subject_codes:
         parts.append(
@@ -265,8 +266,15 @@ def _exclusions_table(catalog: Catalog) -> str:
         for exclusion in catalog.exclusions
     )
     return (
-        '<div class="wrap"><table><thead><tr><th>Authorization</th><th>Document</th>'
-        "<th>Code</th><th>Why it is not modeled</th></tr></thead>"
+        # tabindex makes the scroll container reachable from the keyboard: a region that
+        # scrolls only under a pointer is content a keyboard-only reader cannot get to
+        # (WCAG 2.1.1 Keyboard). A focusable region needs a role and a name to be worth
+        # landing on, so it carries both.
+        '<div class="wrap" role="region" aria-label="Authorizations not modeled" tabindex="0">'
+        "<table><thead><tr>"
+        '<th scope="col">Authorization</th><th scope="col">Document</th>'
+        '<th scope="col">Code</th><th scope="col">Why it is not modeled</th>'
+        "</tr></thead>"
         f"<tbody>{rows}</tbody></table></div>"
     )
 

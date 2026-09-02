@@ -42,7 +42,10 @@ All notable changes to this project are documented here. The format follows
   The graph gains what was being dropped: `ceterms:requires` on 18 authorizations rather than
   15, `ceterms:renewal` on 12 rather than 9, and 57 `ceterms:ConditionProfile` nodes rather
   than 36. `site/`, the README and PROVENANCE.md figures are rebuilt to match, and
-  `tests/test_documented_counts.py` is what caught each one that was not.
+  `tests/test_documented_counts.py` is what caught each one that was not. The page carries
+  the extra conditions too, at 1,868 bytes per authorization against 1,717: the weight budget
+  is not raised for it, because a page carrying more of what the Commission published is the
+  budget's formula working rather than a reason to move it.
 
 ### Added
 
@@ -157,6 +160,35 @@ All notable changes to this project are documented here. The format follows
   Figures spelled as English words ("Ten leaflet pages were read; eighteen authorizations
   carry prose from one") are read as figures, which is four of the leaflet totals a reader
   meets.
+- `tests/test_performance.py`. Two claims this repository made in prose and checked nowhere.
+  `chalkline.site`'s docstring says "No external stylesheet, script, font, or image: the page
+  is one file and works offline", and the README's Performance row said a budget was not yet
+  enforced. Self-containment is now asserted against the rendered page (no script, link, img,
+  iframe, object, embed, media or track element, and no `@import` or `url()` in the inline
+  stylesheet), which is also what makes the Observability row's "no analytics on the published
+  page, by design" checkable rather than intended. The one `<link>` the page carries, the
+  `rel="canonical"` added with the head metadata, is exempt by relation rather than by
+  element: `METADATA_LINK_RELS` names the relations that leave the browser nothing to fetch,
+  it holds `canonical` and nothing else, `rel` is read as a token list so
+  `rel="alternate stylesheet"` cannot slip past a cleared first token, a `<link>` with no
+  `rel` at all is refused as undeclared rather than harmless, and a separate test asserts the
+  canonical link is the only `<link>` on the page so the exemption cannot hide one the
+  scanner never saw. Exempting the element would have let a stylesheet in behind it.
+  The weight budget is a formula, 12,000
+  bytes of fixed overhead plus 2,200 per modeled authorization against 8,102 and 1,717 today,
+  so growth in the markup fails the gate and growth in the Commission's table does not; a test
+  asserts both halves of that, including that twice as many authorizations at today's weight
+  each would still pass. `credentials.jsonld` and `coverage.json` are deliberately not
+  budgeted, with the reason recorded: they are downloads a reader chooses rather than
+  page-load cost, and a cap on them would be a cap on how much of the source may be modeled.
+  The README's Performance row publishes both budgets and what the page spends against them,
+  and all four figures are bound to the rendered page here. The spend had already drifted:
+  the row said 7,006 bytes of fixed overhead when the head metadata added with the canonical
+  link had taken it to 7,896, and the accessibility fixes have since taken it to 8,102, which
+  this check is what noticed. `tests/test_documented_counts.py` binds the README's prose
+  figures to the coverage statement but only where one stands beside a counted noun, and
+  "bytes" is not one of them, so these two figures sat outside every check the repository
+  had.
 - `site/coverage.json` now says how much a stopped leaflet read left behind, not only that
   one stopped. `authorizations_whose_stop_left_a_classified_heading_unread` and
   `headings_left_unread_beyond_the_stop` join the two counts added alongside them. Sixteen
@@ -176,6 +208,28 @@ All notable changes to this project are documented here. The format follows
   was written on rather than a finding about the leaflets, and issue #36 disproves it on
   three vendored pages. The section now states the rule, names what it gets wrong, and points
   at the figures that size it.
+
+- Three accessibility defects in the generated page, found by the review the README's
+  Accessibility row had been recording as not yet performed. The exclusions table's four
+  `<th>` cells carried no `scope`, so nothing said whether they head a column or a row
+  (technique H63, for WCAG 1.3.1). `.counts` and `.subjects` are styled `list-style: none`,
+  and Safari drops list semantics from a list whose markers are removed, so 134 list items
+  were no longer announced as lists; `role="list"` restores what the styling took away.
+  `.wrap`, the one horizontally scrolling region on the page, could not be focused, so a
+  keyboard-only reader could not scroll the exclusions table at all (WCAG 2.1.1); it now
+  carries `tabindex="0"`, a region role, an accessible name, and a visible focus ring.
+
+### Added
+
+- `tests/test_accessibility.py`, an accessibility gate over the rendered page: page language,
+  page title, heading order, table header scope, list semantics under removed markers,
+  keyboard reach into scrolling regions, image alternatives, zoom not being pinned, and text
+  contrast across both palettes. It is a check against a named list, not an audit, and it
+  says so. Every check records how much it examined, so a check that ran over nothing is
+  distinguishable from one that ran over everything and found nothing, and every check is
+  exercised against a deliberately broken copy of the real page. A check with no such
+  breakage fails the suite, which is what stops the list growing by accretion of things that
+  cannot disagree with the page.
 
 - `main` is protected. A `protect-main` ruleset requires `verify`, `audit`, `secret-scan`,
   `sast`, `zizmor` and `analyze` to pass, plus branch deletion and non-fast-forward pushes are
