@@ -8,6 +8,39 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The distribution name in `pyproject.toml` was `chalkline`, which is taken on PyPI by an
+  unrelated project: `chalkline` 0.1.0, "Universal agent context tracking. Know what codebase
+  the agent is working in.", by Andrew Park (<https://github.com/aardpark/trace>). Nothing in
+  this repository has ever been published to PyPI and nothing here told a reader to
+  `pip install chalkline` -- the Quickstart is `uv sync` and `uv run chalkline build` -- so
+  this was a latent defect rather than a live one. It was one README line away from being
+  live, and that line is exactly the defect that shipped in a sibling repository, whose
+  README instructed readers to `pipx install sprout` and so handed them a stranger's code on
+  a name collision nobody had checked. The distribution is now `chalkline-ctdl`, verified
+  free (HTTP 404 from the PyPI JSON API on 2026-09-01), following the same descriptive-suffix
+  pattern the portfolio already uses for this collision class (`gauntlet-evals`,
+  `cairn-assistant`, `nearmiss-safety`, `plumbline-eval`).
+
+  The *import* package stays `src/chalkline/`, and the console script stays `chalkline`. A
+  distribution name and an import name are allowed to differ, and here they should: the
+  import path is load-bearing in roughly forty places -- module docstrings, ADRs,
+  `PROVENANCE.md`'s hashed vendored-file table, the wheel `force-include` paths, and every
+  `chalkline check` in the prose -- none of which is a package reference a reader could
+  mistake for the stranger's project. Renaming them would be a large diff that fixes nothing.
+  Only `uv.lock`'s root entry moved with the metadata.
+
+- The rename surfaced a second, live consequence of the same collision: `make audit` was
+  reporting on the stranger's package. `pip-audit --strict` audited the installed
+  environment, which includes this project's own editable distribution, and pip-audit
+  resolves a distribution by asking PyPI about its name and version. `chalkline 0.1.0`
+  existed there -- the stranger's, at coincidentally the same version -- so the lookup
+  succeeded and the gate was quietly asking "does Andrew Park's agent-context tracker have
+  advisories?" every time it ran. It was green because that question happens to have the
+  answer "no", not because it was the right question. `make audit` now audits the locked
+  third-party set exported from `uv.lock` with `--no-emit-project`, hashes included
+  (`--require-hashes`), so the project's own unpublished distribution is not looked up at
+  all and every dependency still fails closed under `--strict`. 41 dependencies are audited.
+
 - `live-integrity.yml` was left on `astral-sh/setup-uv` v9.0.0 by #34, which bumped
   `ci.yml` and `pages.yml` to v10.0.1. The sentinel workflow did not exist when
   Dependabot opened that PR, so it was created against the old pin and the two never met.

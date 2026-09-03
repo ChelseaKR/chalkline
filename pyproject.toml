@@ -3,7 +3,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "chalkline"
+# The distribution name is not "chalkline": that name is taken on PyPI by an unrelated
+# project (an agent-context tracker by Andrew Park, https://github.com/aardpark/trace),
+# so publishing under it is impossible and documenting an install under it would send a
+# reader to a stranger's code. The suffix names what this models -- CTDL -- and follows
+# the portfolio's existing pattern for the same collision (gauntlet-evals, cairn-assistant,
+# nearmiss-safety, plumbline-eval). The *import* package and the console script stay
+# `chalkline`: a distribution name and an import name are allowed to differ, and the
+# project's own name has not changed.
+name = "chalkline-ctdl"
 version = "0.1.0"
 description = "California educator credential authorizations, modeled onto CTDL"
 requires-python = ">=3.12"

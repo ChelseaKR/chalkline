@@ -107,7 +107,7 @@ wheels = [
 ]
 
 [[package]]
-name = "chalkline"
+name = "chalkline-ctdl"
 version = "0.1.0"
 source = { editable = "." }
 

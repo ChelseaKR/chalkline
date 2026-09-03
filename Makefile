@@ -110,8 +110,21 @@ validate:
 # audit finding *means* and wrong about what `make verify` is for. A contributor who ran only
 # `make verify` locally saw green while an unrun `pip-audit` sat behind it, and `verify` is
 # supposed to be the one target that tells the truth about what CI requires (issue #22).
+#
+# It audits the locked dependency set, exported from `uv.lock`, rather than the installed
+# environment. Auditing the environment means auditing this project's own distribution too,
+# and pip-audit resolves a distribution by asking PyPI about its name and version. While the
+# distribution here was named `chalkline` that lookup did not fail -- it *succeeded*, against
+# a stranger's unrelated `chalkline` 0.1.0, and reported that stranger's advisories as this
+# project's. Under the now-correct name `chalkline-ctdl`, which is deliberately unpublished,
+# the same lookup 404s and `--strict` fails the gate. Neither outcome is the question the
+# audit is asking: this project has no PyPI release to have advisories against, and what
+# needs auditing is what it depends on. `--no-emit-project` drops it from the export, so the
+# audit covers exactly the third-party set `uv.lock` pins, hashes included.
 audit:
-	$(UVRUN) pip-audit --strict
+	@req=$$(mktemp); trap 'rm -f "$$req"' EXIT; \
+	$(UV) export --locked --format requirements-txt --no-emit-project --all-groups >"$$req"; \
+	$(UVRUN) pip-audit --strict --require-hashes -r "$$req"
 
 # lock-check runs first on purpose. Every later target would otherwise be the thing that
 # repaired the lockfile it was supposed to be checked against.
