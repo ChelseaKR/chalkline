@@ -6,7 +6,7 @@
 # `python` -- because Semgrep already holds that ground and running CodeQL over it too would
 # be a second, more expensive opinion this repository has not asked for.
 #
-# On a schedule as well as on every PR and push to main, so drift in CodeQL's own query packs
+# On a schedule as well as on every PR, so drift in CodeQL's own query packs
 # gets caught even on a quiet repository between changes.
 #
 # Every action is pinned to the full 40-char commit SHA of its tag, per
@@ -15,8 +15,10 @@ name: codeql
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  # No push: trigger. CI-CD-STANDARD.md 11e — the pull_request run below
+  # already analysed this exact commit, so re-running CodeQL on the merge
+  # to main pays for the same analysis twice. The weekly schedule keeps the
+  # default-branch alert baseline fresh when no PR has landed.
   schedule:
     - cron: "0 8 * * 3" # Wednesday 08:00 UTC
 
