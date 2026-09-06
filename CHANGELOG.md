@@ -8,6 +8,41 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `README.md`, `PROVENANCE.md` and `scripts/fetch_sources.py`'s own docstring each said
+  `fetch_sources.py` is "the only code in this repository that opens a socket", and
+  `PROVENANCE.md` added "Tests and CI are hermetic". `scripts/verify_live_site.py` has
+  opened HTTPS connections since `cf3c7f5` (2026-08-29) and
+  `.github/workflows/live-integrity.yml` has run it unattended on a daily cron ever since,
+  so a reader auditing this repository's network posture was told it makes no unattended
+  outbound requests when it makes one a day. The CI half was contradicted by the README two
+  hundred lines further down, which already described `make audit` as "the one step in it
+  that reaches the network".
+
+  Nothing caught it because the test the prose cited as its evidence proves a narrower
+  claim than the prose made: `test_no_module_in_the_package_opens_a_socket` scans
+  `src/chalkline/` and the documents made a claim about the repository. Both documents now
+  name both scripts and separate the tests (hermetic, enforced) from CI (not: `make audit`
+  reaches the PyPI advisory API, and the sentinel fetches the published page). The
+  reasoning that had only ever been written inside `live-integrity.yml` -- that it reads
+  the network deliberately, lives in its own workflow, and is not a required check because
+  it grades a deployment rather than a commit -- is now visible to a reader who never opens
+  a workflow file.
+
+  `tests/test_provenance.py` gained the repository-wide check the repository-wide claim
+  always needed: the set of files that import something which opens a connection has to be
+  exactly those two, and both have to be named in both documents. The package scan treats
+  `subprocess` as network-reaching on purpose, so the wider scan excludes the delegating
+  imports by name, with a control asserting it still separates opening from delegating.
+
+- `scripts/verify_live_site.py` documented `make live-check`, a target that had never
+  existed: `git log --all -S'live-check' -- Makefile` returns nothing, and the string
+  appeared only in that docstring. The docstring is also the `--help` text
+  (`description=__doc__`), so every reader who asked the script how to run it was handed a
+  command that fails, reflowed by argparse's default formatter into one paragraph
+  mid-sentence. The `Makefile` now defines `live-check` and lists it in `.PHONY`, the
+  README's command block names it, and the parser uses
+  `argparse.RawDescriptionHelpFormatter` so the usage block survives as a usage block.
+
 - `docs/MODELING.md` published `ceterms:description` on "51 of 133" authorizations and
   `PROVENANCE.md` published its complement as "82 of 133", where the build emits 53 and
   133 - 53 is 80. `README.md` published the same figure correctly, because

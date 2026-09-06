@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -331,7 +332,12 @@ def test_the_networking_scan_passes_ordinary_imports(source: str) -> None:
 
 
 def test_no_module_in_the_package_opens_a_socket() -> None:
-    """Only scripts/fetch_sources.py may reach the network, and it is not importable code."""
+    """No module under ``src/chalkline/`` reaches the network, however it might try to.
+
+    This is a claim about the package and nothing wider. Two files outside it do open sockets,
+    and the scan below is the check that holds the repository-wide claim the documents make.
+    Until 2026-09-06 this docstring restated that wider claim, which it has never tested.
+    """
     package = REPO_ROOT / "src" / "chalkline"
     modules = sorted(package.rglob("*.py"))
     # An empty scan produces the same empty list as a clean one. Say how many files were
@@ -345,7 +351,98 @@ def test_no_module_in_the_package_opens_a_socket() -> None:
     assert offenders == {}
 
 
-def test_the_one_module_allowed_to_reach_the_network_does() -> None:
+def test_the_one_module_allowed_to_reach_the_commission_does() -> None:
     """The scan is pointed at code that would fail it if it were in the package."""
     fetcher = REPO_ROOT / "scripts" / "fetch_sources.py"
     assert networking_imports(fetcher.read_text(encoding="utf-8")) != []
+
+
+# --- The repository-wide claim, which is the one the documents actually make ----------------
+#
+# `test_no_module_in_the_package_opens_a_socket` above proves a claim about `src/chalkline/`.
+# README.md and PROVENANCE.md made a claim about the repository: that `fetch_sources.py` was
+# "the only code in this repository that opens a socket", run by hand, and that "Tests and CI
+# are hermetic". `scripts/verify_live_site.py` had opened HTTPS connections since cf3c7f5
+# (2026-08-29), unattended, on the daily cron in `.github/workflows/live-integrity.yml`, and
+# `make audit` had been reaching the PyPI advisory API from inside the merge gate since
+# 2026-08-21. The prose cited the package test as its evidence, and the package test proves
+# something narrower than the prose said.
+#
+# So the repository-wide claim gets a repository-wide check, and the documents that make it
+# get read.
+
+HANDS_OFF_ONLY: Final = frozenset({"subprocess", "asyncio", "webbrowser", "urllib.parse"})
+"""Networking imports that do not themselves open a connection.
+
+``NETWORKING`` is deliberately wide: inside `src/chalkline/` even ``subprocess`` is a finding,
+because ``subprocess.run(["curl", ...])`` reaches the network by asking another program to. A
+repository-wide scan cannot use that width, because ``scripts/validate_evidence.py`` and
+``tests/test_ctdl_validate_evidence.py`` both run ``ctdl-validate`` as a subprocess and neither
+goes near a socket, and ``verify_live_site.py`` parses a URL with ``urllib.parse``. Excluding
+them by name here keeps the wide scan wide where it belongs and makes this one a statement
+about connections. The exclusions are listed rather than pattern-matched so that adding one is
+a reviewable line.
+"""
+
+SCANNED_DIRECTORIES: Final = ("src", "tests", "scripts")
+
+OPENS_A_SOCKET: Final = ("scripts/fetch_sources.py", "scripts/verify_live_site.py")
+"""Every file in this repository that opens a socket, which is the pair the documents name."""
+
+
+def connection_imports(source: str) -> list[str]:
+    """The networking imports that open a connection rather than being able to delegate one."""
+    return [name for name in networking_imports(source) if name not in HANDS_OFF_ONLY]
+
+
+def test_the_files_that_open_a_socket_are_the_two_the_documents_name() -> None:
+    """The repository-wide version of the claim the repository-wide prose makes."""
+    scanned = sorted(
+        path for directory in SCANNED_DIRECTORIES for path in (REPO_ROOT / directory).rglob("*.py")
+    )
+    assert len(scanned) >= 30, f"scanned {len(scanned)} files, which is too few to mean anything"
+    opens = sorted(
+        str(path.relative_to(REPO_ROOT))
+        for path in scanned
+        if connection_imports(path.read_text(encoding="utf-8"))
+    )
+    assert opens == sorted(OPENS_A_SOCKET), (
+        f"the files that open a socket are {opens}, and README.md and PROVENANCE.md say they "
+        f"are {sorted(OPENS_A_SOCKET)}. Update both documents and this list together: the "
+        "last time a third one appeared, the documents went on naming one for eight days."
+    )
+
+
+@pytest.mark.parametrize("name", OPENS_A_SOCKET)
+@pytest.mark.parametrize("document", ["README.md", "PROVENANCE.md"])
+def test_both_of_them_are_named_where_the_network_posture_is_described(
+    document: str, name: str
+) -> None:
+    """A reader auditing the network posture meets both names, or this fails.
+
+    This is the check that was missing. The defect was never that the sentinel was hidden in
+    the code; it is reasoned about at length in its own workflow file. It was that the two
+    documents a reader consults about outbound requests did not mention it, and nothing
+    noticed, because nothing read those documents for this.
+    """
+    text = (REPO_ROOT / document).read_text(encoding="utf-8")
+    assert name in text, (
+        f"{document} does not name {name}, which opens a socket. Both documents describe this "
+        "repository's network posture, so both have to name everything that reaches the network."
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "opens"),
+    [
+        ("import subprocess", False),
+        ("from urllib.parse import urlsplit", False),
+        ("import json", False),
+        ("import ssl", True),
+        ("from http.client import HTTPSConnection", True),
+        ("import urllib.request", True),
+    ],
+)
+def test_the_connection_scan_separates_opening_from_delegating(source: str, opens: bool) -> None:
+    """The control. A narrowed scan that narrowed to nothing would pass the test above."""
+    assert bool(connection_imports(source)) is opens

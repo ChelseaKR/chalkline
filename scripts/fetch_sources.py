@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""Refresh the vendored source snapshots. The only code in this repository that opens a socket.
+"""Refresh the vendored source snapshots. The only code here that reaches the Commission.
 
 Run by hand, never by CI, never by the test suite, never by `make build`. Everything else in
 this project reads the committed snapshots under ``data/source/``, which is what makes the
 build deterministic and the tests hermetic.
+
+One other file in this repository opens a socket, and it is not this one's business:
+``scripts/verify_live_site.py`` fetches this project's own published GitHub Pages surface,
+unattended, on the daily schedule in ``.github/workflows/live-integrity.yml``. It never
+reaches the Commission. ``tests/test_provenance.py`` holds that pair to exactly these two
+files, so a third one cannot appear without this docstring being wrong out loud.
 
 Each fetch is a single unauthenticated GET with an honest, identifying User-Agent. The
 Commission's robots.txt (https://www.ctc.ca.gov/robots.txt) disallows only ``/wp-admin/``,
