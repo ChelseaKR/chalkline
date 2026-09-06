@@ -81,7 +81,7 @@ quality assurance relationship.
 | Property | Why |
 |---|---|
 | `ceterms:name` | The Authorization Title, verbatim. |
-| `ceterms:description` | The matched leaflet's own prose where there is one, otherwise the sort table's Notes column where every row of the authorization carries the same list. 51 of 133 qualify. Neither source is composed or paraphrased, and where neither says anything the property is absent. |
+| `ceterms:description` | The matched leaflet's own prose where there is one, otherwise the sort table's Notes column where every row of the authorization carries the same list. 53 of 133 qualify. Neither source is composed or paraphrased, and where neither says anything the property is absent. |
 | `ceterms:subjectWebpage` | The matched leaflet where one exists, otherwise the sort table. |
 | `ceterms:ownedBy` | "Agent with an enforceable claim or legal title to the resource." A state licensing body has exactly that over the credentials it confers. `ceterms:offeredBy` ("Agent that offers the resource") would be true too but says less. |
 | `ceterms:regulatedIn` | "Region or political jurisdiction such as a state, province or locale in which the credential ... is regulated." This is precisely the Commission's relationship to these documents. `ceterms:recognizedIn` says something weaker and different (publicly recommended or endorsed), and the broader `ceterms:jurisdiction` would drop the regulatory fact the source establishes. |

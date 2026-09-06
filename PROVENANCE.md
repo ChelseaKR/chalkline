@@ -214,7 +214,7 @@ None of the eight fell into any of those, and `tests/test_model.py` exercises ea
 | `ceterms:occupationType` | The sort table publishes no occupation codes. Aligning a teaching credential to an SOC occupation would be this project's judgement, not the Commission's statement. |
 | `ceterms:audienceLevelType` | Grade ranges appear as prose in the Notes column. Mapping that prose onto CTDL's audience level concept scheme would be an interpretation the Commission has not published. The prose is carried verbatim on the subject alignment instead. |
 | Competency framework | The sort table publishes subject names, not competency statements, and `ceterms:targetCompetency` is not in the domain of `ceterms:License`. See [docs/MODELING.md](docs/MODELING.md). |
-| `ceterms:description` on 82 of 133 licenses | No leaflet is matched to them and the Commission published no Notes that apply to the whole authorization. Absence, not a placeholder. |
+| `ceterms:description` on 80 of 133 licenses | No leaflet is matched to them and the Commission published no Notes that apply to the whole authorization. Absence, not a placeholder. |
 | `ceterms:requires` on 115 of 133, `ceterms:renewal` on 121 | The leaflet those licenses would need either was not matched, was not read, or states its requirements under headings this project does not classify. Counted, not hidden. |
 | `ceterms:renewalFrequency` | The leaflets state validity in prose ("issued for five calendar years"). Turning that into a `schema:Duration` would be this project parsing a sentence into a datatype the Commission never wrote. The sentence rides `ceterms:renewal` verbatim instead. |
 | `ceterms:codedNotation` | Not in the domain of `ceterms:License`. The codes ride `ceterms:identifier` instead. |

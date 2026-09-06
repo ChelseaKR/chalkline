@@ -558,3 +558,208 @@ def test_a_doctored_figure_is_caught(
             as_int(token) != known[key] for token, key in zip(found[0].groups(), keys, strict=True)
         )
     assert caught, f"changing {original!r} to {doctored!r} left every claim satisfied"
+
+
+# --- The same figures where two other documents state them, mostly as complements ----------
+#
+# The two tables above are bound row by row and the README's prose is bound sentence by
+# sentence. `docs/MODELING.md` and PROVENANCE.md's "Properties deliberately not emitted"
+# table were bound by neither, and both had drifted. MODELING.md published
+# `ceterms:description` on "51 of 133" where the build emits 53, and PROVENANCE.md published
+# the complement of that same figure as 82 where 133 - 53 is 80. Both went wrong in the same
+# commit, 0647243 (2026-08-19), which matched five more leaflets and took the count from 51
+# to 53: the README row moved with the build because a test held it there, and these two did
+# not because nothing read them. `git grep -n 'docs/' -- tests` returned nothing at all
+# before this section, so no test in the repository read anything under `docs/`.
+#
+# Neither shape above reaches them. `documented()` reads a `| label | value |` row and these
+# figures sit inside a sentence rather than in a value column, and `prose()` deletes every
+# line beginning with `|`, so the two that live in table cells would be gone before any scan
+# saw them.
+
+DOCUMENTS: Final = ("docs/MODELING.md", "PROVENANCE.md")
+"""The two documents this section binds. Named here so the scan below has a denominator."""
+
+
+def whole_document(name: str) -> str:
+    """One document as a single line: fenced code dropped, table rows kept, spaces collapsed.
+
+    ``prose()`` drops table rows because the tables it is used on are already bound row by
+    row. Here the claims are ordinary sentences that happen to sit inside a table cell, so
+    the rows have to survive as far as an assertion.
+    """
+    text = (REPO_ROOT / name).read_text(encoding="utf-8")
+    return " ".join(re.sub(r"```.*?```", " ", text, flags=re.DOTALL).split())
+
+
+def complements(statement: dict[str, Any]) -> dict[str, int]:
+    """Every figure those two documents are allowed to state, keyed by what it means.
+
+    Four of these are complements. The coverage statement counts what carries a property;
+    PROVENANCE.md's "deliberately not emitted" table is about what does not, so the figure it
+    publishes is the difference. Deriving it here from the same statement is the point: a
+    complement written by hand goes stale whenever either side of the subtraction moves,
+    which is exactly how 82 outlived 80.
+    """
+    licenses = statement["entities"]["ceterms:License"]
+    properties = statement["license_properties"]
+    leaflets = statement["leaflets"]
+    return {
+        "licenses": licenses,
+        "carrying a description": properties["ceterms:description"],
+        "lacking a description": licenses - properties["ceterms:description"],
+        "lacking requirements": licenses - properties["ceterms:requires"],
+        "lacking renewal terms": licenses - properties["ceterms:renewal"],
+        "with a leaflet": leaflets["authorizations_with_a_leaflet"],
+        "without a leaflet": leaflets["authorizations_without_a_leaflet"],
+    }
+
+
+DOCUMENT_CLAIMS: Final[tuple[tuple[str, str, tuple[str, ...]], ...]] = (
+    (
+        "docs/MODELING.md",
+        r"([\d,]+) of ([\d,]+) qualify",
+        ("carrying a description", "licenses"),
+    ),
+    (
+        "PROVENANCE.md",
+        r"`ceterms:description` on ([\d,]+) of ([\d,]+) licenses",
+        ("lacking a description", "licenses"),
+    ),
+    (
+        "PROVENANCE.md",
+        r"`ceterms:requires` on ([\d,]+) of ([\d,]+), `ceterms:renewal` on ([\d,]+)",
+        ("lacking requirements", "licenses", "lacking renewal terms"),
+    ),
+    (
+        "PROVENANCE.md",
+        r"([\d,]+) of ([\d,]+) authorizations match a leaflet; ([\d,]+) do not",
+        ("with a leaflet", "licenses", "without a leaflet"),
+    ),
+    (
+        "PROVENANCE.md",
+        r"matches ([\d,]+) of ([\d,]+) authorizations\. The other ([\d,]+) link",
+        ("with a leaflet", "licenses", "without a leaflet"),
+    ),
+)
+"""Every sentence in those two documents that quotes a figure the build counts.
+
+Same shape as ``CLAIMS``: each pattern captures its figures in order and names the value each
+one has to equal. The patterns carry enough of the surrounding sentence that rewording the
+sentence around a number fails here instead of leaving the number unchecked.
+"""
+
+_OF_M = re.compile(r"(?<![\w.-])([0-9][0-9,]*) of ([0-9][0-9,]*)(?![\w.-])")
+"""The denominator for the scan below: a figure stated against a total, ``N of M``.
+
+That is the shape every drifted figure here was written in, and it is narrower than
+``_FIGURE_TOKEN`` on purpose. These two documents are long and quote many numbers that are
+not counts of emitted things (byte counts, sha256 prefixes, HTTP statuses, row indices), and
+a scan wide enough to reach all of them would spend its failures on sentences no build figure
+can move. ``N of M`` is unambiguous: the M is a population the build produces and the N is
+part of it. The trailing figure in PROVENANCE's `ceterms:renewal` row is not written that
+way, so it is not caught by this scan; it is bound by the claim above it instead, which is
+why the claim captures it rather than stopping at the pair.
+"""
+
+
+def _only_document_match(name: str, pattern: str) -> re.Match[str]:
+    found = list(re.finditer(pattern, whole_document(name)))
+    assert len(found) == 1, (
+        f"the claim /{pattern}/ matches {name} {len(found)} times. A claim that matches "
+        "nothing has stopped checking its sentence, and one that matches twice is checking "
+        "an ambiguous one; both are failures, not skips."
+    )
+    return found[0]
+
+
+def test_every_document_claim_still_matches_its_sentence() -> None:
+    """A reworded sentence fails here rather than dropping out of the comparison below."""
+    for name, pattern, _ in DOCUMENT_CLAIMS:
+        assert _only_document_match(name, pattern)
+
+
+def test_every_figure_those_documents_state_is_the_figure_the_build_produces(
+    statement: dict[str, Any],
+) -> None:
+    known = complements(statement)
+    wrong: dict[str, tuple[int, int]] = {}
+    for name, pattern, keys in DOCUMENT_CLAIMS:
+        match = _only_document_match(name, pattern)
+        assert len(match.groups()) == len(keys), f"/{pattern}/ captures {len(match.groups())}"
+        for token, key in zip(match.groups(), keys, strict=True):
+            if as_int(token) != known[key]:
+                wrong[f"{name}: {key} (in /{pattern[:40]}.../)"] = (as_int(token), known[key])
+    assert wrong == {}, f"(documented, built): {wrong}"
+
+
+def test_no_figure_stated_against_a_total_goes_unchecked() -> None:
+    """The denominator. Every ``N of M`` in those documents is inside a bound claim.
+
+    Without this the claims above would check exactly the sentences somebody remembered to
+    write down, and a new paragraph quoting a new proportion would sail past a suite whose
+    whole subject is that totals are counted.
+    """
+    loose: list[str] = []
+    for name in DOCUMENTS:
+        text = whole_document(name)
+        spans = [
+            _only_document_match(name, pattern).span()
+            for claimed, pattern, _ in DOCUMENT_CLAIMS
+            if claimed == name
+        ]
+        for match in _OF_M.finditer(text):
+            if any(start <= match.start() and match.end() <= end for start, end in spans):
+                continue
+            window = text[max(0, match.start() - 60) : match.end() + 60]
+            loose.append(f"{name}: {match.group(0)!r} in ...{window}...")
+    assert loose == [], (
+        "these documents state figures against a total that nothing recomputes:\n"
+        + "\n".join(loose)
+        + "\nAdd a DOCUMENT_CLAIMS entry binding each to a coverage-statement figure."
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "original", "doctored"),
+    [
+        ("docs/MODELING.md", "53 of 133 qualify", "51 of 133 qualify"),
+        (
+            "PROVENANCE.md",
+            "`ceterms:description` on 80 of 133 licenses",
+            "`ceterms:description` on 82 of 133 licenses",
+        ),
+        ("PROVENANCE.md", "`ceterms:renewal` on 121", "`ceterms:renewal` on 119"),
+        (
+            "PROVENANCE.md",
+            "22 of 133 authorizations match a leaflet",
+            "23 of 133 authorizations match a leaflet",
+        ),
+    ],
+)
+def test_a_doctored_document_figure_is_caught(
+    statement: dict[str, Any], name: str, original: str, doctored: str
+) -> None:
+    """The control. The first two edits are the values these documents actually published.
+
+    The files on disk are not touched: the claims are run over a doctored copy of the text,
+    which is the only way to show that a passing run above is a statement about the figures
+    and not about the check being unable to fail.
+    """
+    known = complements(statement)
+    text = whole_document(name)
+    assert original in text, f"{name} no longer says {original!r}"
+    doctored_text = text.replace(original, doctored)
+
+    caught = False
+    for claimed, pattern, keys in DOCUMENT_CLAIMS:
+        if claimed != name:
+            continue
+        found = list(re.finditer(pattern, doctored_text))
+        if len(found) != 1:
+            caught = True
+            continue
+        caught = caught or any(
+            as_int(token) != known[key] for token, key in zip(found[0].groups(), keys, strict=True)
+        )
+    assert caught, f"changing {original!r} to {doctored!r} left every claim satisfied"
