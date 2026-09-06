@@ -82,18 +82,30 @@ def test_the_code_quality_row_states_the_floors_pyproject_pins() -> None:
     )
 
 
+QUOTES_THE_COVERAGE_FLOOR = ("README.md", "CONTRIBUTING.md", "docs/METRICS-LEDGER.md")
+"""Every document that states the floor in words, and therefore every one that can drift.
+
+The list is the check's scope. A document added here has to keep stating the floor, which is
+the point: `docs/METRICS-LEDGER.md` exists to be the one place the gates are enumerated, and
+a ledger that stopped naming the coverage floor would be a ledger with a hole in it rather
+than a document this check quietly skipped.
+"""
+
+
 def test_the_coverage_floor_is_the_one_pyproject_enforces() -> None:
     """Every document that quotes the coverage floor quotes ``fail_under``.
 
-    Three sentences state it: two rows of README.md's standards table and one line of
-    CONTRIBUTING.md. The floor moved from 90 to 97 on 2026-08-28 and all three were edited by
-    hand at the time; nothing would have caught the one that was missed.
+    Four sentences state it: two rows of README.md's standards table, one line of
+    CONTRIBUTING.md, and one row of docs/METRICS-LEDGER.md. The floor moved from 90 to 97 on
+    2026-08-28 and the three that existed then were edited by hand; nothing would have caught
+    the one that was missed. The ledger quotes exactly one number, this one, for that reason:
+    it is the only figure in that file a test already reads out of pyproject.toml.
     """
     config: dict[str, Any] = tomllib.loads(
         (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
     fail_under = config["tool"]["coverage"]["report"]["fail_under"]
-    for name in ("README.md", "CONTRIBUTING.md"):
+    for name in QUOTES_THE_COVERAGE_FLOOR:
         stated = re.findall(r"([0-9]+)% coverage floor", collapsed(name))
         assert stated, f"{name} no longer states the coverage floor"
         assert {int(figure) for figure in stated} == {fail_under}, (

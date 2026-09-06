@@ -93,6 +93,42 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `docs/RESPONSIBLE-TECH-AUDITS.md` and `docs/METRICS-LEDGER.md`, the two artifacts the
+  README's Standards Conformance table admitted were missing. Neither closes a measurement
+  gap: every refusal in the audit and every AUTO row in the ledger was already stated
+  somewhere and already enforced. What did not exist was the one place a reader could see the
+  whole of either, including the parts that are empty. The audit gives each letter A to F an
+  applies or N/A call with its reason, marks every commitment AUTO or REVIEW, names the
+  residual risks with who they land on, and records two rows as open rather than met: the
+  accessibility screen-reader walkthrough, and the internationalization catalog. The ledger
+  names each metric with its target, its mechanism, and its gate type, and it declares the
+  N/A rows (latency budgets, observability, AI evaluation, retention) rather than omitting
+  them, because a silent skip and a considered exemption look identical from outside.
+
+  The ledger publishes no measured values, on purpose: `CONTRIBUTING.md` rule 5 forbids
+  writing a total into prose that nothing recomputes, and a ledger quoting its own test count
+  would be the largest violation of that rule in the repository. It quotes exactly one
+  number, the 97% coverage floor, and `tests/test_documented_floors.py` now reads that file
+  alongside `README.md` and `CONTRIBUTING.md` when it checks the floor against
+  `pyproject.toml`'s `fail_under`, so the one figure it does state cannot drift and the
+  ledger cannot quietly stop stating it.
+
+- `docs/I18N.md`, the internationalization scope declaration. It is written before any
+  catalog on purpose, because the boundary is the hard part here and the setup is not: the
+  entire input is one state agency's English-language publications, and the names in it are
+  the names a person has to use to look a credential up. It splits the page's strings three
+  ways. This project's own words are translatable and are enumerated by where they live.
+  The Commission's words are never translated, in any edition, because a translated
+  credential name is a name the Commission does not use, no reader can look up, and the
+  character-for-character equalities every leaflet attachment rests on would no longer find.
+  The third kind is the part that is not solved: exclusion reasons, match rules and refusal
+  reasons are this project's prose, so they are translatable by that rule, but they are
+  written by the modeling layer and travel in `credentials.jsonld` and `coverage.json` as
+  data, so translating them where they are written would give each language its own artifact
+  and make `chalkline check` a check per language. That is recorded as open rather than
+  decided. The README's Internationalization row is updated to cite the declaration and to
+  keep saying, accurately, that the catalog and the parity check are still not built.
+
 - `LeafletPage.set_aside` and `Attachment.set_aside`, with
   `authorizations_whose_leaflet_set_a_subject_aside` and
   `headings_set_aside_as_another_subject` in `site/coverage.json`. The stop and the aside are
