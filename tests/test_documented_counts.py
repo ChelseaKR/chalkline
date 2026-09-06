@@ -303,6 +303,8 @@ def prose_figures(statement: dict[str, Any], findings: int) -> dict[str, int]:
             reasons, "no subject code, no subject, and no note"
         ),
         "scope resolved by cross-reference": authorizations["scope_resolved_by_cross_reference"],
+        "subject alignments": entities["ceterms:CredentialAlignmentObject"],
+        "published as not subject coded": authorizations["published_as_not_subject_coded"],
         "subject alignments from a cross-reference": authorizations[
             "subject_alignments_from_a_cross_reference"
         ],
@@ -425,6 +427,19 @@ CLAIMS: Final[tuple[tuple[str, tuple[str, ...]], ...]] = (
     (
         r"Each of those ([\w,]+) was retrieved",
         ("leaflet pages vendored and attached to nothing",),
+    ),
+    (
+        r"The ([\w,]+) subject alignments exist to answer one question",
+        ("subject alignments",),
+    ),
+    (
+        r"([\w,]+) of the ([\w,]+) modeled authorizations publish none, and this is not a "
+        r"denial",
+        ("published as not subject coded", "modeled"),
+    ),
+    (
+        r"the graph publishes neither the ([\w,]+) exclusions nor the cross-reference chain",
+        ("excluded",),
     ),
 )
 """Every sentence of README prose that quotes a figure the build counts.
