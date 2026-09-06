@@ -190,7 +190,68 @@ uv sync
 uv run chalkline build        # write site/ from the vendored sources
 uv run chalkline check        # verify committed site/ matches a fresh build
 uv run chalkline mint-ctids   # assign CTIDs to any authorization lacking one
+uv run chalkline authorizes --code R1E --document TC1 --subject BSS
 ```
+
+### Asking whether a credential authorizes a subject
+
+The 1,014 subject alignments exist to answer one question, and it took a 553-row table or
+a hand read of the JSON-LD to answer it. `authorizes` answers it for one authorization and
+one subject, from the published graph, with the rows that support the answer:
+
+```console
+$ uv run chalkline authorizes --code R1E --document TC1 --subject BSS
+authorizes: Single Subject Teaching Credential (Specialized) [TC1; R1E] carries the
+subject BSS Biological Sciences (Specialized), as the Commission published it
+  row: Single Subject Teaching Credential (Specialized) [TC1; R1E]
+  subject: BSS Biological Sciences (Specialized)
+  note: Limited to Specific Subject Area Only
+  note: Initial Issuance Discontinued in 2020
+```
+
+`--document` narrows by Document Title code (`TC1`, `TPSL`) and `--title` by Authorization
+Title (`Single Subject Teaching Credential`). Those are two columns of the sort table and
+they stay two here: one Authorization Code can appear on six documents, and rather than
+guess which you meant, the command refuses and lists them. `--subject-name` takes the
+subject name instead of its code, and `--json` emits the answer for a script.
+
+**"No" is the rare answer, and most of what is not a yes is not a no.** Exit `0` is yes,
+`1` is no, and `2` covers every case where the published record does not answer the
+question, each named separately in the output:
+
+| Answer | What it means |
+| --- | --- |
+| `authorizes` | the Commission publishes this subject code on this row |
+| `does_not_authorize` | the row publishes subject codes and this is not among them |
+| `not_subject_coded` | the row publishes no subject codes at all, which is not a denial |
+| `not_modeled` | the Commission publishes this authorization and this project excluded it, with the recorded reason |
+| `unknown_authorization` | no such Authorization Code is published in the source |
+| `unknown_subject` | no such subject is published anywhere in the source |
+| `ambiguous` | the code appears on more than one row; narrow it |
+
+66 of the 133 modeled authorizations publish none, and this is not a denial: the
+Commission codes subjects for some authorizations and not others, and reading that
+silence as "no" would turn the shape of the table into a claim about assignment law.
+
+Where the subjects arrived through a cross-reference, the answer names the chain:
+
+```console
+$ uv run chalkline authorizes --code R1S --document TPSL --subject MATH --from-sources
+authorizes: Teaching Permit for Statutory Leave (Single Subject) [TPSL; R1S] carries the
+subject MATH Mathematics, as the Commission published it
+  ...
+  resolved by cross-reference: the Commission's note 'Subject Codes Same as on Single
+  Subject Teaching Credential' defers this scope to 'Single Subject Teaching Credential'
+  on 'TC1', whose rows R1S supplied 95 subjects
+```
+
+`--from-sources` re-derives the catalog from the vendored table instead of reading
+`site/credentials.jsonld`. The two agree on every authorization the graph carries, and a
+test holds them to it. They differ in what they can say about two things, and the command
+says so rather than papering over it: the graph publishes neither the three exclusions nor
+the cross-reference chain, so from the graph alone an excluded authorization is
+indistinguishable from one that was never published. When the graph answers
+`unknown_authorization` it names `--from-sources` as the way to tell those apart.
 
 Nothing above touches the network. No module under `src/chalkline/` imports a networking
 library at all, and `tests/test_provenance.py` asserts it. Exactly two scripts open a

@@ -8,6 +8,39 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`chalkline authorizes --code R1E --document TC1 --subject BSS`.** The 1,014 subject
+  alignments exist to answer one question, and answering it meant reading a 553-row table
+  or the JSON-LD by hand. The verb answers it for one authorization and one subject, from
+  the committed graph, printing the rows that support the answer and, where the scope was
+  resolved by cross-reference, the chain to the credential that supplied it. `--json` for
+  scripts.
+- **Seven answers behind three exit codes, because "no" is the rare one.** `0` yes, `1`
+  no, and `2` for every case where the published record does not answer the question:
+  `not_subject_coded` (66 of the 133 modeled authorizations publish no subject codes at
+  all, and that is not a denial), `not_modeled` (one of the three recorded exclusions,
+  printed with its reason, because a gap in this project is not a fact about the
+  Commission), `unknown_authorization`, `unknown_subject`, and `ambiguous`. Each has a
+  test, and each was checked by breaking the rule and watching the test fail.
+- **`--document` and `--title` are two flags because they are two columns.** The sort
+  table publishes Document Title as codes (`TC1`, `TPSL`) and the Authorization Title as
+  prose. One Authorization Code appears on six documents, so the command refuses and
+  lists them rather than answering for whichever it saw first. A test asserts `--document`
+  does not quietly also match the title.
+- **Two sources, and the difference between them is reported.** The default is
+  `site/credentials.jsonld`, the artifact this project publishes; `--from-sources`
+  re-derives the catalog from the vendored table. A test holds them to the same answer for
+  every authorization the graph carries, across more than two hundred comparisons. They
+  cannot agree on two things, and the output says which: the graph publishes neither the
+  exclusions nor the cross-reference chain, so from the graph alone an excluded
+  authorization is indistinguishable from one that was never published, and the
+  `unknown_authorization` answer names `--from-sources` as the way to tell them apart.
+- **A source that cannot be read is refused.** Missing, empty, unparseable, no `@graph`
+  array, or a graph with no `ceterms:License` node: each raises rather than yielding an
+  empty source, because every query against an empty source answers "unknown", which is
+  not the same as an empty answer.
+
+### Added
+
 - `tests/test_release_claims.py`, which holds the declared version to the tag that
   would make it true. `pyproject.toml` declares `0.1.0` and this repository has never
   been tagged, so `0.1.0` is a number a reader can install nothing with. Being

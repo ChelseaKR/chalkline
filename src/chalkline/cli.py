@@ -5,6 +5,7 @@ Three verbs, and none of them touches the network:
 ``chalkline build``       parse the vendored sources, validate, write ``site/``.
 ``chalkline mint-ctids``  assign a spec-conformant CTID to any authorization lacking one.
 ``chalkline check``       build in memory and compare against the committed ``site/``.
+``chalkline authorizes``  answer one assignment question from the graph, with its rows.
 
 ``check`` is what CI runs. It fails when the committed artifacts are not byte-for-byte what
 the current code produces from the current sources, which makes the output in the repository
@@ -21,6 +22,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from chalkline import authorizes as authorizes_module
 from chalkline import ctid as ctid_module
 from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
@@ -150,6 +152,40 @@ def mint_ctids(ledger_path: Path | None) -> int:
     return 0
 
 
+def authorizes(args: argparse.Namespace) -> int:
+    """``authorizes`` end to end.
+
+    A source that cannot be read exits 2 with the reason on stderr, never 0 with an empty
+    answer: "no rows found" from a file that was never opened is the reading this verb
+    exists to keep apart from a real absence.
+    """
+    try:
+        source = (
+            authorizes_module.source_from_catalog(_catalog())
+            if args.from_sources
+            else authorizes_module.source_from_graph(args.graph)
+        )
+    except authorizes_module.SourceUnreadable as exc:
+        print(f"chalkline authorizes: {exc}", file=sys.stderr)
+        return authorizes_module.EXIT[authorizes_module.Answer.UNKNOWN_AUTHORIZATION]
+
+    result = authorizes_module.ask(
+        source,
+        code=args.code,
+        subject_code=args.subject,
+        subject_name=args.subject_name,
+        document=args.document,
+        title=args.title,
+    )
+    print(
+        authorizes_module.render_json(result)
+        if args.json
+        else authorizes_module.render_text(result),
+        end="" if not args.json else "\n",
+    )
+    return result.exit_code
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="chalkline", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -162,11 +198,52 @@ def main(argv: Sequence[str] | None = None) -> int:
     minter = sub.add_parser("mint-ctids", help="assign CTIDs to authorizations lacking one")
     minter.add_argument("--ledger", type=Path, default=None)
 
+    asks = sub.add_parser(
+        "authorizes",
+        help="does one authorization carry one subject, per the published record",
+        description=authorizes_module.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    asks.add_argument("--code", required=True, help="a CTC Authorization Code, e.g. R1S")
+    asks.add_argument(
+        "--document",
+        default=None,
+        help=(
+            "narrow by Document Title code, exactly, e.g. TC1 or TPSL. This is the "
+            "Document Title column, which the table publishes as codes"
+        ),
+    )
+    asks.add_argument(
+        "--title",
+        default=None,
+        help=(
+            "narrow by Authorization Title, e.g. 'Single Subject Teaching Credential'. "
+            "A different column from --document, and matched separately"
+        ),
+    )
+    subject = asks.add_mutually_exclusive_group(required=True)
+    subject.add_argument("--subject", default=None, help="a subject code, e.g. BSS")
+    subject.add_argument(
+        "--subject-name", default=None, help="the subject name as the Commission prints it"
+    )
+    asks.add_argument(
+        "--from-sources",
+        action="store_true",
+        help=(
+            "answer from the vendored Commission table instead of the published graph. "
+            "Only this source records the exclusions and the cross-reference chain."
+        ),
+    )
+    asks.add_argument("--json", action="store_true", help="emit the answer as JSON")
+    asks.add_argument("--graph", type=Path, default=SITE_DIR / "credentials.jsonld")
+
     args = parser.parse_args(argv)
     if args.command == "build":
         return build(args.output_dir)
     if args.command == "check":
         return check(args.output_dir)
+    if args.command == "authorizes":
+        return authorizes(args)
     return mint_ctids(args.ledger)
 
 
