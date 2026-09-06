@@ -6,6 +6,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `tests/test_release_claims.py`, which holds the declared version to the tag that
+  would make it true. `pyproject.toml` declares `0.1.0` and this repository has never
+  been tagged, so `0.1.0` is a number a reader can install nothing with. Being
+  pre-release is not the defect; publishing the number in silence is, and it is a
+  portfolio-wide one: twenty public repositories were measured in that shape on
+  2026-09-06. The test reads `git tag --list` and sorts the declared version into one
+  of two states. With no tags it passes only while the README says so where a reader
+  arrives, in the `**Status:**` line or the `Release & Versioning` row, in a sentence
+  that names the declared version; that naming is what stops the disclosure surviving
+  the version it describes. With tags present and none naming the declared version it
+  fails, reporting both the declared version and the newest tag.
+
+  The failing branch is not reachable from this repository today, so it is driven from
+  synthetic input on every run, alongside a positive control so the rule cannot pass by
+  never passing, and a sabotage of the real README that asserts the substitution landed
+  before reading the result. The tag read is refused outright from a shallow or
+  `--no-tags` checkout, because an empty tag list from a checkout that was never given
+  tags is the vacuous pass the whole file exists to prevent; `ci.yml` checks the test
+  job out with `fetch-depth: 0` for that reason.
+
+  `CITATION.cff` gains the `version` it did not carry, bound to `pyproject.toml` by the
+  same test, and its absent `date-released` is now bound in both directions to a tag
+  naming the declared version rather than resting on a comment.
+
 ### Fixed
 
 - `README.md`, `PROVENANCE.md` and `scripts/fetch_sources.py`'s own docstring each said
