@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify clean
+.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify live-check clean
 
 install:
 	$(UV) sync --locked
@@ -136,6 +136,18 @@ audit:
 # committed tree alone.
 verify: lock-check lint no-dashes typecheck test check validate audit
 	@echo "verify: ok"
+
+# The deployment sentinel, by hand. `verify` grades this checkout; this grades the origin
+# GitHub Pages serves, which means it reaches the network, which is the one thing the merge
+# gate must never do. So it is deliberately not a prerequisite of `verify` and not a required
+# check: a deployment that has not happened yet is not a reason to block a merge.
+# .github/workflows/live-integrity.yml runs the same script daily and on demand.
+#
+# scripts/verify_live_site.py documented this target from the day it landed (cf3c7f5) and
+# nothing defined it, so `make live-check` failed outright and the docstring that is also the
+# script's --help text handed every reader a command that did not exist.
+live-check:
+	$(UVRUN) python scripts/verify_live_site.py
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache coverage.xml .coverage

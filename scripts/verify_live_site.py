@@ -16,6 +16,9 @@ over HTTPS, and fails naming every byte-level difference.
     make live-check                      # rebuild, then compare
     python3 scripts/verify_live_site.py  # the same thing, directly
 
+It reaches the network, so it is not part of `make verify` and is not a required
+check. `.github/workflows/live-integrity.yml` runs it daily and on demand.
+
 Vacuity is the failure mode a check like this is most exposed to, so three
 things are refused outright instead of being reported as a pass:
 
@@ -246,7 +249,13 @@ def refuse_unbounded_options(parser: argparse.ArgumentParser, args: argparse.Nam
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    # RawDescriptionHelpFormatter, because this docstring is the --help text and the
+    # default formatter reflows it: the usage block's two commands and their comments
+    # ran together into one paragraph mid-sentence, which is how `make live-check` was
+    # handed to every reader who asked the script how to run it.
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--url", default=LIVE_URL, help=f"live site root (default {LIVE_URL})")
     parser.add_argument("--timeout-seconds", type=float, default=20.0)
     parser.add_argument(

@@ -84,10 +84,19 @@ followed a 301 to the `/employers/…` URL above; both are recorded in the sidec
 **No bot protection was encountered, and none was circumvented.** Every request returned
 HTTP 200 to a plain unauthenticated GET, including all ten leaflet pages. No page was
 refused, so no hand transcription was necessary and none of this data is hand-transcribed.
-`scripts/fetch_sources.py` is the only code in this repository that opens a socket; it stops
-on an HTTP error rather than retrying behind different headers, and
-`tests/test_provenance.py` asserts that no module under `src/chalkline/` imports a networking
-library at all. Tests and CI are hermetic.
+`scripts/fetch_sources.py` is the only code here that reaches the Commission; it stops on an
+HTTP error rather than retrying behind different headers, and `tests/test_provenance.py`
+asserts that no module under `src/chalkline/` imports a networking library at all.
+
+The tests are hermetic: nothing under `tests/` imports a networking library either. CI is
+not, in two places, both deliberate. `make audit` queries the PyPI advisory API on every
+run of the merge gate. `scripts/verify_live_site.py`, which
+`.github/workflows/live-integrity.yml` runs unattended on a daily cron and on demand,
+fetches this project's own published page over HTTPS and fails naming every byte-level
+difference from what this checkout builds. That sentinel is the only unattended outbound
+request this repository makes. It reads `https://chelseakr.github.io/chalkline/` and
+nothing else, never the Commission, and it is deliberately not a required check, because
+it grades a deployment rather than a commit.
 
 ### The leaflets are web pages
 

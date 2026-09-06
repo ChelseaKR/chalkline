@@ -116,7 +116,7 @@ output verbatim, and `tests/test_ctdl_validate_evidence.py` re-runs it on every 
 fails if the committed file is not what a fresh run reports, including a control test that
 mutates one `ceterms:ctid` into a bare UUID and asserts `ctdl-validate` catches it, so a clean
 report is a statement about this build rather than a stale file nobody re-checks. It makes no
-network calls, so the gate stays offline.
+network calls, so this step of the gate stays offline.
 
 **The modeling is checked against a fetched schema, not against memory.** The full CTDL
 schema encoding is vendored with its retrieval hash, and every emitted document is validated
@@ -192,9 +192,15 @@ uv run chalkline check        # verify committed site/ matches a fresh build
 uv run chalkline mint-ctids   # assign CTIDs to any authorization lacking one
 ```
 
-Nothing above touches the network. `scripts/fetch_sources.py` is the only code in this
-repository that opens a socket, it is run by hand, and a test asserts that no module under
-`src/chalkline/` imports a networking library at all.
+Nothing above touches the network. No module under `src/chalkline/` imports a networking
+library at all, and `tests/test_provenance.py` asserts it. Exactly two scripts open a
+socket, and neither is on the merge path: `scripts/fetch_sources.py`, below, which is run
+by hand; and `scripts/verify_live_site.py`, which
+[`.github/workflows/live-integrity.yml`](.github/workflows/live-integrity.yml) runs
+unattended on a daily cron to compare the page GitHub Pages serves with the one this
+checkout builds. That sentinel reads the network deliberately, which is why it lives in
+its own workflow and is deliberately **not** a required check: it grades a deployment,
+not a commit. `make live-check` runs it by hand.
 
 ```bash
 python scripts/fetch_sources.py                     # the four base artifacts
@@ -209,11 +215,12 @@ deliberately **not** retrieved, because the authorizations they would describe a
 for want of a published scope and no answer could have changed the graph.
 
 ```bash
-make verify   # lockfile check, lint, typecheck, tests with coverage, build check,
-              # CTDL validation, dependency audit
-make validate # the independent CTDL validator alone, over the committed graph
-make audit    # pip-audit alone, against the PyPI advisory API
-make lock     # regenerate uv.lock after changing a dependency; nothing else rewrites it
+make verify     # lockfile check, lint, typecheck, tests with coverage, build check,
+                # CTDL validation, dependency audit
+make validate   # the independent CTDL validator alone, over the committed graph
+make audit      # pip-audit alone, against the PyPI advisory API
+make lock       # regenerate uv.lock after changing a dependency; nothing else rewrites it
+make live-check # the deployment sentinel: is the page Pages serves the one this builds?
 ```
 
 Every target that runs a tool runs it through `uv run --locked`, and `make verify` opens with
