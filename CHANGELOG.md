@@ -8,6 +8,24 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `docs/MODELING.md` published `ceterms:description` on "51 of 133" authorizations and
+  `PROVENANCE.md` published its complement as "82 of 133", where the build emits 53 and
+  133 - 53 is 80. `README.md` published the same figure correctly, because
+  `tests/test_documented_counts.py` binds the README's table row to the coverage statement
+  and nothing bound these two. Both went wrong in `0647243` (2026-08-19), which matched five
+  more leaflets and took the count from 51 to 53; the bound row moved and the unbound ones
+  did not. That is CONTRIBUTING.md rule 5 ("counts are counted") failing in the two
+  documents the README sends a reader to for exactly this material.
+
+  Both numbers are corrected, and both documents are now read by a test. The existing
+  bindings could not reach them: `documented()` reads a `| label | value |` row and these
+  figures sit mid-sentence, and `prose()` deletes every line beginning with `|`, so the two
+  in table cells would have vanished before any scan saw them. `DOCUMENT_CLAIMS` binds each
+  sentence to a coverage-statement figure, deriving the complements rather than retyping
+  them, and a denominator scan fails on any `N of M` in either document that no claim
+  covers. Before this, `git grep -n 'docs/' -- tests` returned nothing at all: no test in
+  the repository read anything under `docs/`.
+
 - The distribution name in `pyproject.toml` was `chalkline`, which is taken on PyPI by an
   unrelated project: `chalkline` 0.1.0, "Universal agent context tracking. Know what codebase
   the agent is working in.", by Andrew Park (<https://github.com/aardpark/trace>). Nothing in
