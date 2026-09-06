@@ -13,6 +13,13 @@ abstract: >-
 authors:
   - family-names: Kelly-Reif
     given-names: Chelsea
+# `version` mirrors the in-development version in pyproject.toml, which is the single
+# source of truth; tests/test_release_claims.py asserts the two agree. `date-released`
+# is deliberately absent: no git tag and no GitHub Release exist for this project, and a
+# citation manager prints that field as the date the software was released. The same test
+# ties its presence to a tag naming the declared version, in both directions, so it comes
+# back when a release is actually cut and not before.
+version: 0.1.0
 license: Apache-2.0
 repository-code: "https://github.com/ChelseaKR/chalkline"
 url: "https://chelseakr.github.io/chalkline/"
