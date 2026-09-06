@@ -158,6 +158,15 @@ def authorizes(args: argparse.Namespace) -> int:
     A source that cannot be read exits 2 with the reason on stderr, never 0 with an empty
     answer: "no rows found" from a file that was never opened is the reading this verb
     exists to keep apart from a real absence.
+
+    A question that cannot be asked exits 2 for the same reason. `ask` refuses an empty
+    ``--code`` rather than searching for it, and that refusal used to leave this function
+    as an uncaught ValueError. Python exits 1 on an uncaught exception, and 1 is
+    ``DOES_NOT_AUTHORIZE``, the one code in :data:`authorizes.EXIT` that means the
+    Commission published a denial. `chalkline authorizes --code "$CODE" --subject BSS`
+    with ``CODE`` unset printed a traceback and exited 1, so a caller testing the exit
+    status read its own empty variable as a denial of the credential. Both refusals now
+    take the same path: the reason on stderr, nothing on stdout, exit 2.
     """
     try:
         source = (
@@ -169,14 +178,19 @@ def authorizes(args: argparse.Namespace) -> int:
         print(f"chalkline authorizes: {exc}", file=sys.stderr)
         return authorizes_module.EXIT[authorizes_module.Answer.UNKNOWN_AUTHORIZATION]
 
-    result = authorizes_module.ask(
-        source,
-        code=args.code,
-        subject_code=args.subject,
-        subject_name=args.subject_name,
-        document=args.document,
-        title=args.title,
-    )
+    try:
+        result = authorizes_module.ask(
+            source,
+            code=args.code,
+            subject_code=args.subject,
+            subject_name=args.subject_name,
+            document=args.document,
+            title=args.title,
+        )
+    except ValueError as exc:
+        print(f"chalkline authorizes: {exc}", file=sys.stderr)
+        return authorizes_module.EXIT[authorizes_module.Answer.UNKNOWN_AUTHORIZATION]
+
     print(
         authorizes_module.render_json(result)
         if args.json
