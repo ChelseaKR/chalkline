@@ -390,3 +390,27 @@ def test_json_output_parses_from_the_command_line(
         == 0
     )
     assert json.loads(capsys.readouterr().out)["answer"] == "authorizes"
+
+
+@pytest.mark.parametrize("code", ["", "   "], ids=["empty", "whitespace"])
+def test_an_unaskable_question_exits_two_and_never_as_a_denial(
+    code: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An empty --code is a question this verb cannot ask, not a denial.
+
+    `ask` refuses it. That refusal used to reach the interpreter as an uncaught
+    ValueError, and Python exits 1 on an uncaught exception. 1 is
+    DOES_NOT_AUTHORIZE. So `chalkline authorizes --code "$CODE" --subject BSS`
+    with CODE unset printed a traceback and exited with the code that means the
+    Commission published a denial of that credential.
+
+    The unreadable-source path next to it has always exited 2 with the reason on
+    stderr, for the same reason: this verb keeps "the record does not answer"
+    apart from "the record says no".
+    """
+    exit_code = main(["authorizes", "--code", code, "--subject", "BSS"])
+    assert exit_code == 2
+    assert exit_code != module.EXIT[Answer.DOES_NOT_AUTHORIZE]
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "needs an authorization code" in captured.err
