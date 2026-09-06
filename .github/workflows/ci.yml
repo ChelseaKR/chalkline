@@ -53,6 +53,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -62,6 +63,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          enable-cache: true
           version: ">=0.11.0"
           python-version: "3.12"
 
@@ -76,6 +78,7 @@ jobs:
 
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -84,12 +87,14 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          enable-cache: true
           version: ">=0.11.0"
           python-version: "3.12"
       - run: make audit
 
   secret-scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       # gitleaks-action lists the pull request's commits to scope its scan; without this it
@@ -106,6 +111,7 @@ jobs:
 
   sast:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -114,6 +120,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          enable-cache: true
           version: ">=0.11.0"
           python-version: "3.12"
       - run: uvx --from semgrep==1.168.0 semgrep scan --error --metrics off --config p/python --config p/security-audit src tests scripts
@@ -125,6 +132,7 @@ jobs:
   # was added, the same discipline `verify` holds the rest of the tree to.
   zizmor:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       security-events: write # zizmor-action uploads its SARIF report to Code Scanning
