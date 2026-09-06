@@ -31,6 +31,7 @@ from chalkline.model import Catalog, build_catalog
 from chalkline.site import render
 from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
+from chalkline.subjects import pages as subject_pages
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SITE_DIR = REPO_ROOT / "site"
@@ -76,6 +77,7 @@ def _artifacts(catalog: Catalog) -> dict[str, str]:
         export_module.GRAPH_FILENAME: export_module.serialize(document),
         export_module.COVERAGE_FILENAME: export_module.serialize(statement),
         PAGE_FILENAME: render(catalog, ctids, attachments),
+        **subject_pages(catalog),
     }
 
 
@@ -84,7 +86,12 @@ def build(output_dir: Path) -> int:
     artifacts = _artifacts(catalog)
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, text in artifacts.items():
-        (output_dir / name).write_text(text, encoding="utf-8")
+        # An artifact name may carry a directory, as the subject pages do. Making the
+        # parent here rather than only at the top keeps the writer indifferent to how deep
+        # the published tree goes; `check` already enumerates it with rglob.
+        path = output_dir / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
     licenses = len(catalog.authorizations)
     print(
         f"wrote {len(artifacts)} files to {output_dir}: "

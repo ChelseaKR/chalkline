@@ -45,6 +45,7 @@ from typing import Final
 import pytest
 
 from chalkline import ctid as ctid_module
+from chalkline import subjects as subjects_module
 from chalkline.attachment import Attachment
 from chalkline.model import Catalog
 from chalkline.site import SITE_URL, STYLE, render
@@ -382,4 +383,174 @@ def test_the_documented_weight_is_the_weight_the_page_spends(
     assert _figure(_DOCUMENTED_SPEND, text) == (overhead, per_authorization), (
         "README.md says the page spends something other than what it spends. The measured "
         f"figures are {overhead:,} and {per_authorization:,}."
+    )
+
+
+# --- the subject pages, which are their own page class --------------------------------------
+
+SUBJECT_OVERHEAD_BUDGET: Final = 7_500
+"""Bytes a page under ``site/subjects/`` may spend on everything that is not a listed row.
+
+The stylesheet, the head, the disclaimer, the intro prose, the navigation and the footer.
+The heaviest is 5,352 today, so this is 1.40x headroom. It is the same number for all three
+kinds of page under that directory, because they share the shell that accounts for most of
+it.
+"""
+
+SUBJECT_PER_AUTHORIZATION_BUDGET: Final = 900
+"""Bytes a subject page may spend per authorization it lists. The heaviest is 742, which is
+1.21x headroom: enough for another sentence of provenance per authorization and not enough
+to absorb a doubling."""
+
+SUBJECT_ROW_BUDGET: Final = 140
+"""Bytes a table row may cost on the subject index and the not-subject-coded page. The
+heaviest is 108."""
+
+
+def _spent(page: str, pattern: str) -> tuple[int, int, int]:
+    """(total bytes, bytes in the repeating unit, count of units)."""
+    units = re.findall(pattern, page, re.DOTALL)
+    return len(page.encode("utf-8")), sum(len(u.encode("utf-8")) for u in units), len(units)
+
+
+@pytest.fixture(scope="module")
+def subject_pages(real_catalog: Catalog) -> dict[str, str]:
+    return subjects_module.pages(real_catalog)
+
+
+def test_the_subject_pages_fetch_nothing_to_render(subject_pages: dict[str, str]) -> None:
+    """One file each, on the same inline stylesheet. Same rule as the main page.
+
+    A second page class is the easiest way to publish a stylesheet link that the gate on
+    the first page class would have refused.
+    """
+    assert len(subject_pages) > 100, "the subject pages did not render, so this checks nothing"
+    for name, page in subject_pages.items():
+        found, elements = references(page)
+        assert elements > 10, f"{name}: the scan walked {elements} elements"
+        fetches = [f"<{r.tag}> fetches {r.target!r}" for r in found if r.subresource]
+        assert fetches == [], f"{name} is not self-contained: {fetches}"
+
+
+def test_every_subject_page_stays_within_its_weight_budget(
+    subject_pages: dict[str, str], real_catalog: Catalog
+) -> None:
+    """Held against the heaviest page, not the mean.
+
+    Averaged over 323 pages, one page that had grown by ten kilobytes would move the figure
+    by thirty bytes and pass. The budget is about markup per unit, and the unit is a page.
+    """
+    reaches = {
+        subject.code: len(subject.reaches) for subject in subjects_module.group(real_catalog)
+    }
+    checked = 0
+    for name, page in subject_pages.items():
+        if name in (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME):
+            continue
+        code = name.split("/")[1].removesuffix(".html")
+        total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+        assert blocks == reaches[code], (
+            f"{name} renders {blocks} blocks for {reaches[code]} authorizations, so the "
+            "split this budget assumes is not the page's shape"
+        )
+        overhead = total - in_blocks
+        assert overhead <= SUBJECT_OVERHEAD_BUDGET, (
+            f"{name} spends {overhead:,} bytes outside its listed authorizations, over "
+            f"the {SUBJECT_OVERHEAD_BUDGET:,} budget"
+        )
+        assert in_blocks / blocks <= SUBJECT_PER_AUTHORIZATION_BUDGET, (
+            f"{name} spends {in_blocks / blocks:,.0f} bytes per authorization it lists, "
+            f"over the {SUBJECT_PER_AUTHORIZATION_BUDGET:,} budget"
+        )
+        checked += 1
+    assert checked == len(reaches), "a subject page went unmeasured"
+
+
+@pytest.mark.parametrize(
+    "name", [subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME]
+)
+def test_the_two_table_pages_stay_within_their_row_budget(
+    subject_pages: dict[str, str], name: str
+) -> None:
+    page = subject_pages[name]
+    total, in_rows, rows = _spent(page, r"<tr>.*?</tr>")
+    assert rows > 1, f"{name} renders no data rows"
+    body = rows - 1  # the header row is overhead, not a row of data
+    overhead = total - in_rows
+    assert overhead <= SUBJECT_OVERHEAD_BUDGET, (
+        f"{name} spends {overhead:,} bytes outside its rows, over {SUBJECT_OVERHEAD_BUDGET:,}"
+    )
+    assert in_rows / rows <= SUBJECT_ROW_BUDGET, (
+        f"{name} spends {in_rows / rows:,.0f} bytes per row across {body} rows, over "
+        f"the {SUBJECT_ROW_BUDGET:,} budget"
+    )
+
+
+def test_a_heavier_subject_page_is_caught(subject_pages: dict[str, str]) -> None:
+    """The control, in both directions, as the main page's budget has.
+
+    Growth in the markup per authorization must fail; the Commission aligning more
+    authorizations to one subject at today's weight each must not, or the budget becomes a
+    cap on how much of the table this project may publish.
+    """
+    fixed = (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME)
+    name, page = max(
+        ((n, p) for n, p in subject_pages.items() if n not in fixed),
+        key=lambda pair: len(pair[1]),
+    )
+    _total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+    assert blocks > 1, f"{name} lists one authorization, so doubling it proves less"
+    assert in_blocks * 2 / blocks > SUBJECT_PER_AUTHORIZATION_BUDGET, (
+        "doubling the markup per listed authorization would pass"
+    )
+    assert in_blocks * 2 / (blocks * 2) <= SUBJECT_PER_AUTHORIZATION_BUDGET, (
+        "twice as many authorizations at today's weight each would fail, which would make "
+        "this a cap on the Commission's table rather than on this project's markup"
+    )
+
+
+def test_the_committed_subject_pages_are_the_pages_this_budget_measured(
+    subject_pages: dict[str, str],
+) -> None:
+    """The budget is about the files that are served, so it is checked against them too."""
+    for name in subject_pages:
+        committed = SITE / name
+        assert committed.is_file(), f"{name} is not committed under site/"
+        assert len(committed.read_bytes()) <= (
+            SUBJECT_OVERHEAD_BUDGET
+            + SUBJECT_PER_AUTHORIZATION_BUDGET * len(re.findall(r"<h3>", subject_pages[name]))
+            + SUBJECT_ROW_BUDGET * len(re.findall(r"<tr>", subject_pages[name]))
+        ), f"{name} is over its budget as committed"
+
+
+_DOCUMENTED_SUBJECT_BUDGET = re.compile(
+    r"a subject page's budget is ([\d,]+) bytes of fixed overhead plus ([\d,]+) per "
+    r"authorization it lists, and the two table pages get ([\d,]+) plus ([\d,]+) per row"
+)
+_DOCUMENTED_SUBJECT_SPEND = re.compile(
+    r"Today the heaviest subject page spends ([\d,]+) and ([\d,]+)"
+)
+
+
+def test_the_documented_subject_budget_is_the_one_held(subject_pages: dict[str, str]) -> None:
+    """The README's subject-page figures, bound the same way the main page's are."""
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert _figure(_DOCUMENTED_SUBJECT_BUDGET, text) == (
+        SUBJECT_OVERHEAD_BUDGET,
+        SUBJECT_PER_AUTHORIZATION_BUDGET,
+        SUBJECT_OVERHEAD_BUDGET,
+        SUBJECT_ROW_BUDGET,
+    ), "README.md publishes a subject-page budget this module does not hold the pages to"
+
+    worst_overhead = 0
+    worst_per = 0
+    for name, page in subject_pages.items():
+        if name in (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME):
+            continue
+        total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+        worst_overhead = max(worst_overhead, total - in_blocks)
+        worst_per = max(worst_per, round(in_blocks / blocks))
+    assert _figure(_DOCUMENTED_SUBJECT_SPEND, text) == (worst_overhead, worst_per), (
+        "README.md says the heaviest subject page spends something other than what it "
+        f"spends. The measured figures are {worst_overhead:,} and {worst_per:,}."
     )

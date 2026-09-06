@@ -521,6 +521,10 @@ def coverage(
         "license_properties": {
             term: sum(1 for e in licenses if term in e) for term in LICENSE_PROPERTIES
         },
+        # Counted from the same catalog the subject pages are rendered from, so the
+        # statement and the pages cannot disagree. `coverage_problems` recomputes every
+        # key here before anything is written.
+        "subjects": _subject_census(catalog),
         "leaflets": leaflet_counts,
         "excluded_by_reason": dict(sorted(reasons.items())),
         "not_modeled": {
@@ -548,6 +552,19 @@ def coverage(
             ),
         },
     }
+
+
+def _subject_census(catalog: Catalog) -> dict[str, int]:
+    """The subject pages' own counted statement, imported where it is used.
+
+    ``chalkline.subjects`` renders those pages, so it reaches for the disclaimer and the
+    stylesheet this module and ``chalkline.site`` define. Importing it at the top of this
+    file would close that loop. The census is pure catalog arithmetic and the pages are
+    rendered from the same function, so the statement and the pages cannot disagree.
+    """
+    from chalkline import subjects as subjects_module
+
+    return subjects_module.census(catalog)
 
 
 def census_problems(document: Mapping[str, Any]) -> list[str]:
