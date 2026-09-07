@@ -16,6 +16,7 @@ import html
 from collections.abc import Mapping
 from typing import Final
 
+from chalkline import links as links_module
 from chalkline.attachment import Attachment
 from chalkline.ctdl.export import DISCLAIMER_BODY, DISCLAIMER_LEAD, description_of
 from chalkline.model import Authorization, Catalog
@@ -305,6 +306,7 @@ def render(
     catalog: Catalog,
     ctids: Mapping[str, str],
     attachments: Mapping[str, Attachment],
+    link_note: str = links_module.NOT_CHECKED_NOTE,
 ) -> str:
     """The whole page, as one HTML document."""
     blocks: list[str] = []
@@ -359,6 +361,7 @@ page states the code and title the index gave it. The machine-readable output is
 <p>Where a credential below says it has no description, no requirements, or no subject
 codes, that is the state of the published source and not an omission being smoothed over.
 Nothing on this page is composed by this project.</p>
+<p class="from">Links to the Commission. {_e(link_note)}</p>
 {_counts_block(catalog, tallies)}
 <h2>Modeled credentials</h2>
 {"".join(blocks)}

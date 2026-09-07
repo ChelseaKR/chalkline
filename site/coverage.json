@@ -104,6 +104,12 @@
       "TPSL Authorizations": 2
     }
   },
+  "link_verdicts": {
+    "state": "not_checked",
+    "note": "No link check has been run. Every Commission URL below is published as filed, and none of them has been requested by this project. That is not the same statement as every link working.",
+    "references_published": 1205,
+    "urls_published": 14
+  },
   "excluded_by_reason": {
     "the sort table publishes no subject code, no subject, and no note describing the scope for this authorization": 1,
     "the sort table states that the subjects are indicated on the issued document, so the scope is not published in any machine-readable source this project reads": 2
