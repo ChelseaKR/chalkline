@@ -40,6 +40,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
 from chalkline import ctid as ctid_module
+from chalkline import links as links_module
 from chalkline.attachment import Attachment
 from chalkline.model import Authorization, Catalog
 from chalkline.sources import leaflets as leaflets_module
@@ -463,6 +464,7 @@ def coverage(
     attachments: Mapping[str, Attachment],
     index: leaflets_module.Index,
     vendored_pages: Sequence[str],
+    link_verdicts: links_module.Verdicts | None = None,
 ) -> dict[str, Any]:
     """The coverage statement published beside the export, counted from the export itself.
 
@@ -522,6 +524,11 @@ def coverage(
             term: sum(1 for e in licenses if term in e) for term in LICENSE_PROPERTIES
         },
         "leaflets": leaflet_counts,
+        # What one link-check run observed about the Commission URLs above, or, when
+        # no run has been recorded, that none has. The block is always present: a
+        # missing key would make "not checked" indistinguishable from "this build
+        # predates the check", and both of those read as "fine" to anyone skimming.
+        "link_verdicts": links_module.summary(document, link_verdicts),
         "excluded_by_reason": dict(sorted(reasons.items())),
         "not_modeled": {
             "ceterms:occupationType": (
@@ -579,6 +586,7 @@ def coverage_problems(
     attachments: Mapping[str, Attachment],
     index: leaflets_module.Index,
     vendored_pages: Sequence[str],
+    link_verdicts: links_module.Verdicts | None = None,
 ) -> list[str]:
     """Every way a coverage statement fails to describe the export beside it.
 
@@ -589,7 +597,7 @@ def coverage_problems(
     freshly counted one, which catches a stale committed statement but is a tautology when
     the caller has just produced the statement from these same inputs.
     """
-    expected = coverage(document, catalog, attachments, index, vendored_pages)
+    expected = coverage(document, catalog, attachments, index, vendored_pages, link_verdicts)
     return census_problems(document) + [
         f"{key}: says {statement.get(key)!r}, the export gives {expected[key]!r}"
         for key in expected
@@ -604,9 +612,12 @@ def check_coverage(
     attachments: Mapping[str, Attachment],
     index: leaflets_module.Index,
     vendored_pages: Sequence[str],
+    link_verdicts: links_module.Verdicts | None = None,
 ) -> None:
     """Refuse to publish a coverage statement the export contradicts."""
-    problems = coverage_problems(statement, document, catalog, attachments, index, vendored_pages)
+    problems = coverage_problems(
+        statement, document, catalog, attachments, index, vendored_pages, link_verdicts
+    )
     if problems:
         raise ValueError(
             "coverage statement does not describe the export beside it: " + "; ".join(problems)
