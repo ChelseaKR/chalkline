@@ -386,8 +386,12 @@ a reviewable line.
 
 SCANNED_DIRECTORIES: Final = ("src", "tests", "scripts")
 
-OPENS_A_SOCKET: Final = ("scripts/fetch_sources.py", "scripts/verify_live_site.py")
-"""Every file in this repository that opens a socket, which is the pair the documents name."""
+OPENS_A_SOCKET: Final = (
+    "scripts/check_links.py",
+    "scripts/fetch_sources.py",
+    "scripts/verify_live_site.py",
+)
+"""Every file in this repository that opens a socket, which is the set the documents name."""
 
 
 def connection_imports(source: str) -> list[str]:

@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify live-check clean
+.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify live-check check-links clean
 
 install:
 	$(UV) sync --locked
@@ -148,6 +148,20 @@ verify: lock-check lint no-dashes typecheck test check validate audit
 # script's --help text handed every reader a command that did not exist.
 live-check:
 	$(UVRUN) python scripts/verify_live_site.py
+
+# The quarterly link check, by hand. Like `live-check` it reaches the network, and unlike
+# `live-check` it reaches a third party's site, so it is not a prerequisite of anything and
+# has no workflow behind it: deciding to issue a dozen requests to a state agency is a
+# person's decision on a person's schedule. Nothing it writes changes a URL the graph
+# publishes; `chalkline build` reads the result and annotates.
+#
+# There is deliberately no `chalkline check-links` verb. The CLI is in src/chalkline/, and
+# tests/test_provenance.py fails any module there that imports a networking library --
+# including subprocess, on the reasoning that shelling out reaches the network by asking
+# another program to. A verb would have to break that scan, and the scan is what makes the
+# README's network-posture claim checkable.
+check-links:
+	$(UVRUN) python scripts/check_links.py $(ARGS)
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache coverage.xml .coverage

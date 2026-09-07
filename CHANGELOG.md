@@ -49,6 +49,29 @@ All notable changes to this project are documented here. The format follows
   `tests/test_performance.py` gives the pages their own weight formula, held against the
   heaviest page rather than the mean, because averaged over 323 pages one page that grew by
   ten kilobytes would move the figure by thirty bytes.
+- **`make check-links`, and the difference between "checked and fine" and "never
+  checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
+  URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct
+  URL once, by hand, and records `alive`, `redirected on-site`, `redirected off-site`,
+  `unreachable` or `indeterminate` into `data/link-verdicts.json`. There is no verdict
+  file in this repository yet, and with none the page and `coverage.json` say every URL
+  is published as filed and that none has been requested. They never say "0
+  unreachable", because that would be a different statement and not a true one.
+- **A verdict annotates and never rewrites.** `credentials.jsonld` is byte-identical
+  with and without a verdict file, and a test asserts it: the address the Commission
+  publishes stays the address this project publishes, so a redirect is recorded beside
+  the URL rather than followed into the graph.
+- **Every sentence is about one run.** "This run could not reach it" is supportable from
+  one request; "the Commission's page is gone" is not, and `indeterminate` exists so a
+  response this project could not interpret is filed as uninterpreted. A wording test
+  refuses the second kind of sentence.
+- **A third file that opens a socket, named in both documents that describe the network
+  posture.** `tests/test_provenance.py` holds `OPENS_A_SOCKET` to exactly the set
+  README.md and PROVENANCE.md name, so the checker could not be added without both
+  documents being updated with it. There is deliberately no `chalkline check-links`
+  verb: the package scan fails any module under `src/chalkline/` that imports a
+  networking library, `subprocess` included, so a verb would have had to break the scan
+  that makes the README's claim checkable.
 
 - **`chalkline authorizes --code R1E --document TC1 --subject BSS`.** The 1,014 subject
   alignments exist to answer one question, and answering it meant reading a 553-row table

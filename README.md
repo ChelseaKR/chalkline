@@ -267,14 +267,31 @@ indistinguishable from one that was never published. When the graph answers
 `unknown_authorization` it names `--from-sources` as the way to tell those apart.
 
 Nothing above touches the network. No module under `src/chalkline/` imports a networking
-library at all, and `tests/test_provenance.py` asserts it. Exactly two scripts open a
-socket, and neither is on the merge path: `scripts/fetch_sources.py`, below, which is run
-by hand; and `scripts/verify_live_site.py`, which
+library at all, and `tests/test_provenance.py` asserts it. Exactly three scripts open a
+socket, and none of them is on the merge path: `scripts/fetch_sources.py`, below, which is
+run by hand; `scripts/verify_live_site.py`, which
 [`.github/workflows/live-integrity.yml`](.github/workflows/live-integrity.yml) runs
 unattended on a daily cron to compare the page GitHub Pages serves with the one this
-checkout builds. That sentinel reads the network deliberately, which is why it lives in
-its own workflow and is deliberately **not** a required check: it grades a deployment,
-not a commit. `make live-check` runs it by hand.
+checkout builds; and `scripts/check_links.py`, which is run by hand and records what one
+run observed about each distinct Commission URL the graph publishes. That sentinel reads
+the network deliberately, which is why it lives in its own workflow and is deliberately
+**not** a required check: it grades a deployment, not a commit. `make live-check` runs it
+by hand.
+
+```bash
+make check-links              # request each Commission URL with no recent verdict
+make check-links ARGS=--all   # re-check every one, ignoring the expiry
+```
+
+A link verdict is an observation about one run, from one machine, at one time. `unreachable`
+means that run could not reach the URL; it is never a claim that the Commission's page is
+gone, and `indeterminate` exists so a response this project could not interpret is filed as
+uninterpreted rather than as somebody's failure. A redirect is annotated and never followed
+into the graph: the address the Commission publishes stays the address this project
+publishes, and `credentials.jsonld` is byte-identical with and without a verdict file. With
+no `data/link-verdicts.json` at all, the page and `coverage.json` say every URL is published
+as filed and that none has been checked, which is not the same statement as every link
+working.
 
 ```bash
 python scripts/fetch_sources.py                     # the four base artifacts
@@ -326,7 +343,7 @@ result says so instead of being left out.
 | CI/CD | Applies | `.github/workflows/ci.yml` runs `make verify` byte for byte with the local target, plus separate audit, secret-scan, and SAST jobs; `pages.yml` republishes only when the committed `site/` still matches what the code produces. Every workflow declares a top-level least-privilege `permissions:` block. |
 | Release & Versioning | Applies: no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. None of that is transcribed: `tests/test_release_claims.py` reads `git tag --list` and fails if the declared version is neither tagged nor disclosed here as untagged, if any other file restates a different version, or if `date-released` appears without a tag. |
 | Observability | Applies: the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml`, and `tests/test_performance.py`, which is what makes "no analytics on the published page" a checkable statement rather than an intention: the page loads no third-party resource at all. |
-| Performance | Applies. The published output is static files served from GitHub Pages, with no client-side data fetch and no runtime, and `tests/test_performance.py` now holds them to both halves of that. Self-containment is asserted: no script, stylesheet, font, image or frame is fetched to render, and the inline stylesheet makes no `@import` or `url()` call. The weight budget is a formula, 12,000 bytes of fixed overhead plus 2,200 per modeled authorization, so markup growth fails the gate and the Commission publishing more credentials does not. Today the page spends 8,825 and 1,868, and `test_the_documented_weight_is_the_weight_the_page_spends` binds both figures and both budgets to the rendered page so neither can drift. The subject pages carry the same formula in their own shape: a subject page's budget is 7,500 bytes of fixed overhead plus 900 per authorization it lists, and the two table pages get 7,500 plus 140 per row. Both are held against the heaviest page rather than the average, so one long page cannot hide behind 322 short ones. Today the heaviest subject page spends 5,352 and 742. **Deliberately not budgeted:** `credentials.jsonld` and `coverage.json` are downloads a reader chooses, not page-load cost, and capping them would cap how much of the Commission's table this project may model. | `tests/test_performance.py`, [`site/`](site/) |
+| Performance | Applies. The published output is static files served from GitHub Pages, with no client-side data fetch and no runtime, and `tests/test_performance.py` now holds them to both halves of that. Self-containment is asserted: no script, stylesheet, font, image or frame is fetched to render, and the inline stylesheet makes no `@import` or `url()` call. The weight budget is a formula, 12,000 bytes of fixed overhead plus 2,200 per modeled authorization, so markup growth fails the gate and the Commission publishing more credentials does not. Today the page spends 9,055 and 1,868, and `test_the_documented_weight_is_the_weight_the_page_spends` binds both figures and both budgets to the rendered page so neither can drift. The subject pages carry the same formula in their own shape: a subject page's budget is 7,500 bytes of fixed overhead plus 900 per authorization it lists, and the two table pages get 7,500 plus 140 per row. Both are held against the heaviest page rather than the average, so one long page cannot hide behind 322 short ones. Today the heaviest subject page spends 5,352 and 742. **Deliberately not budgeted:** `credentials.jsonld` and `coverage.json` are downloads a reader chooses, not page-load cost, and capping them would cap how much of the Commission's table this project may model. | `tests/test_performance.py`, [`site/`](site/) |
 | Accessibility | Applies. The published page is human-facing, so it is in scope. The generated page was reviewed on 2026-08-27 and three defects were found and fixed: table header cells carrying no `scope`, two lists whose CSS-removed markers took their list semantics with them in Safari, and a horizontally scrolling region a keyboard could not reach. `tests/test_accessibility.py` is now the gate, and `make verify` runs it. Every subject page is held to the same nine conditions, and to a breakage control on each, so a new page class cannot arrive outside the gate. **What it does not cover:** it is a check against a named list of nine conditions, not an audit. No assistive technology is driven, no browser lays the page out, and reading order and comprehension are not assessed, so this row is a floor rather than a clean bill. | `tests/test_accessibility.py`. Every one of the nine checks is exercised against a deliberately broken copy of the real page, and a check with no such breakage fails the suite. |
 | Internationalization | Applies: English only today. The source material is the Commission's English-language publications and credential names are quoted verbatim rather than translated. The scope declaration is now written: [docs/I18N.md](docs/I18N.md) splits the page's strings into this project's own words, which a catalog may touch, the Commission's words, which no edition translates because a translated credential name is one no reader could look up and one the leaflet-matching equalities would no longer find, and this project's own words that travel in the artifacts as data, which is the part a catalog has to solve before it can be built. **Still not built:** no catalog and no EN/ES parity check. | [docs/I18N.md](docs/I18N.md). The catalog and the parity gate are tracked in issue #63; a Spanish edition is blocked on a reviewed translation, not on code. |
 | AI Evaluation | N/A: deterministic parsing and CTDL modelling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
