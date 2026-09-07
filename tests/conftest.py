@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from chalkline import cli
 from chalkline.attachment import Attachment, attach
 from chalkline.model import Catalog, build_catalog
 from chalkline.sources import leaflet_pages, leaflets, sort_table
@@ -79,3 +80,17 @@ def real_attachments(
 ) -> dict[str, Attachment]:
     """Every leaflet this project attaches to the vendored catalog, read once."""
     return attach(real_catalog, leaflet_index, published=real_leaflets)
+
+
+@pytest.fixture(scope="session")
+def built_artifacts(real_catalog: Catalog) -> dict[str, str]:
+    """Exactly what ``chalkline build`` writes, built once for the whole session.
+
+    Tests that inspect the published page must inspect *the* published page. Rendering it
+    from ``site.render`` with the arguments a test happens to have gives a page that is
+    nearly it, and the difference is silent: the dataset descriptor is supplied by
+    ``cli._artifacts``, so a page rendered without it would be measured by the weight budget
+    and walked by the accessibility gate while the file actually served carried 6 KB the
+    gates never saw.
+    """
+    return cli._artifacts(real_catalog)

@@ -44,10 +44,8 @@ from typing import Final
 
 import pytest
 
-from chalkline import ctid as ctid_module
-from chalkline.attachment import Attachment
 from chalkline.model import Catalog
-from chalkline.site import SITE_URL, STYLE, render
+from chalkline.site import SITE_URL, STYLE
 
 SITE = Path(__file__).resolve().parents[1] / "site"
 
@@ -65,9 +63,30 @@ SUBRESOURCE_TAGS: Final = {
     "input": "src",
 }
 """Every element that makes the browser fetch something while rendering the page, and the
-attribute that names what. ``script`` is listed without qualification: an inline
-``<script>`` fetches nothing but still means the page runs code, and the page's claim is
-that it does not. ``link`` is qualified by :data:`METADATA_LINK_RELS` and by nothing else."""
+attribute that names what. Two elements are qualified and the rest are refused outright:
+``link`` by :data:`METADATA_LINK_RELS`, and ``script`` by :data:`DATA_BLOCK_SCRIPT_TYPES`."""
+
+DATA_BLOCK_SCRIPT_TYPES: Final = frozenset({"application/ld+json"})
+"""The only ``type`` values a ``<script>`` on this page may carry.
+
+Deny by default, with one name on the list, exactly as :data:`METADATA_LINK_RELS` works.
+
+``script`` used to be refused without qualification, on the reasoning that an inline
+``<script>`` fetches nothing but still means the page runs code. That reasoning is right
+about JavaScript and wrong about one case: HTML defines a ``script`` element whose ``type``
+is not a JavaScript MIME type as a **data block**, which the parser hands to the document as
+inert text and never evaluates. ``application/ld+json`` is that case, and it is how a page
+carries structured data for a harvester that will not execute anything.
+
+So the exemption is by ``type``, and it is narrow in three ways that matter. A ``<script>``
+with **no** ``type`` is JavaScript by default and is refused. A ``<script>`` with a
+``src`` is refused whatever its ``type``, because a data block that arrives over the network
+is still a fetch and self-containment is the other half of this gate. And a ``type`` this
+list does not name is refused rather than guessed at: ``module``, ``text/javascript`` and an
+empty string all run code.
+
+Adding a second name here is a decision that a second type is inert, and it belongs in a
+diff with the reasoning next to it rather than in a wildcard."""
 
 METADATA_LINK_RELS: Final = frozenset({"canonical"})
 """The only ``rel`` values a ``<link>`` on this page may carry.
@@ -84,13 +103,38 @@ list and must not be added without qualification: ``rel="alternate stylesheet"``
 stylesheet.
 """
 
-FIXED_OVERHEAD_BUDGET: Final = 12_000
+FIXED_OVERHEAD_BUDGET: Final = 20_000
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
-head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 8,690
-today, so this is 1.38x headroom. The stylesheet is 2,797 of it, the head metadata added with
+head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 14,762
+today, so this is 1.35x headroom. The stylesheet is 2,797 of it, the head metadata added with
 the canonical link is 890, the share-card tags (`og:image` and its type, dimensions and alt
-text, plus `twitter:image`) are 588, and the accessibility fixes (`scope`, `role`,
-`tabindex`, the region label and its focus ring) are 206."""
+text, plus `twitter:image`) are 588, the accessibility fixes (`scope`, `role`, `tabindex`,
+the region label and its focus ring) are 206, and the embedded dataset descriptor is 6,072.
+
+**Raised from 12,000 for that descriptor, on purpose, and this is the reasoning.** The
+budget's whole argument is that a flat cap "eventually gets raised to whatever the page
+happens to weigh, which is a budget in name only", so a raise has to answer why this is not
+that.
+
+*What was added.* One `<script type="application/ld+json">` carrying `site/dataset.jsonld`
+verbatim: a schema.org `Dataset` and DCAT `dcat:Dataset` on one node, with a
+`schema:DataDownload`/`dcat:Distribution` for each of the three published artifacts, each
+with its byte size and sha256. 6,072 bytes measured, which is 2.3% of the 263,272-byte page
+and would not move a page-load budget; it is fixed overhead by definition, because it does
+not grow when the Commission publishes more rows.
+
+*Why it is worth the bytes.* The artifacts were findable only by reading the README. Dataset
+search engines and open-data catalogs harvest schema.org from a page's head, and a
+descriptor written to a file that nothing links from the page is a descriptor those
+harvesters never see. The alternative, embedding a schema.org summary and keeping the DCAT
+and the checksums in the file, is two descriptions of one dataset that can disagree, with
+nothing to say which one a harvester believed.
+
+*Why the multiplier, not the number, is what was preserved.* 1.38x headroom was the
+discipline the original budget chose; 20,000 against 14,762 is 1.35x, which is the same
+discipline against a page that deliberately carries one more thing. A raise to 15,000 would
+have left 1.02x and made the next honest addition fail for no reason; a raise to whatever
+the page now weighs would have been the failure this docstring warns about."""
 
 PER_AUTHORIZATION_BUDGET: Final = 2_200
 """Bytes the page may spend per modeled authorization. The mean is 1,868 today and the
@@ -117,6 +161,18 @@ class Reference:
     """The ``rel`` of a ``<link>``, as the page writes it. Empty for every other element."""
 
 
+def _script_is_a_data_block(values: dict[str, str]) -> bool:
+    """Whether this ``<script>`` fetches nothing and runs nothing.
+
+    Both halves are required. ``src`` is checked first because a data block served from
+    somewhere else is still a subresource, and a ``type`` this project has not cleared is
+    treated as code, which is what the HTML default already makes it.
+    """
+    if values.get("src"):
+        return False
+    return values.get("type", "").strip().lower() in DATA_BLOCK_SCRIPT_TYPES
+
+
 def _link_is_metadata(rel: str) -> bool:
     """Whether a ``<link>`` carrying this ``rel`` leaves the browser nothing to fetch.
 
@@ -139,7 +195,10 @@ class _References(HTMLParser):
         values = {name: value or "" for name, value in attrs}
         if tag in SUBRESOURCE_TAGS:
             rel = values.get("rel", "") if tag == "link" else ""
-            fetches = not (tag == "link" and _link_is_metadata(rel))
+            fetches = not (
+                (tag == "link" and _link_is_metadata(rel))
+                or (tag == "script" and _script_is_a_data_block(values))
+            )
             self.found.append(Reference(tag, values.get(SUBRESOURCE_TAGS[tag], ""), fetches, rel))
         elif "href" in values:
             self.found.append(Reference(tag, values["href"], False))
@@ -169,9 +228,13 @@ def references(page: str) -> tuple[list[Reference], int]:
 
 
 @pytest.fixture(scope="module")
-def page(real_catalog: Catalog, real_attachments: dict[str, Attachment]) -> str:
-    """The page as `chalkline build` writes it, from the vendored sources."""
-    return render(real_catalog, ctid_module.load_ledger(), real_attachments)
+def page(built_artifacts: dict[str, str]) -> str:
+    """The page as `chalkline build` writes it, from the vendored sources.
+
+    Taken from the build rather than re-rendered, so the dataset descriptor the build embeds
+    is inside the page this budget measures and this gate walks.
+    """
+    return built_artifacts["index.html"]
 
 
 def test_the_page_fetches_nothing_and_runs_nothing_to_render(page: str) -> None:
@@ -382,4 +445,62 @@ def test_the_documented_weight_is_the_weight_the_page_spends(
     assert _figure(_DOCUMENTED_SPEND, text) == (overhead, per_authorization), (
         "README.md says the page spends something other than what it spends. The measured "
         f"figures are {overhead:,} and {per_authorization:,}."
+    )
+
+
+# --- the <script> exemption is narrow, and these are the shapes it must still refuse ---
+
+
+@pytest.mark.parametrize(
+    ("markup", "why"),
+    [
+        ("<script>alert(1)</script>", "no type at all is JavaScript by HTML's own default"),
+        ('<script type="">x</script>', "an empty type is JavaScript by the same default"),
+        ('<script type="text/javascript">x</script>', "an explicit JavaScript type"),
+        ('<script type="module">x</script>', "a module is code"),
+        ('<script src="/a.js"></script>', "a src is a fetch whatever the type"),
+        (
+            '<script type="application/ld+json" src="/d.jsonld"></script>',
+            "a data block served from elsewhere is still a subresource",
+        ),
+        ('<script type="APPLICATION/JAVASCRIPT">x</script>', "case does not launder a type"),
+        (
+            '<script type="application/ld+json; charset=utf-8">{}</script>',
+            "a parameterised type is not the cleared one",
+        ),
+    ],
+)
+def test_the_script_exemption_refuses_everything_but_an_inline_data_block(
+    markup: str, why: str
+) -> None:
+    """Widening a deny-by-default gate is only safe if the denial still works.
+
+    ``script`` was refused outright until the dataset descriptor needed an inline
+    ``application/ld+json`` data block, which HTML never evaluates. Each row here is a shape
+    the widened gate must still catch, asserted directly rather than inferred from the real
+    page carrying none of them.
+    """
+    found, _ = references(f"<html><head>{markup}</head><body><p>x</p></body></html>")
+    scripts = [reference for reference in found if reference.tag == "script"]
+    assert [reference.subresource for reference in scripts] == [True], why
+
+
+def test_an_inline_ld_json_data_block_is_the_one_shape_admitted() -> None:
+    found, _ = references(
+        '<html><head><script type="application/ld+json">{"a":1}</script></head>'
+        "<body><p>x</p></body></html>"
+    )
+    scripts = [reference for reference in found if reference.tag == "script"]
+    assert [reference.subresource for reference in scripts] == [False]
+
+
+def test_the_only_script_on_the_page_is_the_dataset_descriptor(page: str) -> None:
+    """The exemption is asserted against the real page, not left to the pass above.
+
+    Without this, a page that had lost its descriptor and a page that had gained a
+    ``<script>`` the scanner mis-read would both read as self-contained.
+    """
+    scripts = re.findall(r"<script\b[^>]*>", page)
+    assert scripts == ['<script type="application/ld+json">'], (
+        f"the page's <script> elements are not the one data block this gate allows: {scripts}"
     )
