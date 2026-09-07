@@ -100,15 +100,15 @@
       },
       "schema:encodingFormat": "application/json",
       "dcat:mediaType": "application/json",
-      "schema:contentSize": "6688",
-      "dcat:byteSize": 6688,
-      "schema:sha256": "112fb3e058fa93275ee1a455f4669e7767c9b28977ea0e8d53d00a7807cf8f67",
+      "schema:contentSize": "7001",
+      "dcat:byteSize": 7001,
+      "schema:sha256": "534a792c6ef4351eb922825bcf01011099a9cfbdb4cc04213b4b14a6e9f423ab",
       "spdx:checksum": {
         "@type": "spdx:Checksum",
         "spdx:algorithm": {
           "@id": "spdx:checksumAlgorithm_sha256"
         },
-        "spdx:checksumValue": "112fb3e058fa93275ee1a455f4669e7767c9b28977ea0e8d53d00a7807cf8f67"
+        "spdx:checksumValue": "534a792c6ef4351eb922825bcf01011099a9cfbdb4cc04213b4b14a6e9f423ab"
       }
     },
     {

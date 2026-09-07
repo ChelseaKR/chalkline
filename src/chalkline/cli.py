@@ -25,6 +25,7 @@ from pathlib import Path
 from chalkline import authorizes as authorizes_module
 from chalkline import ctid as ctid_module
 from chalkline import dataset as dataset_module
+from chalkline import links as links_module
 from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
 from chalkline.ctdl import validate as validate_module
@@ -94,10 +95,17 @@ def _artifacts(catalog: Catalog) -> dict[str, str]:
     )
     vendored = leaflet_pages.available()
     ctids = ctid_module.load_ledger()
+    # Read by hand, written by `scripts/check_links.py`, and absent by default. The
+    # graph is built before this is consulted and never consults it: a verdict
+    # annotates a URL and cannot rewrite one, so `credentials.jsonld` is byte-identical
+    # with and without a verdict file. `tests/test_links.py` asserts exactly that.
+    verdicts = links_module.load()
     document = export_module.project_graph(catalog, ctids, attachments)
     validate_module.check(document)
-    statement = export_module.coverage(document, catalog, attachments, index, vendored)
-    export_module.check_coverage(statement, document, catalog, attachments, index, vendored)
+    statement = export_module.coverage(document, catalog, attachments, index, vendored, verdicts)
+    export_module.check_coverage(
+        statement, document, catalog, attachments, index, vendored, verdicts
+    )
     graph_text = export_module.serialize(document)
     coverage_text = export_module.serialize(statement)
     # The descriptor measures the artifacts, so it is built after them and before the page
@@ -119,7 +127,13 @@ def _artifacts(catalog: Catalog) -> dict[str, str]:
         export_module.GRAPH_FILENAME: graph_text,
         export_module.COVERAGE_FILENAME: coverage_text,
         dataset_module.DATASET_FILENAME: dataset_text,
-        PAGE_FILENAME: render(catalog, ctids, attachments, dataset_jsonld=dataset_text),
+        PAGE_FILENAME: render(
+            catalog,
+            ctids,
+            attachments,
+            links_module.page_note(document, verdicts),
+            dataset_jsonld=dataset_text,
+        ),
     }
 
 

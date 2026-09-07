@@ -46,7 +46,7 @@ All notable changes to this project are documented here. The format follows
 - **The page's fixed-overhead budget is raised from 12,000 to 20,000 bytes**, deliberately
   and with the measurement in the test's docstring. The embedded descriptor is 6,072 bytes,
   2.3% of the page, and it is fixed overhead by definition because it does not grow when the
-  Commission publishes more rows. 20,000 against a measured 14,762 keeps the 1.35x headroom
+  Commission publishes more rows. 20,000 against a measured 14,992 keeps the 1.33x headroom
   the original budget's reasoning chose, rather than being raised to whatever the page now
   weighs, which is the failure that budget's docstring warns about.
 - **The accessibility and performance gates now walk the built page, not a re-rendered
@@ -55,6 +55,29 @@ All notable changes to this project are documented here. The format follows
   was silent and is exactly the kind that matters: the descriptor is supplied by
   `cli._artifacts`, so both gates would have measured a page 6 KB lighter than the file
   actually served.
+- **`make check-links`, and the difference between "checked and fine" and "never
+  checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
+  URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct
+  URL once, by hand, and records `alive`, `redirected on-site`, `redirected off-site`,
+  `unreachable` or `indeterminate` into `data/link-verdicts.json`. There is no verdict
+  file in this repository yet, and with none the page and `coverage.json` say every URL
+  is published as filed and that none has been requested. They never say "0
+  unreachable", because that would be a different statement and not a true one.
+- **A verdict annotates and never rewrites.** `credentials.jsonld` is byte-identical
+  with and without a verdict file, and a test asserts it: the address the Commission
+  publishes stays the address this project publishes, so a redirect is recorded beside
+  the URL rather than followed into the graph.
+- **Every sentence is about one run.** "This run could not reach it" is supportable from
+  one request; "the Commission's page is gone" is not, and `indeterminate` exists so a
+  response this project could not interpret is filed as uninterpreted. A wording test
+  refuses the second kind of sentence.
+- **A third file that opens a socket, named in both documents that describe the network
+  posture.** `tests/test_provenance.py` holds `OPENS_A_SOCKET` to exactly the set
+  README.md and PROVENANCE.md name, so the checker could not be added without both
+  documents being updated with it. There is deliberately no `chalkline check-links`
+  verb: the package scan fails any module under `src/chalkline/` that imports a
+  networking library, `subprocess` included, so a verb would have had to break the scan
+  that makes the README's claim checkable.
 
 - **`chalkline authorizes --code R1E --document TC1 --subject BSS`.** The 1,014 subject
   alignments exist to answer one question, and answering it meant reading a 553-row table

@@ -105,11 +105,12 @@ stylesheet.
 
 FIXED_OVERHEAD_BUDGET: Final = 20_000
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
-head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 14,762
-today, so this is 1.35x headroom. The stylesheet is 2,797 of it, the head metadata added with
+head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 14,992
+today, so this is 1.33x headroom. The stylesheet is 2,797 of it, the head metadata added with
 the canonical link is 890, the share-card tags (`og:image` and its type, dimensions and alt
 text, plus `twitter:image`) are 588, the accessibility fixes (`scope`, `role`, `tabindex`,
-the region label and its focus ring) are 206, and the embedded dataset descriptor is 6,072.
+the region label and its focus ring) are 206, the link-check note is 230 with its markup (184
+of that the sentence itself), and the embedded dataset descriptor is 6,072.
 
 **Raised from 12,000 for that descriptor, on purpose, and this is the reasoning.** The
 budget's whole argument is that a flat cap "eventually gets raised to whatever the page
@@ -131,7 +132,7 @@ and the checksums in the file, is two descriptions of one dataset that can disag
 nothing to say which one a harvester believed.
 
 *Why the multiplier, not the number, is what was preserved.* 1.38x headroom was the
-discipline the original budget chose; 20,000 against 14,762 is 1.35x, which is the same
+discipline the original budget chose; 20,000 against 14,992 is 1.33x, which is the same
 discipline against a page that deliberately carries one more thing. A raise to 15,000 would
 have left 1.02x and made the next honest addition fail for no reason; a raise to whatever
 the page now weighs would have been the failure this docstring warns about."""

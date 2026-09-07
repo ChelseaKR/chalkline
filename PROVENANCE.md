@@ -84,9 +84,14 @@ followed a 301 to the `/employers/…` URL above; both are recorded in the sidec
 **No bot protection was encountered, and none was circumvented.** Every request returned
 HTTP 200 to a plain unauthenticated GET, including all ten leaflet pages. No page was
 refused, so no hand transcription was necessary and none of this data is hand-transcribed.
-`scripts/fetch_sources.py` is the only code here that reaches the Commission; it stops on an
-HTTP error rather than retrying behind different headers, and `tests/test_provenance.py`
-asserts that no module under `src/chalkline/` imports a networking library at all.
+`scripts/fetch_sources.py` is the only code here that retrieves anything from the
+Commission; it stops on an HTTP error rather than retrying behind different headers, and
+`tests/test_provenance.py` asserts that no module under `src/chalkline/` imports a
+networking library at all. `scripts/check_links.py` also reaches the Commission, by hand,
+but it retrieves nothing: it requests each distinct URL the graph publishes once, records
+the status, final address and page title as a dated verdict in `data/link-verdicts.json`,
+and writes nothing into `data/source/`. No verdict it records ever changes a URL this
+project publishes.
 
 The tests are hermetic: nothing under `tests/` imports a networking library either. CI is
 not, in two places, both deliberate. `make audit` queries the PyPI advisory API on every
