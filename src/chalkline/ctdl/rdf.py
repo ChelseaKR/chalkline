@@ -46,7 +46,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Final
 
-from chalkline.ctdl.export import CTDL_CONTEXT_URL
+from chalkline.ctdl.export import CTDL_CONTEXT_URL as CTDL_CONTEXT_URL
 
 NQUADS_FILENAME: Final = "credentials.nq"
 TURTLE_FILENAME: Final = "credentials.ttl"
@@ -367,7 +367,9 @@ def undeclared_terms(
     declarations = _declarations(resolved)
     seen: set[str] = set()
     _collect_keys(document, seen, _language_map_terms(declarations))
-    return sorted(key for key in seen if key not in declarations and key not in UNDECLARED_BY_DESIGN)
+    return sorted(
+        key for key in seen if key not in declarations and key not in UNDECLARED_BY_DESIGN
+    )
 
 
 #: JSON-LD keywords whose values hold no property keys: an IRI, a class name, or the context
@@ -410,12 +412,8 @@ def round_trip_difference(
     options = _options(resolved)
     with _surfacing_a_refused_load():
         expanded = processor.expand(document, options)
-        compacted = processor.compact(
-            expanded, document.get("@context", CTDL_CONTEXT_URL), options
-        )
-    return describe_difference(
-        nquads(document, resolved, triples), nquads(compacted, resolved)
-    )
+        compacted = processor.compact(expanded, document.get("@context", CTDL_CONTEXT_URL), options)
+    return describe_difference(nquads(document, resolved, triples), nquads(compacted, resolved))
 
 
 def describe_difference(before: str, after: str) -> str | None:

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -135,7 +136,7 @@ def test_the_loader_refuses_every_url_but_the_vendored_context() -> None:
 
 def test_a_remote_context_is_refused_rather_than_fetched() -> None:
     """A document naming a context this repository has not vendored does not get one."""
-    with pytest.raises(rdf.NetworkRefused, match="example.com"):
+    with pytest.raises(rdf.NetworkRefused, match=re.escape("example.com")):
         rdf.nquads({"@context": "https://example.com/context.jsonld", "@graph": []})
 
 
@@ -284,8 +285,8 @@ def test_the_round_trip_is_compared_as_quads_because_the_json_text_always_differ
     assert rdf.nquads(compacted) == rdf.nquads(fixture_graph)
 
 
-A = "<https://example.org/a> <https://example.org/p> \"1\" .\n"
-B = "<https://example.org/b> <https://example.org/p> \"2\" .\n"
+A = '<https://example.org/a> <https://example.org/p> "1" .\n'
+B = '<https://example.org/b> <https://example.org/p> "2" .\n'
 
 
 @pytest.mark.parametrize(
@@ -294,7 +295,11 @@ B = "<https://example.org/b> <https://example.org/p> \"2\" .\n"
         (A, A, None),
         (A + B, A, "1 triple(s) lost, first: " + B.strip()),
         (A, A + B, "1 triple(s) gained, first: " + B.strip()),
-        (A, B, "1 triple(s) lost, first: " + A.strip() + "; 1 triple(s) gained, first: " + B.strip()),
+        (
+            A,
+            B,
+            "1 triple(s) lost, first: " + A.strip() + "; 1 triple(s) gained, first: " + B.strip(),
+        ),
         (A + A + B, A + B + B, "the quad sets differ in multiplicity only"),
     ],
 )
@@ -327,27 +332,25 @@ def test_a_processor_error_that_is_not_a_refusal_is_left_alone() -> None:
         raise ValueError("not a refusal")
 
 
-def test_named_graphs_are_refused_rather_than_flattened() -> None:
+def test_named_graphs_are_refused_rather_than_flattened(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """This project publishes one graph. A quad in a second one would be dropped by a
     serializer that only wrote the default graph, which is absence rendered as completeness."""
-    monkeypatched = {"@default": [], "https://example.org/g": []}
+    two_graphs: dict[str, list[object]] = {"@default": [], "https://example.org/g": []}
 
     class _Fake:
         @staticmethod
         def normalize(_doc: object, _options: object) -> dict[str, list[object]]:
-            return monkeypatched
+            return two_graphs
 
         @staticmethod
         def set_document_loader(_loader: object) -> None:
             return None
 
-    original = rdf._jsonld
-    rdf._jsonld = lambda: _Fake()  # type: ignore[assignment]
-    try:
-        with pytest.raises(rdf.RDFError, match="named graphs"):
-            rdf.quads({})
-    finally:
-        rdf._jsonld = original  # type: ignore[assignment]
+    monkeypatch.setattr(rdf, "_jsonld", _Fake)
+    with pytest.raises(rdf.RDFError, match="named graphs"):
+        rdf.quads({})
 
 
 # ------------------------------------------------------------------------------------------
@@ -531,6 +534,10 @@ def test_an_iri_whose_local_name_is_unsafe_is_written_in_full() -> None:
 
 
 def test_the_longest_namespace_wins_and_a_tie_is_broken_by_name() -> None:
-    prefixes = {"a": "https://example.org/", "b": "https://example.org/deep/", "c": "https://example.org/"}
+    prefixes = {
+        "a": "https://example.org/",
+        "b": "https://example.org/deep/",
+        "c": "https://example.org/",
+    }
     assert rdf._shorten("https://example.org/deep/x", prefixes) == ("b:x", "b")
     assert rdf._shorten("https://example.org/x", prefixes) == ("a:x", "a")

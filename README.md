@@ -314,9 +314,9 @@ library at all, and `tests/test_provenance.py` asserts it.
 One qualification, added when `chalkline export` did: `src/chalkline/ctdl/rdf.py` imports a
 JSON-LD processor, `pyld`, and pyld installs a `requests`-backed document loader as its
 default the moment it is imported. Left alone that would fetch the CTDL context from
-`credreg.net`. So the module replaces it — with a loader that serves the vendored
+`credreg.net`. So the module replaces it (with a loader that serves the vendored
 `ctdl-context.json` for that one URL and raises for every other, installed as pyld's global
-default as well as passed on every call — and `tests/test_rdf.py` runs the whole pipeline with
+default as well as passed on every call), and `tests/test_rdf.py` runs the whole pipeline with
 `socket.socket.connect` replaced by a raise, so the claim is measured rather than asserted.
 The scan's own rule is unchanged and still true: this project's code imports no networking
 library. What it cannot see is what a dependency imports, and this is the one place that

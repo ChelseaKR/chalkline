@@ -82,6 +82,13 @@ strict = true
 warn_return_any = true
 disallow_untyped_defs = true
 
+[[tool.mypy.overrides]]
+# pyld ships no type information and no py.typed marker. `strict` is unchanged everywhere
+# else; this narrows the exemption to the one third-party import in the package, so the
+# module that uses it is still checked, its own signatures included.
+module = ["pyld.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 minversion = "8.0"

@@ -211,9 +211,7 @@ def test_export_can_print_one_serialization_and_write_nothing(
 ) -> None:
     out = tmp_path / "out"
     assert (
-        cli.main(
-            ["export", "--graph", str(small_graph), "--output-dir", str(out), "--format", fmt]
-        )
+        cli.main(["export", "--graph", str(small_graph), "--output-dir", str(out), "--format", fmt])
         == 0
     )
     assert marker in capsys.readouterr().out
