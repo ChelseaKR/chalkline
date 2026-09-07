@@ -6,6 +6,13 @@ Three verbs, and none of them touches the network:
 ``chalkline mint-ctids``  assign a spec-conformant CTID to any authorization lacking one.
 ``chalkline check``       build in memory and compare against the committed ``site/``.
 ``chalkline authorizes``  answer one assignment question from the graph, with its rows.
+``chalkline export``      serialize the committed graph as N-Quads and Turtle.
+
+``export`` is the one verb that needs a dependency. It runs the committed JSON-LD through a
+JSON-LD 1.1 processor, and ``pyproject.toml`` keeps that processor in the development group
+so ``dependencies`` stays empty and an install of this package keeps working without it. That
+is why ``build`` does not write the RDF and ``export`` does: a build artifact has to be
+producible by anyone who installed the package.
 
 ``check`` is what CI runs. It fails when the committed artifacts are not byte-for-byte what
 the current code produces from the current sources, which makes the output in the repository
@@ -18,6 +25,7 @@ directory: an orphan there is not merely stale in the repository, it is served.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -27,6 +35,7 @@ from chalkline import ctid as ctid_module
 from chalkline import links as links_module
 from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
+from chalkline.ctdl import rdf as rdf_module
 from chalkline.ctdl import validate as validate_module
 from chalkline.model import Catalog, build_catalog
 from chalkline.site import render
@@ -44,6 +53,13 @@ PAGE_FILENAME = "index.html"
 #: ``.github/workflows/pages.yml`` uploads the whole directory, so an orphan is not merely
 #: stale in the repository, it is served. An exclusion a reader cannot see is the silence
 #: this check exists to remove, so every reason here is printed on every run.
+_RDF_GATE = (
+    "written by `chalkline export` and held byte-for-byte to a fresh run by `make rdf` "
+    "and tests/test_rdf.py. Not written by `build` because serializing RDF needs a JSON-LD "
+    "processor, which is a development dependency: `build` has to keep working for anyone "
+    "who installed this package, and this project's runtime dependency list is empty"
+)
+
 PUBLISHED_BY_ANOTHER_GATE: dict[str, str] = {
     "ctdl-validate.json": (
         "written by scripts/validate_evidence.py and held byte-for-byte to a fresh "
@@ -54,6 +70,9 @@ PUBLISHED_BY_ANOTHER_GATE: dict[str, str] = {
         "from any source; tests/test_site.py holds it to being a PNG of exactly the "
         "dimensions the head declares, and to being the file the head names"
     ),
+    rdf_module.NQUADS_FILENAME: _RDF_GATE,
+    rdf_module.TURTLE_FILENAME: _RDF_GATE,
+    rdf_module.STATEMENT_FILENAME: _RDF_GATE,
 }
 
 
@@ -210,6 +229,63 @@ def authorizes(args: argparse.Namespace) -> int:
     return result.exit_code
 
 
+def _committed_graph(path: Path) -> dict[str, object]:
+    with path.open(encoding="utf-8") as handle:
+        loaded: dict[str, object] = json.load(handle)
+    return loaded
+
+
+def export(args: argparse.Namespace) -> int:
+    """Serialize the committed graph as RDF, or check the committed serializations.
+
+    Reads ``site/credentials.jsonld`` rather than rebuilding it. The point of this verb is to
+    say what the *published* bytes mean in RDF, and rebuilding first would answer a question
+    about the sources instead. ``chalkline check`` is what holds the JSON-LD to its sources,
+    and `make verify` runs it before this.
+    """
+    try:
+        document = _committed_graph(args.graph)
+    except (OSError, ValueError) as exc:
+        print(f"chalkline export: cannot read {args.graph}: {exc}", file=sys.stderr)
+        return 2
+    try:
+        if args.format:
+            text = (
+                rdf_module.nquads(document)
+                if args.format == "nquads"
+                else rdf_module.turtle(document)
+            )
+            print(text, end="")
+            return 0
+        artifacts = rdf_module.artifacts(document)
+    except rdf_module.RDFError as exc:
+        print(f"chalkline export: {exc}", file=sys.stderr)
+        return 1
+
+    if not args.check:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        for name, text in artifacts.items():
+            (args.output_dir / name).write_text(text, encoding="utf-8")
+        triples = json.loads(artifacts[rdf_module.STATEMENT_FILENAME])["triples"]
+        print(f"wrote {len(artifacts)} files to {args.output_dir}: {triples} triples")
+        return 0
+
+    stale = [
+        f"{name}: {'missing' if not (args.output_dir / name).exists() else 'differs from a fresh export'}"
+        for name, text in artifacts.items()
+        if not (args.output_dir / name).exists()
+        or (args.output_dir / name).read_text(encoding="utf-8") != text
+    ]
+    if stale:
+        print("committed RDF is not what the code produces:", file=sys.stderr)
+        for line in stale:
+            print(f"  {line}", file=sys.stderr)
+        print("run `chalkline export` and commit the result", file=sys.stderr)
+        return 1
+    print(f"committed RDF matches a fresh export ({len(artifacts)} files)")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="chalkline", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -221,6 +297,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         command.add_argument("--output-dir", type=Path, default=SITE_DIR)
     minter = sub.add_parser("mint-ctids", help="assign CTIDs to authorizations lacking one")
     minter.add_argument("--ledger", type=Path, default=None)
+
+    exporter = sub.add_parser(
+        "export",
+        help="serialize the committed graph as N-Quads and Turtle",
+        description=rdf_module.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    exporter.add_argument("--output-dir", type=Path, default=SITE_DIR)
+    exporter.add_argument("--graph", type=Path, default=SITE_DIR / "credentials.jsonld")
+    exporter.add_argument(
+        "--format",
+        choices=("nquads", "turtle"),
+        default=None,
+        help="print one serialization to stdout and write nothing",
+    )
+    exporter.add_argument(
+        "--check",
+        action="store_true",
+        help="compare the committed serializations against a fresh run and write nothing",
+    )
 
     asks = sub.add_parser(
         "authorizes",
@@ -268,6 +364,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return check(args.output_dir)
     if args.command == "authorizes":
         return authorizes(args)
+    if args.command == "export":
+        return export(args)
     return mint_ctids(args.ledger)
 
 

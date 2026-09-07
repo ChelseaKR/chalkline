@@ -37,6 +37,19 @@ dev = [
   # opinion on the published graph. Pinned rather than floated: a new rule appearing in a
   # patch release is a fact about CTDL worth reviewing in a diff, not absorbing silently.
   "ctdl-validate==0.2.1",
+  # A JSON-LD 1.1 processor, used to turn the committed graph into RDF and to check the
+  # round-trip. Deliberately a *dev* dependency and not a runtime one: `dependencies` above
+  # stays empty, `chalkline build` never imports this, and `src/chalkline/ctdl/rdf.py`
+  # imports it inside the function so installing the package without it still works. The
+  # cost of that choice is that the RDF serializations are written by `chalkline export`
+  # rather than by `build`, and held to a fresh run by their own gate.
+  "pyld==3.3.0",
+  # Test-only, and a second opinion rather than a producer: rdflib parses the Turtle this
+  # project writes and is asked whether it denotes the same graph as the N-Triples. It does
+  # not write the committed Turtle, because its Turtle serializer inlines blank nodes in an
+  # order that depends on the interpreter's hash seed -- measured: the same graph serialized
+  # under two PYTHONHASHSEED values gave the same byte length and different SHA-256.
+  "rdflib==7.6.0",
 ]
 
 [tool.hatch.build.targets.wheel]
