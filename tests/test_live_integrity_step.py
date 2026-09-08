@@ -100,7 +100,7 @@ def _stub(path: Path, script: str) -> None:
     path.chmod(path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
 
-def run_step(tmp_path: Path, *, verify_rc: int, remote: str) -> subprocess.CompletedProcess:
+def run_step(tmp_path: Path, *, verify_rc: int, remote: str) -> subprocess.CompletedProcess[str]:
     """Run the shipped step body with `python3` and `git` stubbed.
 
     ``remote`` is one of: ``"same"`` (ls-remote names this commit), ``"moved"``
