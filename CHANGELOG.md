@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **A link check that requested nothing published as a link check of everything.**
+  `Verdicts.checked` is the date the verdict *file* was written, and
+  `scripts/check_links.py` rewrites it on every run while carrying every verdict younger
+  than its eighty-day expiry forward unchanged. The published sentence was built from that
+  stamp, so a second quarterly run inside the expiry, which issues zero requests, read
+  "A link check run on `<today>` requested each distinct Commission URL once. It observed
+  14 reachable". Measured on the committed graph before the fix. The window now comes from
+  the rows, which each carry the date they were recorded, and a file whose observations
+  span several days says so and says why.
+- **A URL the graph publishes and no observation covers is now named on the page.**
+  `coverage.json` has counted `urls_without_a_verdict` since the module was written; the
+  sentence a reader actually gets left it out, so thirteen observations were published
+  under a claim that each of fourteen URLs had been requested. The note now states its own
+  coverage, and a verdict file covering none of the addresses the graph publishes today
+  refuses to render counts at all rather than reading as five zeroes.
+
 ### Added
 
 - **`make check-links`, and the difference between "checked and fine" and "never

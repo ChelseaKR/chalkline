@@ -192,6 +192,209 @@ def test_a_redirect_is_annotated_and_never_rewritten(document: dict[str, Any]) -
     assert url in links.commission_urls(document)
 
 
+# --- the note is about what was observed, not about the file it is written in --
+#
+# `Verdicts.checked` is the date the file was written. `scripts/check_links.py`
+# writes it on every run and carries forward every verdict younger than
+# EXPIRY_DAYS, so a second quarterly run inside the expiry requests nothing and
+# restamps the file with the day it ran. Reading the note off that stamp turned a
+# run that made zero requests into "A link check run on <today> requested each
+# distinct Commission URL once. It observed 14 reachable." Both halves of that
+# sentence are pinned below.
+
+
+def _carried_forward(document: dict[str, Any], observed: str, written: str) -> links.Verdicts:
+    """A file written on ``written`` whose every row was observed on ``observed``."""
+    return links.Verdicts(
+        checked=written,
+        entries=tuple(
+            links.Verdict(
+                url=url,
+                verdict=links.ALIVE,
+                checked=observed,
+                status=200,
+                final_url=url,
+                title=None,
+            )
+            for url in links.commission_urls(document)
+        ),
+    )
+
+
+def test_the_note_dates_the_observations_and_not_the_file_they_were_written_in(
+    document: dict[str, Any],
+) -> None:
+    """The re-run that requests nothing. It must not read as a check made today."""
+    verdicts = _carried_forward(document, observed="2026-07-01", written="2026-09-08")
+    note = links.page_note(document, verdicts)
+    assert "2026-07-01" in note
+    assert "2026-09-08" not in note, (
+        "the note dated fourteen observations to the day the file was rewritten, on a "
+        f"run that requested nothing: {note}"
+    )
+
+
+def test_the_observation_window_is_read_from_the_rows_rather_than_the_stamp(
+    document: dict[str, Any],
+) -> None:
+    """The window is a fact about the rows, and the stamp is not one of them."""
+    verdicts = _carried_forward(document, observed="2026-07-01", written="2026-09-08")
+    covered = links.coverage_of(document, verdicts)
+    assert (covered.first, covered.last) == ("2026-07-01", "2026-07-01")
+    assert covered.one_day is True
+    assert covered.covered == covered.published == len(links.commission_urls(document))
+    assert covered.uncovered == 0
+
+
+def test_observations_spread_over_several_days_are_reported_as_a_window(
+    document: dict[str, Any],
+) -> None:
+    """The ordinary state of a carried-forward file: some rows old, some new."""
+    fresh = _carried_forward(document, observed="2026-09-08", written="2026-09-08")
+    mixed = links.Verdicts(
+        checked="2026-09-08",
+        entries=(
+            links.Verdict(
+                url=fresh.entries[0].url,
+                verdict=links.ALIVE,
+                checked="2026-06-20",
+                status=200,
+                final_url=fresh.entries[0].url,
+                title=None,
+            ),
+            *fresh.entries[1:],
+        ),
+    )
+    covered = links.coverage_of(document, mixed)
+    assert (covered.first, covered.last) == ("2026-06-20", "2026-09-08")
+    assert covered.one_day is False
+    note = links.page_note(document, mixed)
+    assert "between 2026-06-20 and 2026-09-08" in note
+    assert "not the date the file was written" in note
+
+
+def test_the_single_day_form_survives_when_every_observation_shares_a_date(
+    document: dict[str, Any],
+) -> None:
+    """Positive control: the window form must not be unconditional.
+
+    Without this, a note that always said "between X and X" would satisfy every
+    assertion above while being worse prose than what it replaced.
+    """
+    note = links.page_note(document, _verdicts(document))
+    assert note.startswith("A link check run on 2026-09-06 requested")
+    assert "between" not in note
+
+
+def test_a_published_url_no_observation_covers_is_named_in_the_note(
+    document: dict[str, Any],
+) -> None:
+    """`summary` has counted this since the module was written. The note did not.
+
+    A URL the graph gained after the last check has no verdict, so it contributes
+    to none of the five counts. Leaving it out of the sentence published thirteen
+    observations under a claim that each of fourteen URLs had been requested.
+    """
+    full = _verdicts(document)
+    short = links.Verdicts(checked=full.checked, entries=full.entries[1:])
+    published = len(links.commission_urls(document))
+    note = links.page_note(document, short)
+    assert f"requested {published - 1} of the {published}" in note
+    assert f"1 of the {published}" in note
+    assert "have not been requested by this project" in note
+    assert links.summary(document, short)["urls_without_a_verdict"] == 1
+
+
+def test_a_complete_run_says_nothing_about_urls_it_did_not_request(
+    document: dict[str, Any],
+) -> None:
+    """The other side of it: the clause is conditional, not decoration."""
+    assert "have not been requested by this project" not in links.page_note(
+        document, _verdicts(document)
+    )
+
+
+def test_a_verdict_file_about_urls_this_graph_no_longer_publishes_covers_nothing(
+    document: dict[str, Any],
+) -> None:
+    """Zero covered rows must not render as a run that found nothing wrong.
+
+    This is the module's own no-file rule one level down: counts of zero across
+    five verdicts read as a clean bill of health, and the true statement is that
+    nothing here is about the addresses the graph publishes now.
+    """
+    orphaned = links.Verdicts(
+        checked="2026-09-06",
+        entries=(
+            links.Verdict(
+                url="https://www.ctc.ca.gov/gone/",
+                verdict=links.ALIVE,
+                checked="2026-09-06",
+                status=200,
+                final_url=None,
+                title=None,
+            ),
+        ),
+    )
+    covered = links.coverage_of(document, orphaned)
+    assert covered.covered == 0 and covered.first is None and covered.one_day is False
+    note = links.page_note(document, orphaned)
+    assert "none of it is about" in note
+    assert "not the same statement as every link working" in note
+    assert "reachable" not in note, f"a run covering nothing counted something: {note}"
+
+
+def test_the_coverage_window_reaches_coverage_json(document: dict[str, Any]) -> None:
+    """A reader of the artifact gets the observation dates, not only the stamp."""
+    block = links.summary(document, _carried_forward(document, "2026-07-01", "2026-09-08"))
+    assert block["checked"] == "2026-09-08"
+    assert block["observed_first"] == "2026-07-01"
+    assert block["observed_last"] == "2026-07-01"
+
+
+def test_every_note_shape_is_about_the_run_and_not_about_the_commission(
+    document: dict[str, Any],
+) -> None:
+    """The rule at the top of this file, applied to the branches added since.
+
+    `test_every_sentence_is_about_the_run_and_not_about_the_commission` covers the
+    no-file and one-day shapes. A new shape that quietly made a claim about the
+    Commission would pass it by never being rendered.
+    """
+    url = links.commission_urls(document)[0]
+    full = _verdicts(document, **{url: links.UNREACHABLE})
+    shapes = (
+        _carried_forward(document, "2026-07-01", "2026-09-08"),
+        links.Verdicts(checked=full.checked, entries=full.entries[1:]),
+        links.Verdicts(
+            checked="2026-09-06",
+            entries=(
+                links.Verdict(
+                    url="https://www.ctc.ca.gov/gone/",
+                    verdict=links.UNREACHABLE,
+                    checked="2026-09-06",
+                    status=404,
+                    final_url=None,
+                    title=None,
+                ),
+            ),
+        ),
+    )
+    for verdicts in shapes:
+        note = links.page_note(document, verdicts)
+        lowered = note.lower()
+        for forbidden in (
+            "the page is gone",
+            "no longer exists",
+            "the commission removed",
+            "broken link",
+            "dead link",
+            "404",
+        ):
+            assert forbidden not in lowered, f"{forbidden!r} is a claim about the Commission"
+        assert "this project" in lowered or "run" in lowered
+
+
 # --- the graph does not move -----------------------------------------------
 
 
