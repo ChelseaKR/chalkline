@@ -8,6 +8,20 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- **A verdict dated in the future could never expire.** The verdict file is a cache keyed
+  on age, and `_stale` asked two questions of that age when there are three: inside the
+  eighty-day expiry, past it, and not usable as an age at all. A row dated after the run
+  that read it gives a negative age, which is inside every expiry there will ever be, so
+  one run on a machine whose clock was ahead would have frozen that URL's verdict for
+  good, carried forward by every later run and never requested again, while `page_note`
+  went on describing the file as a run that observed it. Two guards now, at the two places
+  each is possible: `links.parse` refuses a row dated after the file's own `checked`
+  stamp, which needs no clock and so cannot make a build depend on the day it runs; and
+  `_stale` re-requests a row dated after today, which is the only way a file written
+  entirely under a wrong clock can be caught. Latent rather than live: no
+  `data/link-verdicts.json` has ever been committed, so today `coverage.json` publishes
+  `state: not_checked` over 14 distinct URLs, 0 of which have ever been requested.
+
 - **A link check that requested nothing published as a link check of everything.**
   `Verdicts.checked` is the date the verdict *file* was written, and
   `scripts/check_links.py` rewrites it on every run while carrying every verdict younger

@@ -210,6 +210,13 @@ def load(path: Path = VERDICT_PATH) -> Verdicts | None:
     page. It is deliberately not an empty :class:`Verdicts`, which would count
     zero of everything and be indistinguishable from a run that found nothing
     wrong.
+
+    Every refusal :func:`parse` can make is re-raised naming this path. ``parse``
+    is given a document and has no file to name, and a build that stops on a
+    verdict row without saying which file holds it sends the reader looking
+    through whatever produced it. The rule the message has to satisfy is that a
+    reader can act on it without reading this module: name the row, name the
+    dates, name the file.
     """
     if not path.exists():
         return None
@@ -217,18 +224,34 @@ def load(path: Path = VERDICT_PATH) -> Verdicts | None:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise VerdictError(f"{path} is not readable as JSON") from exc
-    return parse(raw)
+    try:
+        return parse(raw)
+    except VerdictError as exc:
+        raise VerdictError(f"{path}: {exc}") from exc
 
 
 def parse(raw: Any) -> Verdicts:
-    """Validate a verdict document into observations, refusing anything unclear."""
+    """Validate a verdict document into observations, refusing anything unclear.
+
+    One of the rules is about the two dates together and is stated here because
+    nothing else can see both. A row is written by a run, and the file's stamp
+    is the date that run wrote the file, so **no row may be dated after the
+    stamp**: a carried-forward observation is older than the run that carried it
+    and a fresh one is the same day. A row dated later describes a request that
+    had not been made when the file was written.
+
+    It is checked against the stamp rather than against today, so this stays a
+    pure function of its input. That matters twice: a build must not change its
+    verdict because a day passed, and a date this repository publishes must be
+    refusable on a machine whose clock is the thing that is wrong.
+    """
     if not isinstance(raw, Mapping):
         raise VerdictError("a verdict file is a JSON object")
     checked = raw.get("checked")
     if not isinstance(checked, str):
         raise VerdictError("a verdict file states the date it was checked")
     try:
-        date.fromisoformat(checked)
+        stamp = date.fromisoformat(checked)
     except ValueError as exc:
         raise VerdictError("checked is an ISO-8601 date") from exc
     rows = raw.get("verdicts")
@@ -240,6 +263,12 @@ def parse(raw: Any) -> Verdicts:
         entry = _entry(row)
         if entry.url in seen:
             raise VerdictError(f"{entry.url} carries more than one verdict")
+        if date.fromisoformat(entry.checked) > stamp:
+            raise VerdictError(
+                f"{entry.url} was checked on {entry.checked}, after the "
+                f"{checked} this file states it was written on; no run can "
+                f"record an observation it had not yet made"
+            )
         seen.add(entry.url)
         entries.append(entry)
     return Verdicts(checked=checked, entries=tuple(sorted(entries, key=lambda e: e.url)))
