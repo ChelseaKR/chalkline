@@ -539,3 +539,132 @@ def test_the_reader_opens_no_socket_and_the_checker_does() -> None:
     checker = (REPO_ROOT / "scripts" / "check_links.py").read_text(encoding="utf-8")
     assert networking_imports(reader) == []
     assert connection_imports(checker) != []
+
+
+# --- a date that has not happened is not a fresh observation -----------------
+#
+# The file is a cache keyed on age, and an age has three answers rather than
+# two: inside the expiry, past it, and not usable as an age at all. A row dated
+# after the run that wrote it gives a negative age, which is inside every expiry
+# there will ever be -- so such a row is carried forward by every later run for
+# good, never re-requested, while `page_note` goes on describing the file as a
+# run that observed those URLs. Both halves of the guard are pinned here: the
+# clock-free one in `links.parse`, and the one only a later, correct clock can
+# make, in the checker.
+
+
+def _document_with_one_row(observed: str, written: str) -> dict[str, Any]:
+    return {
+        "checked": written,
+        "verdicts": [
+            {
+                "url": f"{links.COMMISSION_ORIGIN}/credentials/",
+                "verdict": links.ALIVE,
+                "checked": observed,
+                "status": 200,
+                "final_url": f"{links.COMMISSION_ORIGIN}/credentials/",
+                "title": None,
+            }
+        ],
+    }
+
+
+def test_a_row_dated_after_the_file_it_is_in_is_refused() -> None:
+    with pytest.raises(links.VerdictError) as caught:
+        links.parse(_document_with_one_row(observed="2026-09-09", written="2026-09-08"))
+    assert "2026-09-09" in str(caught.value)
+    assert "2026-09-08" in str(caught.value)
+
+
+def test_a_row_dated_on_or_before_the_file_is_accepted() -> None:
+    """The positive half. A refusal that fires on every input proves nothing.
+
+    Both are the ordinary states: a row written by the run itself carries the
+    run's own date, and a carried-forward row is older.
+    """
+    same_day = links.parse(_document_with_one_row(observed="2026-09-08", written="2026-09-08"))
+    assert same_day.entries[0].checked == "2026-09-08"
+    carried = links.parse(_document_with_one_row(observed="2026-07-01", written="2026-09-08"))
+    assert carried.entries[0].checked == "2026-07-01"
+
+
+def test_the_checker_re_requests_a_row_dated_after_today() -> None:
+    """`_stale` over the shipped script, not over a copy of its arithmetic.
+
+    A whole file written under a clock that was ahead is internally consistent,
+    so `parse` cannot see it; only a later run with a correct clock can, and
+    this is the check that makes it.
+    """
+    import importlib.util
+    from datetime import date, timedelta
+
+    path = REPO_ROOT / "scripts" / "check_links.py"
+    spec = importlib.util.spec_from_file_location("chalkline_check_links_under_test", path)
+    assert spec is not None and spec.loader is not None
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+
+    today = date(2026, 9, 8)
+
+    def row(checked: date) -> links.Verdict:
+        return links.Verdict(
+            url=f"{links.COMMISSION_ORIGIN}/credentials/",
+            verdict=links.ALIVE,
+            checked=checked.isoformat(),
+            status=200,
+            final_url=f"{links.COMMISSION_ORIGIN}/credentials/",
+            title=None,
+        )
+
+    expiry = checker.EXPIRY_DAYS
+    assert expiry > 1, "the fresh and expired fixtures below need room between them"
+    # The three states, over one fixture, so the first assertion means something.
+    assert checker._stale(row(today + timedelta(days=1)), today) is True
+    assert checker._stale(row(today - timedelta(days=1)), today) is False
+    assert checker._stale(row(today - timedelta(days=expiry)), today) is True
+    assert checker._stale(None, today) is True
+
+    # ...and the re-request says which of the two reasons caused it. An
+    # unexplained extra request is indistinguishable from an expired one, and
+    # the thing to fix (a clock, or the row) is named by neither.
+    reason = checker._unusable_date(row(today + timedelta(days=1)), today)
+    assert "2026-09-09" in reason
+    assert "2026-09-08" in reason
+    assert "clock" in reason
+    # Quiet on every row whose date can be read as an age, expired or not.
+    assert checker._unusable_date(row(today), today) == ""
+    assert checker._unusable_date(row(today - timedelta(days=expiry)), today) == ""
+    assert checker._unusable_date(None, today) == ""
+
+
+def test_a_refused_row_names_the_file_it_is_in(tmp_path: Path) -> None:
+    """A build that stops has to say which file to open, not only which row.
+
+    `parse` is handed a document and has no path to name. `load` has one, and
+    a reader who has to find the module before they can find the file is the
+    failure this repository keeps writing down about its own gates.
+    """
+    path = tmp_path / "link-verdicts.json"
+    path.write_text(
+        json.dumps(_document_with_one_row(observed="2026-09-09", written="2026-09-08")),
+        encoding="utf-8",
+    )
+    with pytest.raises(links.VerdictError) as caught:
+        links.load(path)
+    message = str(caught.value)
+    assert str(path) in message, "the file"
+    assert f"{links.COMMISSION_ORIGIN}/credentials/" in message, "the row"
+    assert "2026-09-09" in message and "2026-09-08" in message, "both dates"
+
+
+def test_a_good_file_still_loads_from_a_path(tmp_path: Path) -> None:
+    """The positive half: `load` did not become a function that only refuses."""
+    path = tmp_path / "link-verdicts.json"
+    path.write_text(
+        json.dumps(_document_with_one_row(observed="2026-07-01", written="2026-09-08")),
+        encoding="utf-8",
+    )
+    loaded = links.load(path)
+    assert loaded is not None
+    assert loaded.checked == "2026-09-08"
+    assert loaded.entries[0].checked == "2026-07-01"
