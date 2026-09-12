@@ -107,6 +107,10 @@ def figures(statement: dict[str, Any]) -> dict[str, int]:
             "scope_resolved_by_cross_reference"
         ],
         "Authorizations with subject codes": authorizations["with_subject_codes"],
+        "Distinct subject codes across those alignments": statement["subjects"]["distinct_codes"],
+        "Subject pages published, one per code plus an index and the not-subject-coded page": (
+            statement["subjects"]["pages_published"]
+        ),
         "Authorizations the Commission publishes as `NONE` (not subject-coded)": authorizations[
             "published_as_not_subject_coded"
         ],

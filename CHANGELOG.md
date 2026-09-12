@@ -40,6 +40,47 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`site/subjects/`, the inverse view: which credentials authorize a subject.** The
+  published page is organised by authorization, which answers what a credential authorizes.
+  An assignment clerk asks the other question, and the Commission does not publish it in
+  that shape. The build now writes one page per subject code, 323 of them, plus an index
+  and a page for the authorizations the Commission publishes `NONE` against. Each subject
+  page lists every modeled authorization the graph aligns to that code, reproduces the
+  Commission's row notes as published, and, where the alignment arrived through a followed
+  cross-reference, says so and names the credential whose rows supplied it.
+- **Nothing on them is inferred, and nothing is composed.** A subject appears against an
+  authorization only where a published row or a followable cross-reference puts it there.
+  No page states which assignments a credential permits, which is a judgement rather than a
+  quotation; `tests/test_subjects.py` refuses that wording on every page. A row with no note
+  says the Commission published none, rather than rendering an empty space that reads as
+  one.
+- **A published `NONE` and an unpublished scope are kept apart.** The 66 authorizations the
+  Commission marks `NONE` get a page of their own, and it says in terms that they are not
+  the authorizations whose scope this project could not read, which are excluded and listed
+  with their reasons on the main page. Reading that page off an empty subject list rather
+  than off the published flag changes nothing at all on today's catalog, which is why the
+  test for it is a constructed case rather than a control applied to the real data.
+- **A code carrying two published names keeps both.** The sort table spells `THTR` as both
+  `Theater` and `Introductory Theater`; choosing between them would be this project deciding
+  which of the Commission's strings is the real one. `coverage.json` counts how many codes
+  are in that state.
+- **`coverage.json` gains a counted `subjects` block**, derived from the same catalog the
+  pages are rendered from, so the statement and the pages cannot disagree. Its figures
+  cross-check against ones already published: `alignments` equals the
+  `ceterms:CredentialAlignmentObject` count, and
+  `alignments_reached_by_cross_reference` equals
+  `subject_alignments_from_a_cross_reference`.
+- **A subject code that cannot be a filename stops the build**, named rather than
+  sanitised. A path assembled from source data is a path the Commission decides; publishing
+  a page under a name it never used would be worse than refusing.
+- **The two gates that cover the published page now cover the new page class too.**
+  `tests/test_accessibility.py` runs all nine conditions over the index, the
+  not-subject-coded page and three subject pages chosen by shape, with a breakage control
+  for every check, and records which checks have nothing to look at on which page class in
+  both directions rather than letting a `> 0` pass over a page that has no subject for it.
+  `tests/test_performance.py` gives the pages their own weight formula, held against the
+  heaviest page rather than the mean, because averaged over 323 pages one page that grew by
+  ten kilobytes would move the figure by thirty bytes.
 - **`make check-links`, and the difference between "checked and fine" and "never
   checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
   URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct

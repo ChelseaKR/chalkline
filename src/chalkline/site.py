@@ -357,7 +357,9 @@ renewal terms come from the Commission's own
 2026-08-07, where a leaflet's published title identifies the authorization and the leaflet
 page states the code and title the index gave it. The machine-readable output is
 <a href="credentials.jsonld">credentials.jsonld</a>, and the counted coverage statement is
-<a href="coverage.json">coverage.json</a>.</p>
+<a href="coverage.json">coverage.json</a>. The same alignments read the other way round, by
+subject rather than by credential, are at
+<a href="subjects/index.html">subjects</a>.</p>
 <p>Where a credential below says it has no description, no requirements, or no subject
 codes, that is the state of the published source and not an omission being smoothed over.
 Nothing on this page is composed by this project.</p>

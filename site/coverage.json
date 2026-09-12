@@ -34,6 +34,14 @@
     "ceterms:renewal": 12,
     "ceterms:subject": 67
   },
+  "subjects": {
+    "distinct_codes": 323,
+    "alignments": 1014,
+    "codes_with_more_than_one_published_name": 6,
+    "alignments_reached_by_cross_reference": 538,
+    "authorizations_published_as_not_subject_coded": 66,
+    "pages_published": 325
+  },
   "leaflets": {
     "rule": "a leaflet is attached only where one of the Commission's own published strings equals the authorization's: a title the leaflet index gives the leaflet, a title the leaflet page gives itself, or a document code the leaflet's title names, each after case and punctuation normalization and each also tried with one trailing parenthesised qualifier removed from the authorization's title; and its prose is read only where the leaflet page's own heading states the code it was asked for and a title that identified this authorization",
     "leaflets_in_the_commission_index": 81,

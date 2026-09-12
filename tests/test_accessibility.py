@@ -43,6 +43,7 @@ import pytest
 
 import chalkline.site
 from chalkline import ctid as ctid_module
+from chalkline import subjects as subjects_module
 from chalkline.attachment import Attachment
 from chalkline.model import Catalog
 from chalkline.site import render
@@ -395,6 +396,158 @@ BREAKAGES: Final = (
 """One deliberate break per check, applied to the real page. The point of the list is that
 every check in :data:`CHECKS` appears in it: a check nothing can break is a check that
 cannot fail, which is the failure mode this whole module exists to avoid."""
+
+
+SUBJECT_SAMPLE: Final = 3
+"""How many subject pages the parametrised checks run over, beyond the two fixed ones.
+
+Every subject page comes out of one renderer, so running all 323 through nine checks would
+be the same assertion 2,900 times. Three are sampled by shape rather than at random: the
+first code alphabetically, the code with the most authorizations on it, and one reached
+exactly once, which are the three the renderer's branches differ on. The index and the
+not-subject-coded page are always included, being their own renderers.
+"""
+
+
+def subject_pages(catalog: Catalog) -> dict[str, str]:
+    """The pages this gate covers, keyed by their path under ``site/``."""
+    rendered = subjects_module.pages(catalog)
+    grouped = subjects_module.group(catalog)
+    busiest = max(grouped, key=lambda subject: len(subject.reaches))
+    chosen = {grouped[0].code, busiest.code}
+    thinnest = min(
+        (subject for subject in grouped if subject.code not in chosen),
+        key=lambda subject: len(subject.reaches),
+    )
+    sampled = [grouped[0].filename, busiest.filename, thinnest.filename]
+    assert len(set(sampled)) == SUBJECT_SAMPLE, (
+        "the three sampled subject pages collapsed onto fewer than three files, so this "
+        "gate is covering less than it says"
+    )
+    wanted = {
+        subjects_module.INDEX_FILENAME,
+        subjects_module.NOT_SUBJECT_CODED_FILENAME,
+        *sampled,
+    }
+    return {name: rendered[name] for name in sorted(wanted)}
+
+
+@pytest.fixture(scope="module")
+def subject_page_set(real_catalog: Catalog) -> dict[str, str]:
+    return subject_pages(real_catalog)
+
+
+def test_the_gate_covers_more_than_one_subject_page(subject_page_set: dict[str, str]) -> None:
+    """The denominator. A sample that had shrunk to nothing would pass every check below."""
+    assert len(subject_page_set) == SUBJECT_SAMPLE + 2
+
+
+def test_every_subject_page_passes_every_check(subject_page_set: dict[str, str]) -> None:
+    """The pages published under site/subjects/ are held to the same nine conditions.
+
+    They arrived after this gate was written, on their own renderer and their own markup,
+    which is exactly how a new page class gets published outside the gate that covers the
+    old one.
+    """
+    for name, page in subject_page_set.items():
+        assert review(page).problems == [], name
+
+
+SUBJECT_EXPECTED: Final = {"lang": 1, "title": 1, "img-alt": 0, "zoom": 1, "contrast": 12}
+"""What each check must find on any subject page. Same reasoning as EXPECTED_SUBJECTS."""
+
+STRUCTURE_PRESENT: Final = {
+    "subjects/index.html": ("heading-order", "th-scope", "list-semantics", "scroll-focusable"),
+    "subjects/not-subject-coded.html": ("heading-order", "th-scope", "scroll-focusable"),
+}
+"""Which structural checks have something to look at on each of the two fixed pages.
+
+Both directions are asserted below, and that is the point of writing it out. The subject
+index carries a table, a marker-stripped list and a scrolling region; the not-subject-coded
+page carries a table in a scrolling region and no such list; a per-code page carries none of
+the three, because its content is headings and prose. A check that examined nothing reports
+exactly what a check that found nothing wrong reports, so a page class where a check has no
+subject says so here rather than being quietly waved through by a ``> 0`` that only ever
+ran on a page that had one.
+"""
+
+STRUCTURAL: Final = ("heading-order", "th-scope", "list-semantics", "scroll-focusable")
+
+
+def test_every_check_looked_at_something_on_a_subject_page(
+    subject_page_set: dict[str, str],
+) -> None:
+    for name, page in subject_page_set.items():
+        examined = review(page).examined
+        for code, count in SUBJECT_EXPECTED.items():
+            assert examined[code] == count, f"{name}: {code} examined {examined[code]}"
+        present = STRUCTURE_PRESENT.get(name, ("heading-order",))
+        for code in STRUCTURAL:
+            if code in present:
+                assert examined[code] > 0, f"{name}: {code} found nothing to check"
+            else:
+                assert examined[code] == 0, (
+                    f"{name}: {code} examined {examined[code]}, and this page class is "
+                    "recorded above as carrying nothing for it. Add it to STRUCTURE_PRESENT."
+                )
+
+
+def test_the_two_fixed_pages_are_the_ones_the_structure_table_names(
+    subject_page_set: dict[str, str],
+) -> None:
+    """A key that named no page would make its expectations unreachable."""
+    assert set(STRUCTURE_PRESENT) <= set(subject_page_set)
+
+
+SUBJECT_BREAKAGES: Final = (
+    ("lang", '<html lang="en">', "<html>"),
+    ("title", "<title>Subjects", "<title></title><s>Subjects"),
+    ("heading-order", "</h1>", "</h1><h4>Skipped</h4>"),
+    ("th-scope", '<th scope="col">Code</th>', "<th>Code</th>"),
+    ("list-semantics", '<ul class="counts" role="list">', '<ul class="counts">'),
+    ("scroll-focusable", ' tabindex="0"><table>', "><table>"),
+    ("scroll-focusable", ' aria-label="Subject codes"', ""),
+    ("img-alt", "<main>", '<main><img src="seal.png">'),
+    ("zoom", "initial-scale=1", "initial-scale=1, user-scalable=no"),
+)
+"""One deliberate break per check, applied to the real subject index.
+
+The index is the page that carries a table, a marker-stripped list and a scrolling region
+at once, so every check has something on it to break. A check with no breakage here would
+be a check that cannot fail on this page class, which is the failure this module exists to
+avoid and which a second page class is the easiest way to reintroduce.
+"""
+
+
+@pytest.mark.parametrize(
+    ("code", "original", "broken"), SUBJECT_BREAKAGES, ids=lambda v: str(v)[:28]
+)
+def test_each_check_rejects_a_subject_page_that_breaks_it(
+    subject_page_set: dict[str, str], code: str, original: str, broken: str
+) -> None:
+    page = subject_page_set[subjects_module.INDEX_FILENAME]
+    assert original in page, f"the subject index no longer contains {original!r}"
+    problems = review(page.replace(original, broken, 1)).problems
+    assert any(problem.startswith(f"{code}:") for problem in problems), (
+        f"{broken!r} did not make {code} fail; it reported {problems}"
+    )
+
+
+def test_every_check_is_covered_by_a_subject_breakage() -> None:
+    """The same rule the main page's list is held to, for the new page class.
+
+    ``contrast`` is proven by :func:`test_the_contrast_check_rejects_a_palette_it_should`
+    rather than by a breakage, exactly as it is for the main page: both page classes carry
+    the same inline stylesheet, so the palette is what that check reads and a per-page
+    breakage would be a second copy of the same fact.
+    """
+    codes = {check.code for check in CHECKS}
+    proven = {code for code, _, _ in SUBJECT_BREAKAGES} | {"contrast"}
+    assert sorted(codes - proven) == [], (
+        f"these checks have no subject-page breakage proving they can fail: "
+        f"{sorted(codes - proven)}"
+    )
+    assert sorted(proven - codes) == [], f"these breakages name no check: {sorted(proven - codes)}"
 
 
 @pytest.mark.parametrize(("code", "original", "broken"), BREAKAGES, ids=lambda v: str(v)[:28])

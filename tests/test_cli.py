@@ -12,13 +12,31 @@ from chalkline import cli
 from chalkline import ctid as ctid_module
 
 
-def test_build_writes_three_files(tmp_path: Path) -> None:
+def test_build_writes_the_three_top_level_artifacts(tmp_path: Path) -> None:
     assert cli.build(tmp_path) == 0
     assert sorted(p.name for p in tmp_path.iterdir()) == [
         "coverage.json",
         "credentials.jsonld",
         "index.html",
+        "subjects",
     ]
+
+
+def test_build_writes_the_subject_pages_into_their_own_directory(tmp_path: Path) -> None:
+    """The build writes a nested path, which it could not before.
+
+    Every other artifact sits at the top of ``site/``. Asserting the directory exists is
+    not enough: a writer that made the parent and wrote nothing into it would pass that,
+    and the pages are the artifact.
+    """
+    assert cli.build(tmp_path) == 0
+    written = sorted(p.name for p in (tmp_path / "subjects").iterdir())
+    assert "index.html" in written
+    assert "not-subject-coded.html" in written
+    catalog = cli._catalog()
+    codes = {scope.code for a in catalog.authorizations for scope in a.subjects}
+    assert {f"{code}.html" for code in codes} <= set(written)
+    assert len(written) == len(codes) + 2
 
 
 def test_the_committed_site_matches_a_fresh_build(capsys: pytest.CaptureFixture[str]) -> None:
