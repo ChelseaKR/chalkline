@@ -93,6 +93,16 @@ the status, final address and page title as a dated verdict in `data/link-verdic
 and writes nothing into `data/source/`. No verdict it records ever changes a URL this
 project publishes.
 
+That scan reads this project's own imports, and one dependency now needs saying out loud.
+`src/chalkline/ctdl/rdf.py` imports `pyld` to serialize the graph as RDF, and pyld installs a
+`requests`-backed document loader as its default at import time; left alone it would fetch
+the CTDL context from `credreg.net` and the published N-Quads would describe whatever that
+host served rather than the context vendored here. The module replaces that loader with one
+that serves `src/chalkline/ctdl/ctdl-context.json` for that single URL and refuses every
+other, installs it as pyld's global default as well as passing it on each call, and
+`tests/test_rdf.py` exercises the whole pipeline with `socket.socket.connect` replaced by a
+raise. No `credreg.net` request is made, and none of the RDF in `site/` was retrieved.
+
 The tests are hermetic: nothing under `tests/` imports a networking library either. CI is
 not, in two places, both deliberate. `make audit` queries the PyPI advisory API on every
 run of the merge gate. `scripts/verify_live_site.py`, which

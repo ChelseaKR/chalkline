@@ -6,8 +6,11 @@ page.
 
 **Browse it: <https://chelseakr.github.io/chalkline/>.** The page lists every modeled
 authorization with its subjects, sources and CTID, and
-[`credentials.jsonld`](https://chelseakr.github.io/chalkline/credentials.jsonld) and
-[`coverage.json`](https://chelseakr.github.io/chalkline/coverage.json) are served beside it.
+[`credentials.jsonld`](https://chelseakr.github.io/chalkline/credentials.jsonld),
+[`coverage.json`](https://chelseakr.github.io/chalkline/coverage.json) and the same graph as
+RDF -- [`credentials.nq`](https://chelseakr.github.io/chalkline/credentials.nq) and
+[`credentials.ttl`](https://chelseakr.github.io/chalkline/credentials.ttl) -- are served
+beside it.
 Read the notice below first: this is a demonstration, not a Commission publication.
 
 > **Unofficial.** Chalkline is not affiliated with, endorsed by, or published by the
@@ -29,9 +32,10 @@ educator credentials.
 uv sync
 uv run chalkline build   # write site/ from the vendored sources
 uv run chalkline check   # verify committed site/ matches a fresh build
-make verify               # the full local gate: lint, typecheck, tests, build check, CTDL
-                           # validation (this project's own, and the independent ctdl-validate),
-                           # dependency audit
+uv run chalkline export  # write the N-Quads and Turtle beside it
+make verify               # the full local gate: lint, typecheck, tests, build check, RDF
+                           # round-trip, CTDL validation (this project's own, and the
+                           # independent ctdl-validate), dependency audit
 ```
 
 Nothing above touches the network; see [Usage](#usage) below for the full command set and
@@ -68,6 +72,12 @@ graph, [`coverage.json`](site/coverage.json) is a coverage statement counted fro
 at build time, and [`index.html`](site/index.html) is the browsable page. All three are
 committed, and `chalkline check` fails if they are not byte-for-byte what the current code
 produces from the current sources.
+
+Three more files carry the same graph as RDF, written by `chalkline export` rather than by
+`build`: [`credentials.nq`](site/credentials.nq) is the URDNA2015 canonical N-Quads,
+[`credentials.ttl`](site/credentials.ttl) is Turtle, and [`rdf.json`](site/rdf.json) records
+the triple count, the count per predicate, and the two checks that ran to produce them.
+`make rdf` holds all three to a fresh run.
 
 ## The model, in one paragraph
 
@@ -189,6 +199,8 @@ leaflet, both of its titles, and why the near misses are still near misses.
 uv sync
 uv run chalkline build        # write site/ from the vendored sources
 uv run chalkline check        # verify committed site/ matches a fresh build
+uv run chalkline export       # write credentials.nq, credentials.ttl and rdf.json
+uv run chalkline export --format turtle   # print one serialization, write nothing
 uv run chalkline mint-ctids   # assign CTIDs to any authorization lacking one
 uv run chalkline authorizes --code R1E --document TC1 --subject BSS
 ```
@@ -253,8 +265,64 @@ the cross-reference chain, so from the graph alone an excluded authorization is
 indistinguishable from one that was never published. When the graph answers
 `unknown_authorization` it names `--from-sources` as the way to tell those apart.
 
+### The graph as RDF
+
+JSON-LD is only RDF once a processor has read it against a context, and SPARQL stores, SHACL
+engines and registry loaders want the RDF. `chalkline export` runs the committed
+`credentials.jsonld` through [`pyld`](https://github.com/digitalbazaar/pyld) `3.3.0`, a
+JSON-LD 1.1 processor this repository did not write, and writes 10,008 triples as
+`site/credentials.nq` and `site/credentials.ttl`, with `site/rdf.json` recording the counts
+and what was checked.
+
+Three things about it are worth knowing, because each replaced an assumption that turned out
+to be wrong when it was measured.
+
+**The N-Quads are canonical, not sorted.** 9,153 of the 10,008 triples name a blank node --
+every nested profile in this graph is anonymous -- so sorting would order the labels
+consistently within one run and produce different labels in the next. `export` writes the
+[URDNA2015](https://www.w3.org/TR/rdf-canon/) canonical form instead, which derives each
+blank node's label from its position in the graph. Two processes produce the same SHA-256.
+
+**The round-trip is compared as graphs, not as text.** Expanding the document and compacting
+it back differs from the original JSON on every entity in the graph, and always will:
+expansion
+lowercases `en-US` to `en-us` as the JSON-LD API requires, and compaction collapses
+single-element arrays. Both are the processor being right. So `export` compares the canonical
+quad sets before and after, which is what "the same graph" actually means.
+
+**A term the context does not define fails in two different ways, and only one is visible.**
+A bare key the context has never heard of is dropped on expansion, in silence. A *prefixed*
+one -- `ceterms:notARealProperty` -- is not dropped at all: the context declares `ceterms` as
+a prefix, so the processor resolves the compact IRI whether or not that term exists, and the
+triple count goes up rather than staying equal. A round-trip check alone would pass that. So
+`export` also checks every property key against the context directly, and refuses to write
+anything if one is missing. Classes are not checked there, because the vendored context
+declares 609 properties and no classes at all; `ceterms:License` is not a key in it. Classes
+are checked against the vendored *schema*, by this project's own validator, which requires
+every `@type` to be an `rdfs:Class` there.
+
+The top-level `comment` key is the one term allowed to be undeclared. The justification is
+measured rather than assumed: removing it leaves the canonical N-Quads byte-identical, so it
+carries no triple and hides nothing. A test asserts that, so the allowance cannot outlive its
+reason.
+
+`make rdf` fails when the committed serializations are not what a fresh export produces.
+
 Nothing above touches the network. No module under `src/chalkline/` imports a networking
-library at all, and `tests/test_provenance.py` asserts it. Exactly three scripts open a
+library at all, and `tests/test_provenance.py` asserts it.
+
+One qualification, added when `chalkline export` did: `src/chalkline/ctdl/rdf.py` imports a
+JSON-LD processor, `pyld`, and pyld installs a `requests`-backed document loader as its
+default the moment it is imported. Left alone that would fetch the CTDL context from
+`credreg.net`. So the module replaces it (with a loader that serves the vendored
+`ctdl-context.json` for that one URL and raises for every other, installed as pyld's global
+default as well as passed on every call), and `tests/test_rdf.py` runs the whole pipeline with
+`socket.socket.connect` replaced by a raise, so the claim is measured rather than asserted.
+The scan's own rule is unchanged and still true: this project's code imports no networking
+library. What it cannot see is what a dependency imports, and this is the one place that
+distinction matters.
+
+Exactly three scripts open a
 socket, and none of them is on the merge path: `scripts/fetch_sources.py`, below, which is
 run by hand; `scripts/verify_live_site.py`, which
 [`.github/workflows/live-integrity.yml`](.github/workflows/live-integrity.yml) runs

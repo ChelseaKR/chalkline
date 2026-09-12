@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Final
 
 import pytest
 
@@ -135,3 +136,105 @@ def test_main_dispatches_each_verb(tmp_path: Path) -> None:
 def test_main_requires_a_verb() -> None:
     with pytest.raises(SystemExit):
         cli.main([])
+
+
+# ------------------------------------------------------------------------------------------
+# `export`, over a small graph.
+#
+# Deliberately never over the committed one. Canonicalizing the real graph takes ~25 seconds,
+# and under coverage's tracer an export took over two minutes; `make rdf` does that comparison
+# outside coverage, and tests/test_rdf.py asserts that target is still in `make verify`.
+# ------------------------------------------------------------------------------------------
+
+_SMALL_GRAPH: Final = {
+    "@context": "https://credreg.net/ctdl/schema/context/json",
+    "@graph": [
+        {
+            "@id": "https://example.org/a",
+            "@type": "ceterms:License",
+            "ceterms:ctid": "ce-1",
+            "ceterms:name": {"en-US": "A"},
+        }
+    ],
+}
+
+
+@pytest.fixture
+def small_graph(tmp_path: Path) -> Path:
+    path = tmp_path / "credentials.jsonld"
+    path.write_text(json.dumps(_SMALL_GRAPH), encoding="utf-8")
+    return path
+
+
+def test_export_writes_three_files_and_then_checks_clean(
+    tmp_path: Path, small_graph: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "out"
+    argv = ["export", "--graph", str(small_graph), "--output-dir", str(out)]
+    assert cli.main(argv) == 0
+    assert "wrote 3 files" in capsys.readouterr().out
+    assert sorted(p.name for p in out.iterdir()) == [
+        "credentials.nq",
+        "credentials.ttl",
+        "rdf.json",
+    ]
+    assert cli.main([*argv, "--check"]) == 0
+    assert "matches a fresh export" in capsys.readouterr().out
+
+
+def test_export_check_fails_on_a_stale_file_and_names_it(
+    tmp_path: Path, small_graph: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out = tmp_path / "out"
+    argv = ["export", "--graph", str(small_graph), "--output-dir", str(out)]
+    assert cli.main(argv) == 0
+    (out / "credentials.ttl").write_text("edited by hand\n", encoding="utf-8")
+    assert cli.main([*argv, "--check"]) == 1
+    assert "credentials.ttl: differs from a fresh export" in capsys.readouterr().err
+
+
+def test_export_check_fails_when_a_file_is_missing_rather_than_passing_over_it(
+    tmp_path: Path, small_graph: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An absent file is a failure, not a skip: a check over nothing must not read as a pass."""
+    out = tmp_path / "out"
+    argv = ["export", "--graph", str(small_graph), "--output-dir", str(out)]
+    assert cli.main(argv) == 0
+    (out / "credentials.nq").unlink()
+    assert cli.main([*argv, "--check"]) == 1
+    assert "credentials.nq: missing" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(("fmt", "marker"), [("nquads", "<https://"), ("turtle", "@prefix")])
+def test_export_can_print_one_serialization_and_write_nothing(
+    tmp_path: Path, small_graph: Path, capsys: pytest.CaptureFixture[str], fmt: str, marker: str
+) -> None:
+    out = tmp_path / "out"
+    assert (
+        cli.main(["export", "--graph", str(small_graph), "--output-dir", str(out), "--format", fmt])
+        == 0
+    )
+    assert marker in capsys.readouterr().out
+    assert not out.exists()
+
+
+def test_export_refuses_a_graph_it_cannot_read(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "nope.jsonld"
+    assert cli.main(["export", "--graph", str(missing), "--output-dir", str(tmp_path)]) == 2
+    assert "cannot read" in capsys.readouterr().err
+
+
+def test_export_refuses_a_graph_using_a_term_the_context_never_defined(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """And writes nothing: an artifact missing a triple is what the verb exists to catch."""
+    path = tmp_path / "credentials.jsonld"
+    bad = json.loads(json.dumps(_SMALL_GRAPH))
+    bad["@graph"][0]["ceterms:notARealTerm"] = "x"
+    path.write_text(json.dumps(bad), encoding="utf-8")
+    out = tmp_path / "out"
+    assert cli.main(["export", "--graph", str(path), "--output-dir", str(out)]) == 1
+    assert "ceterms:notARealTerm" in capsys.readouterr().err
+    assert not out.exists()

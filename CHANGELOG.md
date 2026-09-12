@@ -40,6 +40,47 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`chalkline export`, and the graph as RDF.** `credentials.jsonld` is JSON-LD, and
+  JSON-LD is only RDF once a processor has read it against a context. The verb runs the
+  committed graph through `pyld` 3.3.0 -- a JSON-LD 1.1 processor written elsewhere, on the
+  same reasoning that brought in `ctdl-validate` -- and writes 10,008 triples as
+  `site/credentials.nq` and `site/credentials.ttl`, with `site/rdf.json` recording the
+  triple count, the count per predicate, and which checks ran. `make rdf` fails when those
+  three are not what a fresh export produces.
+- **Offline, and measured rather than asserted.** pyld installs a `requests`-backed document
+  loader as its default at import time, so left alone the serialization would describe
+  whatever `credreg.net` served that minute. The module replaces it with a loader that
+  serves the vendored context for that one URL and refuses every other, installed globally as
+  well as passed per call, and `tests/test_rdf.py` runs the whole pipeline with
+  `socket.socket.connect` replaced by a raise. README.md and PROVENANCE.md both say so: the
+  scan that asserts no module here imports a networking library still passes and is still
+  true, and what it cannot see is what a dependency imports.
+- **Canonical, not sorted.** 9,153 of the 10,008 triples name a blank node, so sorted output
+  would be stably *ordered* and not stable. The N-Quads are the URDNA2015 canonical form,
+  which derives each blank node's label from the graph. Measured: the same SHA-256 under two
+  `PYTHONHASHSEED` values. The Turtle is written here rather than by rdflib for the same
+  reason -- rdflib inlines blank nodes in dictionary order, and the same graph under two hash
+  seeds gave the same byte length and two different digests. rdflib is a test-only dependency
+  and is used as the independent parser that says the Turtle denotes the same graph.
+- **The round-trip is a comparison of graphs, not of JSON.** Expanding and re-compacting the
+  document differs textually on all 134 entities and always will: expansion lowercases
+  `en-US` to `en-us` as the JSON-LD API requires, and compaction collapses single-element
+  arrays. The check compares canonical quad sets instead, which is what "the same graph"
+  means.
+- **Both shapes of undeclared term, including the one expansion cannot see.** A bare key the
+  context does not define is dropped on expansion in silence. A prefixed one --
+  `ceterms:notARealProperty` -- is not dropped: the context declares `ceterms` as a prefix,
+  so the processor resolves the compact IRI whether or not the term exists, and the triple
+  count rises. A round-trip gate alone passes that. Property keys are checked against the
+  context directly, `export` refuses to write anything when one is missing, and there is a
+  control test for each shape. Classes are not checked there, because the vendored context
+  declares 609 properties and no classes at all; they are checked against the vendored
+  schema, where they always were.
+- **One reviewed allowance, with its reason attached.** The top-level `comment` key is
+  undeclared on purpose. Removing it leaves the canonical N-Quads byte-identical, so it
+  carries no triple, and a test asserts exactly that -- the allowance cannot outlive its
+  reason.
+
 - **`make check-links`, and the difference between "checked and fine" and "never
   checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
   URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct

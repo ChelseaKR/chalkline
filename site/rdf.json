@@ -1,0 +1,59 @@
+{
+  "algorithm": "URDNA2015",
+  "context": "https://credreg.net/ctdl/schema/context/json",
+  "triples": 10008,
+  "triples_naming_a_blank_node": 9153,
+  "distinct_subjects": 1775,
+  "predicates": {
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": 1775,
+    "https://purl.org/ctdl/terms/address": 1,
+    "https://purl.org/ctdl/terms/addressCountry": 134,
+    "https://purl.org/ctdl/terms/addressLocality": 1,
+    "https://purl.org/ctdl/terms/addressRegion": 134,
+    "https://purl.org/ctdl/terms/codedNotation": 1014,
+    "https://purl.org/ctdl/terms/condition": 234,
+    "https://purl.org/ctdl/terms/ctid": 134,
+    "https://purl.org/ctdl/terms/description": 186,
+    "https://purl.org/ctdl/terms/framework": 1014,
+    "https://purl.org/ctdl/terms/frameworkName": 1014,
+    "https://purl.org/ctdl/terms/identifier": 303,
+    "https://purl.org/ctdl/terms/identifierTypeName": 303,
+    "https://purl.org/ctdl/terms/identifierValueCode": 303,
+    "https://purl.org/ctdl/terms/inLanguage": 133,
+    "https://purl.org/ctdl/terms/mainJurisdiction": 133,
+    "https://purl.org/ctdl/terms/name": 324,
+    "https://purl.org/ctdl/terms/ownedBy": 133,
+    "https://purl.org/ctdl/terms/postalCode": 1,
+    "https://purl.org/ctdl/terms/regulatedIn": 133,
+    "https://purl.org/ctdl/terms/renewal": 23,
+    "https://purl.org/ctdl/terms/requires": 34,
+    "https://purl.org/ctdl/terms/streetAddress": 1,
+    "https://purl.org/ctdl/terms/subject": 1014,
+    "https://purl.org/ctdl/terms/subjectWebpage": 191,
+    "https://purl.org/ctdl/terms/targetNodeDescription": 324,
+    "https://purl.org/ctdl/terms/targetNodeName": 1014
+  },
+  "round_trip": {
+    "checked": true,
+    "basis": "URDNA2015 quad sets, not JSON text",
+    "equivalent": true,
+    "difference": null
+  },
+  "undeclared_terms": {
+    "checked": true,
+    "found": [],
+    "allowed_by_review": {
+      "comment": "prose addressed to a human reader of the JSON, deliberately outside the context and therefore outside the RDF; removing it leaves the canonical N-Quads byte-identical"
+    }
+  },
+  "files": {
+    "credentials.nq": {
+      "bytes": 1260582,
+      "sha256": "ed7d9086b53732d6f75e436b4ae6f94b76a87cb4db26af20e5726d0a06d31f38"
+    },
+    "credentials.ttl": {
+      "bytes": 718704,
+      "sha256": "aa7bbc4035095823a8798088e1184bb34398b717c1ffe9f5c813339b645b7a91"
+    }
+  }
+}

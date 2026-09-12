@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check validate audit no-dashes verify live-check check-links clean
+.PHONY: install lock lock-check lint format typecheck test build check rdf validate audit no-dashes verify live-check check-links clean
 
 install:
 	$(UV) sync --locked
@@ -80,6 +80,19 @@ build:
 check:
 	$(UVRUN) chalkline check
 
+# The RDF beside the JSON-LD, and the round-trip that says the graph survives being read as
+# RDF. `check` proves site/ is what this code produces from the sources; this proves the
+# N-Quads and Turtle beside it are what the same graph means to a JSON-LD 1.1 processor this
+# repository did not write. It is a separate verb, and a separate target, because serializing
+# RDF needs that processor and this project's runtime dependency list is empty: `build` has to
+# keep working for anyone who installed the package.
+#
+# Offline. The processor's own default document loader would fetch the CTDL context from
+# credreg.net; src/chalkline/ctdl/rdf.py replaces it with one that serves the vendored context
+# and refuses every other URL, and tests/test_rdf.py measures that with the network removed.
+rdf:
+	$(UVRUN) chalkline export --check
+
 # A second opinion on the published graph, from an implementation this repository did not
 # write. `chalkline check` says the bytes are what this code produces; this says those bytes
 # also satisfy a checker built from the same specification by other means. The two tools
@@ -129,12 +142,12 @@ audit:
 # lock-check runs first on purpose. Every later target would otherwise be the thing that
 # repaired the lockfile it was supposed to be checked against.
 #
-# `validate` runs after `check`, and the order is the point: `check` proves site/ is what the
+# `rdf` and `validate` both run after `check`, and the order is the point: `check` proves site/ is what the
 # code produces, and only then is validating those committed bytes a statement about this
 # build rather than about whatever was last committed. `audit` runs last because it is the
 # one target here that reaches the network; everything before it is decided from the
 # committed tree alone.
-verify: lock-check lint no-dashes typecheck test check validate audit
+verify: lock-check lint no-dashes typecheck test check rdf validate audit
 	@echo "verify: ok"
 
 # The deployment sentinel, by hand. `verify` grades this checkout; this grades the origin
