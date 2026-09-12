@@ -48,3 +48,12 @@ No em dashes; `make no-dashes` is part of `make verify` and fails on one. Files 
 they are transcribed or produced rather than written. Do not characterize the Commission as
 deficient; the framing throughout is that no machine-readable representation exists yet and
 this is what one could look like.
+
+## Commercial solicitation
+
+Issues here are not open to bids. They are design records, written so a decision is
+reconstructable later, rather than scope documents for outside quoting. Unsolicited offers to
+implement one for a fee will be declined.
+
+Contributions through the normal fork-and-PR process are welcome, and `good first issue` is the
+place to start.
