@@ -192,6 +192,209 @@ def test_a_redirect_is_annotated_and_never_rewritten(document: dict[str, Any]) -
     assert url in links.commission_urls(document)
 
 
+# --- the note is about what was observed, not about the file it is written in --
+#
+# `Verdicts.checked` is the date the file was written. `scripts/check_links.py`
+# writes it on every run and carries forward every verdict younger than
+# EXPIRY_DAYS, so a second quarterly run inside the expiry requests nothing and
+# restamps the file with the day it ran. Reading the note off that stamp turned a
+# run that made zero requests into "A link check run on <today> requested each
+# distinct Commission URL once. It observed 14 reachable." Both halves of that
+# sentence are pinned below.
+
+
+def _carried_forward(document: dict[str, Any], observed: str, written: str) -> links.Verdicts:
+    """A file written on ``written`` whose every row was observed on ``observed``."""
+    return links.Verdicts(
+        checked=written,
+        entries=tuple(
+            links.Verdict(
+                url=url,
+                verdict=links.ALIVE,
+                checked=observed,
+                status=200,
+                final_url=url,
+                title=None,
+            )
+            for url in links.commission_urls(document)
+        ),
+    )
+
+
+def test_the_note_dates_the_observations_and_not_the_file_they_were_written_in(
+    document: dict[str, Any],
+) -> None:
+    """The re-run that requests nothing. It must not read as a check made today."""
+    verdicts = _carried_forward(document, observed="2026-07-01", written="2026-09-08")
+    note = links.page_note(document, verdicts)
+    assert "2026-07-01" in note
+    assert "2026-09-08" not in note, (
+        "the note dated fourteen observations to the day the file was rewritten, on a "
+        f"run that requested nothing: {note}"
+    )
+
+
+def test_the_observation_window_is_read_from_the_rows_rather_than_the_stamp(
+    document: dict[str, Any],
+) -> None:
+    """The window is a fact about the rows, and the stamp is not one of them."""
+    verdicts = _carried_forward(document, observed="2026-07-01", written="2026-09-08")
+    covered = links.coverage_of(document, verdicts)
+    assert (covered.first, covered.last) == ("2026-07-01", "2026-07-01")
+    assert covered.one_day is True
+    assert covered.covered == covered.published == len(links.commission_urls(document))
+    assert covered.uncovered == 0
+
+
+def test_observations_spread_over_several_days_are_reported_as_a_window(
+    document: dict[str, Any],
+) -> None:
+    """The ordinary state of a carried-forward file: some rows old, some new."""
+    fresh = _carried_forward(document, observed="2026-09-08", written="2026-09-08")
+    mixed = links.Verdicts(
+        checked="2026-09-08",
+        entries=(
+            links.Verdict(
+                url=fresh.entries[0].url,
+                verdict=links.ALIVE,
+                checked="2026-06-20",
+                status=200,
+                final_url=fresh.entries[0].url,
+                title=None,
+            ),
+            *fresh.entries[1:],
+        ),
+    )
+    covered = links.coverage_of(document, mixed)
+    assert (covered.first, covered.last) == ("2026-06-20", "2026-09-08")
+    assert covered.one_day is False
+    note = links.page_note(document, mixed)
+    assert "between 2026-06-20 and 2026-09-08" in note
+    assert "not the date the file was written" in note
+
+
+def test_the_single_day_form_survives_when_every_observation_shares_a_date(
+    document: dict[str, Any],
+) -> None:
+    """Positive control: the window form must not be unconditional.
+
+    Without this, a note that always said "between X and X" would satisfy every
+    assertion above while being worse prose than what it replaced.
+    """
+    note = links.page_note(document, _verdicts(document))
+    assert note.startswith("A link check run on 2026-09-06 requested")
+    assert "between" not in note
+
+
+def test_a_published_url_no_observation_covers_is_named_in_the_note(
+    document: dict[str, Any],
+) -> None:
+    """`summary` has counted this since the module was written. The note did not.
+
+    A URL the graph gained after the last check has no verdict, so it contributes
+    to none of the five counts. Leaving it out of the sentence published thirteen
+    observations under a claim that each of fourteen URLs had been requested.
+    """
+    full = _verdicts(document)
+    short = links.Verdicts(checked=full.checked, entries=full.entries[1:])
+    published = len(links.commission_urls(document))
+    note = links.page_note(document, short)
+    assert f"requested {published - 1} of the {published}" in note
+    assert f"1 of the {published}" in note
+    assert "have not been requested by this project" in note
+    assert links.summary(document, short)["urls_without_a_verdict"] == 1
+
+
+def test_a_complete_run_says_nothing_about_urls_it_did_not_request(
+    document: dict[str, Any],
+) -> None:
+    """The other side of it: the clause is conditional, not decoration."""
+    assert "have not been requested by this project" not in links.page_note(
+        document, _verdicts(document)
+    )
+
+
+def test_a_verdict_file_about_urls_this_graph_no_longer_publishes_covers_nothing(
+    document: dict[str, Any],
+) -> None:
+    """Zero covered rows must not render as a run that found nothing wrong.
+
+    This is the module's own no-file rule one level down: counts of zero across
+    five verdicts read as a clean bill of health, and the true statement is that
+    nothing here is about the addresses the graph publishes now.
+    """
+    orphaned = links.Verdicts(
+        checked="2026-09-06",
+        entries=(
+            links.Verdict(
+                url="https://www.ctc.ca.gov/gone/",
+                verdict=links.ALIVE,
+                checked="2026-09-06",
+                status=200,
+                final_url=None,
+                title=None,
+            ),
+        ),
+    )
+    covered = links.coverage_of(document, orphaned)
+    assert covered.covered == 0 and covered.first is None and covered.one_day is False
+    note = links.page_note(document, orphaned)
+    assert "none of it is about" in note
+    assert "not the same statement as every link working" in note
+    assert "reachable" not in note, f"a run covering nothing counted something: {note}"
+
+
+def test_the_coverage_window_reaches_coverage_json(document: dict[str, Any]) -> None:
+    """A reader of the artifact gets the observation dates, not only the stamp."""
+    block = links.summary(document, _carried_forward(document, "2026-07-01", "2026-09-08"))
+    assert block["checked"] == "2026-09-08"
+    assert block["observed_first"] == "2026-07-01"
+    assert block["observed_last"] == "2026-07-01"
+
+
+def test_every_note_shape_is_about_the_run_and_not_about_the_commission(
+    document: dict[str, Any],
+) -> None:
+    """The rule at the top of this file, applied to the branches added since.
+
+    `test_every_sentence_is_about_the_run_and_not_about_the_commission` covers the
+    no-file and one-day shapes. A new shape that quietly made a claim about the
+    Commission would pass it by never being rendered.
+    """
+    url = links.commission_urls(document)[0]
+    full = _verdicts(document, **{url: links.UNREACHABLE})
+    shapes = (
+        _carried_forward(document, "2026-07-01", "2026-09-08"),
+        links.Verdicts(checked=full.checked, entries=full.entries[1:]),
+        links.Verdicts(
+            checked="2026-09-06",
+            entries=(
+                links.Verdict(
+                    url="https://www.ctc.ca.gov/gone/",
+                    verdict=links.UNREACHABLE,
+                    checked="2026-09-06",
+                    status=404,
+                    final_url=None,
+                    title=None,
+                ),
+            ),
+        ),
+    )
+    for verdicts in shapes:
+        note = links.page_note(document, verdicts)
+        lowered = note.lower()
+        for forbidden in (
+            "the page is gone",
+            "no longer exists",
+            "the commission removed",
+            "broken link",
+            "dead link",
+            "404",
+        ):
+            assert forbidden not in lowered, f"{forbidden!r} is a claim about the Commission"
+        assert "this project" in lowered or "run" in lowered
+
+
 # --- the graph does not move -----------------------------------------------
 
 
@@ -336,3 +539,132 @@ def test_the_reader_opens_no_socket_and_the_checker_does() -> None:
     checker = (REPO_ROOT / "scripts" / "check_links.py").read_text(encoding="utf-8")
     assert networking_imports(reader) == []
     assert connection_imports(checker) != []
+
+
+# --- a date that has not happened is not a fresh observation -----------------
+#
+# The file is a cache keyed on age, and an age has three answers rather than
+# two: inside the expiry, past it, and not usable as an age at all. A row dated
+# after the run that wrote it gives a negative age, which is inside every expiry
+# there will ever be -- so such a row is carried forward by every later run for
+# good, never re-requested, while `page_note` goes on describing the file as a
+# run that observed those URLs. Both halves of the guard are pinned here: the
+# clock-free one in `links.parse`, and the one only a later, correct clock can
+# make, in the checker.
+
+
+def _document_with_one_row(observed: str, written: str) -> dict[str, Any]:
+    return {
+        "checked": written,
+        "verdicts": [
+            {
+                "url": f"{links.COMMISSION_ORIGIN}/credentials/",
+                "verdict": links.ALIVE,
+                "checked": observed,
+                "status": 200,
+                "final_url": f"{links.COMMISSION_ORIGIN}/credentials/",
+                "title": None,
+            }
+        ],
+    }
+
+
+def test_a_row_dated_after_the_file_it_is_in_is_refused() -> None:
+    with pytest.raises(links.VerdictError) as caught:
+        links.parse(_document_with_one_row(observed="2026-09-09", written="2026-09-08"))
+    assert "2026-09-09" in str(caught.value)
+    assert "2026-09-08" in str(caught.value)
+
+
+def test_a_row_dated_on_or_before_the_file_is_accepted() -> None:
+    """The positive half. A refusal that fires on every input proves nothing.
+
+    Both are the ordinary states: a row written by the run itself carries the
+    run's own date, and a carried-forward row is older.
+    """
+    same_day = links.parse(_document_with_one_row(observed="2026-09-08", written="2026-09-08"))
+    assert same_day.entries[0].checked == "2026-09-08"
+    carried = links.parse(_document_with_one_row(observed="2026-07-01", written="2026-09-08"))
+    assert carried.entries[0].checked == "2026-07-01"
+
+
+def test_the_checker_re_requests_a_row_dated_after_today() -> None:
+    """`_stale` over the shipped script, not over a copy of its arithmetic.
+
+    A whole file written under a clock that was ahead is internally consistent,
+    so `parse` cannot see it; only a later run with a correct clock can, and
+    this is the check that makes it.
+    """
+    import importlib.util
+    from datetime import date, timedelta
+
+    path = REPO_ROOT / "scripts" / "check_links.py"
+    spec = importlib.util.spec_from_file_location("chalkline_check_links_under_test", path)
+    assert spec is not None and spec.loader is not None
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+
+    today = date(2026, 9, 8)
+
+    def row(checked: date) -> links.Verdict:
+        return links.Verdict(
+            url=f"{links.COMMISSION_ORIGIN}/credentials/",
+            verdict=links.ALIVE,
+            checked=checked.isoformat(),
+            status=200,
+            final_url=f"{links.COMMISSION_ORIGIN}/credentials/",
+            title=None,
+        )
+
+    expiry = checker.EXPIRY_DAYS
+    assert expiry > 1, "the fresh and expired fixtures below need room between them"
+    # The three states, over one fixture, so the first assertion means something.
+    assert checker._stale(row(today + timedelta(days=1)), today) is True
+    assert checker._stale(row(today - timedelta(days=1)), today) is False
+    assert checker._stale(row(today - timedelta(days=expiry)), today) is True
+    assert checker._stale(None, today) is True
+
+    # ...and the re-request says which of the two reasons caused it. An
+    # unexplained extra request is indistinguishable from an expired one, and
+    # the thing to fix (a clock, or the row) is named by neither.
+    reason = checker._unusable_date(row(today + timedelta(days=1)), today)
+    assert "2026-09-09" in reason
+    assert "2026-09-08" in reason
+    assert "clock" in reason
+    # Quiet on every row whose date can be read as an age, expired or not.
+    assert checker._unusable_date(row(today), today) == ""
+    assert checker._unusable_date(row(today - timedelta(days=expiry)), today) == ""
+    assert checker._unusable_date(None, today) == ""
+
+
+def test_a_refused_row_names_the_file_it_is_in(tmp_path: Path) -> None:
+    """A build that stops has to say which file to open, not only which row.
+
+    `parse` is handed a document and has no path to name. `load` has one, and
+    a reader who has to find the module before they can find the file is the
+    failure this repository keeps writing down about its own gates.
+    """
+    path = tmp_path / "link-verdicts.json"
+    path.write_text(
+        json.dumps(_document_with_one_row(observed="2026-09-09", written="2026-09-08")),
+        encoding="utf-8",
+    )
+    with pytest.raises(links.VerdictError) as caught:
+        links.load(path)
+    message = str(caught.value)
+    assert str(path) in message, "the file"
+    assert f"{links.COMMISSION_ORIGIN}/credentials/" in message, "the row"
+    assert "2026-09-09" in message and "2026-09-08" in message, "both dates"
+
+
+def test_a_good_file_still_loads_from_a_path(tmp_path: Path) -> None:
+    """The positive half: `load` did not become a function that only refuses."""
+    path = tmp_path / "link-verdicts.json"
+    path.write_text(
+        json.dumps(_document_with_one_row(observed="2026-07-01", written="2026-09-08")),
+        encoding="utf-8",
+    )
+    loaded = links.load(path)
+    assert loaded is not None
+    assert loaded.checked == "2026-09-08"
+    assert loaded.entries[0].checked == "2026-07-01"

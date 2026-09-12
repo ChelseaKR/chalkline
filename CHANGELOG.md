@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **A verdict dated in the future could never expire.** The verdict file is a cache keyed
+  on age, and `_stale` asked two questions of that age when there are three: inside the
+  eighty-day expiry, past it, and not usable as an age at all. A row dated after the run
+  that read it gives a negative age, which is inside every expiry there will ever be, so
+  one run on a machine whose clock was ahead would have frozen that URL's verdict for
+  good, carried forward by every later run and never requested again, while `page_note`
+  went on describing the file as a run that observed it. Two guards now, at the two places
+  each is possible: `links.parse` refuses a row dated after the file's own `checked`
+  stamp, which needs no clock and so cannot make a build depend on the day it runs; and
+  `_stale` re-requests a row dated after today, which is the only way a file written
+  entirely under a wrong clock can be caught. Latent rather than live: no
+  `data/link-verdicts.json` has ever been committed, so today `coverage.json` publishes
+  `state: not_checked` over 14 distinct URLs, 0 of which have ever been requested.
+
+- **A link check that requested nothing published as a link check of everything.**
+  `Verdicts.checked` is the date the verdict *file* was written, and
+  `scripts/check_links.py` rewrites it on every run while carrying every verdict younger
+  than its eighty-day expiry forward unchanged. The published sentence was built from that
+  stamp, so a second quarterly run inside the expiry, which issues zero requests, read
+  "A link check run on `<today>` requested each distinct Commission URL once. It observed
+  14 reachable". Measured on the committed graph before the fix. The window now comes from
+  the rows, which each carry the date they were recorded, and a file whose observations
+  span several days says so and says why.
+- **A URL the graph publishes and no observation covers is now named on the page.**
+  `coverage.json` has counted `urls_without_a_verdict` since the module was written; the
+  sentence a reader actually gets left it out, so thirteen observations were published
+  under a claim that each of fourteen URLs had been requested. The note now states its own
+  coverage, and a verdict file covering none of the addresses the graph publishes today
+  refuses to render counts at all rather than reading as five zeroes.
+
 ### Added
 
 - **`site/subjects/`, the inverse view: which credentials authorize a subject.** The

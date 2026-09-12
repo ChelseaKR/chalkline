@@ -150,9 +150,50 @@ def check(url: str, today: str) -> links_module.Verdict:
 
 
 def _stale(entry: links_module.Verdict | None, today: date) -> bool:
+    """Whether this URL has to be requested again, in three states rather than two.
+
+    Within the expiry, past it, and **not usable as an age at all**. The third
+    is the one that hides: a row dated after ``today`` gives a negative age, and
+    a negative age is inside every expiry there will ever be, so a verdict
+    written by a run on a machine whose clock was ahead would be carried
+    forward by every later run for good, never re-requested, while
+    ``links.page_note`` goes on describing the file as a run that observed
+    those URLs. This module's own docstring calls the verdict file a cache; a
+    cache entry that can never expire is the failure that idea has.
+
+    ``chalkline.links.parse`` refuses a row dated after the *file's own stamp*,
+    which is the clock-free half of the same rule and catches a hand-edit. This
+    is the other half: a run whose whole file was written under a wrong clock
+    is internally consistent, and only a later run with a correct one can see
+    it.
+    """
     if entry is None:
         return True
-    return date.fromisoformat(entry.checked) <= today - timedelta(days=EXPIRY_DAYS)
+    recorded = date.fromisoformat(entry.checked)
+    if recorded > today:
+        return True
+    return recorded <= today - timedelta(days=EXPIRY_DAYS)
+
+
+def _unusable_date(entry: links_module.Verdict | None, today: date) -> str:
+    """Why this row's date could not be read as an age, or ``""`` when it could.
+
+    Said out loud on the run's own output, beside the request it causes. A row
+    re-requested for this reason looks exactly like an expired one from the
+    outside, and an operator who cannot tell them apart cannot go and fix the
+    clock or the row that produced it. Names the row, the date and the file the
+    caller passes.
+    """
+    if entry is None:
+        return ""
+    recorded = date.fromisoformat(entry.checked)
+    if recorded <= today:
+        return ""
+    return (
+        f"its recorded date {entry.checked} is after today ({today.isoformat()}), "
+        f"so its age is negative and no expiry can ever reach it; re-requesting. "
+        f"Check the clock on the machine that wrote it."
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -186,6 +227,9 @@ def main(argv: list[str] | None = None) -> int:
             entries.append(previous)
             print(f"  kept  {previous.verdict:<20} {url} (checked {previous.checked})")
             continue
+        unusable = _unusable_date(previous, today)
+        if unusable:
+            print(f"  {args.output}: {url}: {unusable}", file=sys.stderr)
         if requested:
             time.sleep(PAUSE_SECONDS)
         entry = check(url, stamp)
