@@ -42,10 +42,6 @@ from typing import Final
 import pytest
 
 import chalkline.site
-from chalkline import ctid as ctid_module
-from chalkline.attachment import Attachment
-from chalkline.model import Catalog
-from chalkline.site import render
 
 
 def stylesheet() -> str:
@@ -337,9 +333,13 @@ def review(page: str) -> Report:
 
 
 @pytest.fixture(scope="module")
-def page(real_catalog: Catalog, real_attachments: dict[str, Attachment]) -> str:
-    """The page as `chalkline build` writes it, from the vendored sources."""
-    return render(real_catalog, ctid_module.load_ledger(), real_attachments)
+def page(built_artifacts: dict[str, str]) -> str:
+    """The page as `chalkline build` writes it, from the vendored sources.
+
+    Taken from the build rather than re-rendered, so every check here walks the page that is
+    actually served, dataset descriptor included.
+    """
+    return built_artifacts["index.html"]
 
 
 def test_the_published_page_passes_every_check(page: str) -> None:

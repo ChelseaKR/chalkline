@@ -40,6 +40,53 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`site/dataset.jsonld`, a dataset descriptor for the three published artifacts.** The
+  artifacts were findable only by reading the README. Dataset search engines and open-data
+  catalogs harvest schema.org from a page's head and DCAT from a descriptor, so the
+  descriptor is written to `site/` and embedded verbatim in `index.html`'s head. Each of
+  `credentials.jsonld`, `coverage.json` and `ctdl-validate.json` gets a distribution
+  carrying its byte size and its sha256, measured from the bytes at build time.
+- **One node, both vocabularies, so the two cannot disagree.** The descriptor is typed as
+  both `schema:Dataset` and `dcat:Dataset` and carries both vocabularies' properties on the
+  same subject, with DCAT reaching the distributions by `@id` reference rather than as a
+  second copy. Two parallel descriptions of one dataset would be two things that can drift
+  with nothing to say which one a harvester believed; a test asserts the correspondence
+  property by property.
+- **The `description` is the unofficial notice in full.** A catalog card is the one surface
+  where a stranger meets this project with no page around it, and a card that read as an
+  official California credential dataset is the worst outcome this project can produce.
+- **`dateModified` is the Commission's retrieval date, never a build clock.** A test walks
+  the whole document and fails on anything shaped like a timestamp, and on any number that
+  is not a byte size: counts live in `coverage.json`, counted from the graph, and a third
+  copy that nothing derives is a figure that goes stale in silence.
+- **A descriptor cannot describe fewer artifacts than the site publishes.** Two
+  distributions where three files are served is the failure with no symptom: the document
+  is well-formed, the digests it does carry are correct, and `chalkline check` holds it to a
+  fresh build that also describes two. `dataset.descriptor` refuses a missing artifact and
+  `cli._evidence_text` refuses a missing `ctdl-validate.json`.
+
+### Changed
+
+- **The self-containment gate refuses `<script>` by `type` instead of outright.** `script`
+  was denied without qualification on the reasoning that an inline script still means the
+  page runs code. That is right about JavaScript and wrong about one case: HTML defines a
+  `script` whose `type` is not a JavaScript MIME type as an inert **data block**, which is
+  how a page carries structured data. The exemption is now named, in the same
+  deny-by-default shape `link` and `rel` already used: `application/ld+json` only, no `src`
+  at any type, and no bare, empty, `module` or parameterised type. Eight refusal shapes are
+  asserted directly rather than inferred from the real page carrying none of them.
+- **The page's fixed-overhead budget is raised from 12,000 to 20,000 bytes**, deliberately
+  and with the measurement in the test's docstring. The embedded descriptor is 6,072 bytes,
+  2.3% of the page, and it is fixed overhead by definition because it does not grow when the
+  Commission publishes more rows. 20,000 against a measured 14,992 keeps the 1.33x headroom
+  the original budget's reasoning chose, rather than being raised to whatever the page now
+  weighs, which is the failure that budget's docstring warns about.
+- **The accessibility and performance gates now walk the built page, not a re-rendered
+  one.** Both fixtures rendered the page from `site.render` with the arguments the test
+  happened to have, which produced a page that was nearly the published one. The difference
+  was silent and is exactly the kind that matters: the descriptor is supplied by
+  `cli._artifacts`, so both gates would have measured a page 6 KB lighter than the file
+  actually served.
 - **`make check-links`, and the difference between "checked and fine" and "never
   checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
   URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct

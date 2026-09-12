@@ -302,13 +302,49 @@ def _exclusions_table(catalog: Catalog) -> str:
     )
 
 
+def _dataset_block(dataset_jsonld: str) -> str:
+    """The dataset descriptor, embedded verbatim, so a harvester reads it without a fetch.
+
+    Byte-for-byte the same document as ``site/dataset.jsonld``. Not a summary of it and not
+    a second rendering of the same facts: a harvester and a downloader are shown one
+    statement, and ``tests/test_dataset.py`` asserts the embedded copy is the file.
+
+    ``<script type="application/ld+json">`` is a *data block*, not code. HTML defines a
+    ``script`` element whose type is not a JavaScript MIME type as never evaluated, so the
+    page's "runs nothing" claim survives this, but only exactly, and only for this type.
+    ``tests/test_performance.py`` therefore keeps refusing ``script`` by default and admits
+    it by ``type`` against a named list, the same deny-by-default shape it already uses for
+    ``link`` and ``rel``.
+
+    The one thing that would end a data block early is the literal ``</script``, which the
+    parser looks for without decoding entities. Nothing can be escaped away inside a data
+    block, so a ``<`` anywhere in the descriptor is refused here rather than encoded: the
+    document is URLs, digests and prose, and a ``<`` appearing in it would mean something
+    changed that this reasoning has not been re-checked against.
+    """
+    if "<" in dataset_jsonld:
+        raise ValueError(
+            "the dataset descriptor contains '<', which cannot be escaped inside an "
+            "application/ld+json data block without changing the bytes away from "
+            "site/dataset.jsonld; re-check what introduced it"
+        )
+    return f'<script type="application/ld+json">{dataset_jsonld}</script>'
+
+
 def render(
     catalog: Catalog,
     ctids: Mapping[str, str],
     attachments: Mapping[str, Attachment],
     link_note: str = links_module.NOT_CHECKED_NOTE,
+    dataset_jsonld: str = "",
 ) -> str:
-    """The whole page, as one HTML document."""
+    """The whole page, as one HTML document.
+
+    *dataset_jsonld* is the serialized dataset descriptor to embed in the head. It defaults
+    to empty for the many tests that render a page to inspect one credential block and have
+    no artifacts to describe; ``cli._artifacts`` always supplies it, and
+    ``tests/test_dataset.py`` asserts the committed page carries it.
+    """
     blocks: list[str] = []
     tallies = dict.fromkeys(("alignments", "leaflets", "descriptions", "conditions", "resolved"), 0)
     for authorization in catalog.authorizations:
@@ -341,6 +377,7 @@ def render(
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{_e(CARD_URL)}">
 <meta name="twitter:image:alt" content="{_e(CARD_ALT)}">
+{_dataset_block(dataset_jsonld) if dataset_jsonld else ""}
 <style>{STYLE}</style>
 </head>
 <body>

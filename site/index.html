@@ -19,6 +19,158 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://chelseakr.github.io/chalkline/og-card.png">
 <meta name="twitter:image:alt" content="Chalkline, marked unofficial: California educator credential authorizations as CTDL.">
+<script type="application/ld+json">{
+  "@context": {
+    "schema": "https://schema.org/",
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dct": "http://purl.org/dc/terms/",
+    "spdx": "http://spdx.org/rdf/terms#"
+  },
+  "@id": "https://chelseakr.github.io/chalkline/#dataset",
+  "@type": [
+    "schema:Dataset",
+    "dcat:Dataset"
+  ],
+  "schema:name": "Chalkline: California educator credential authorizations as CTDL",
+  "dct:title": "Chalkline: California educator credential authorizations as CTDL",
+  "schema:description": "Unofficial demonstration. Chalkline is not published by, affiliated with, or endorsed by the California Commission on Teacher Credentialing or by Credential Engine. It models information the Commission publishes on its public Authorization Sort Table, to show what a machine-readable representation of California educator credentials could look like. Nothing here has been published to the Credential Registry, and these CTIDs are not Registry-assigned.",
+  "dct:description": "Unofficial demonstration. Chalkline is not published by, affiliated with, or endorsed by the California Commission on Teacher Credentialing or by Credential Engine. It models information the Commission publishes on its public Authorization Sort Table, to show what a machine-readable representation of California educator credentials could look like. Nothing here has been published to the Credential Registry, and these CTIDs are not Registry-assigned.",
+  "schema:url": "https://chelseakr.github.io/chalkline/",
+  "dcat:landingPage": {
+    "@id": "https://chelseakr.github.io/chalkline/"
+  },
+  "schema:license": {
+    "@id": "https://www.apache.org/licenses/LICENSE-2.0"
+  },
+  "dct:license": {
+    "@id": "https://www.apache.org/licenses/LICENSE-2.0"
+  },
+  "schema:inLanguage": "en-US",
+  "dct:language": "en-US",
+  "schema:dateModified": "2026-08-07",
+  "dct:modified": "2026-08-07",
+  "schema:isBasedOn": [
+    {
+      "@id": "https://www.ctc.ca.gov/employers/assignment-resources/resources/authorization-sort-table/"
+    },
+    {
+      "@id": "https://www.ctc.ca.gov/credentials/leaflets/"
+    }
+  ],
+  "dct:source": [
+    {
+      "@id": "https://www.ctc.ca.gov/employers/assignment-resources/resources/authorization-sort-table/"
+    },
+    {
+      "@id": "https://www.ctc.ca.gov/credentials/leaflets/"
+    }
+  ],
+  "schema:keywords": [
+    "California",
+    "educator credentials",
+    "teaching credentials",
+    "credential authorizations",
+    "CTDL",
+    "Commission on Teacher Credentialing"
+  ],
+  "dcat:keyword": [
+    "California",
+    "educator credentials",
+    "teaching credentials",
+    "credential authorizations",
+    "CTDL",
+    "Commission on Teacher Credentialing"
+  ],
+  "schema:distribution": [
+    {
+      "@id": "https://chelseakr.github.io/chalkline/credentials.jsonld",
+      "@type": [
+        "schema:DataDownload",
+        "dcat:Distribution"
+      ],
+      "schema:name": "The credential graph, as CTDL JSON-LD",
+      "dct:title": "The credential graph, as CTDL JSON-LD",
+      "schema:contentUrl": "https://chelseakr.github.io/chalkline/credentials.jsonld",
+      "dcat:downloadURL": {
+        "@id": "https://chelseakr.github.io/chalkline/credentials.jsonld"
+      },
+      "schema:encodingFormat": "application/ld+json",
+      "dcat:mediaType": "application/ld+json",
+      "schema:contentSize": "890362",
+      "dcat:byteSize": 890362,
+      "schema:sha256": "3443d7516822f2e74d7f54445e2846f6150d2bcf9fc8745cde231b650377d5be",
+      "spdx:checksum": {
+        "@type": "spdx:Checksum",
+        "spdx:algorithm": {
+          "@id": "spdx:checksumAlgorithm_sha256"
+        },
+        "spdx:checksumValue": "3443d7516822f2e74d7f54445e2846f6150d2bcf9fc8745cde231b650377d5be"
+      }
+    },
+    {
+      "@id": "https://chelseakr.github.io/chalkline/coverage.json",
+      "@type": [
+        "schema:DataDownload",
+        "dcat:Distribution"
+      ],
+      "schema:name": "The coverage statement, counted from the graph at build time",
+      "dct:title": "The coverage statement, counted from the graph at build time",
+      "schema:contentUrl": "https://chelseakr.github.io/chalkline/coverage.json",
+      "dcat:downloadURL": {
+        "@id": "https://chelseakr.github.io/chalkline/coverage.json"
+      },
+      "schema:encodingFormat": "application/json",
+      "dcat:mediaType": "application/json",
+      "schema:contentSize": "7001",
+      "dcat:byteSize": 7001,
+      "schema:sha256": "534a792c6ef4351eb922825bcf01011099a9cfbdb4cc04213b4b14a6e9f423ab",
+      "spdx:checksum": {
+        "@type": "spdx:Checksum",
+        "spdx:algorithm": {
+          "@id": "spdx:checksumAlgorithm_sha256"
+        },
+        "spdx:checksumValue": "534a792c6ef4351eb922825bcf01011099a9cfbdb4cc04213b4b14a6e9f423ab"
+      }
+    },
+    {
+      "@id": "https://chelseakr.github.io/chalkline/ctdl-validate.json",
+      "@type": [
+        "schema:DataDownload",
+        "dcat:Distribution"
+      ],
+      "schema:name": "An independent ctdl-validate report over the graph",
+      "dct:title": "An independent ctdl-validate report over the graph",
+      "schema:contentUrl": "https://chelseakr.github.io/chalkline/ctdl-validate.json",
+      "dcat:downloadURL": {
+        "@id": "https://chelseakr.github.io/chalkline/ctdl-validate.json"
+      },
+      "schema:encodingFormat": "application/json",
+      "dcat:mediaType": "application/json",
+      "schema:contentSize": "181",
+      "dcat:byteSize": 181,
+      "schema:sha256": "a9eafd38318ff2038b35fe9947e46b0e8888eb735fe38db7093ee938336b8460",
+      "spdx:checksum": {
+        "@type": "spdx:Checksum",
+        "spdx:algorithm": {
+          "@id": "spdx:checksumAlgorithm_sha256"
+        },
+        "spdx:checksumValue": "a9eafd38318ff2038b35fe9947e46b0e8888eb735fe38db7093ee938336b8460"
+      }
+    }
+  ],
+  "dcat:distribution": [
+    {
+      "@id": "https://chelseakr.github.io/chalkline/credentials.jsonld"
+    },
+    {
+      "@id": "https://chelseakr.github.io/chalkline/coverage.json"
+    },
+    {
+      "@id": "https://chelseakr.github.io/chalkline/ctdl-validate.json"
+    }
+  ]
+}
+</script>
 <style>
 :root { color-scheme: light dark; --ink: #1a1c1e; --bg: #fbfaf7; --muted: #5a5f66;
   --rule: #d9d5cc; --accent: #7a3b12; --panel: #f3f0e9; }

@@ -24,12 +24,13 @@ from pathlib import Path
 
 from chalkline import authorizes as authorizes_module
 from chalkline import ctid as ctid_module
+from chalkline import dataset as dataset_module
 from chalkline import links as links_module
 from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
 from chalkline.ctdl import validate as validate_module
 from chalkline.model import Catalog, build_catalog
-from chalkline.site import render
+from chalkline.site import SITE_URL, TITLE, render
 from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
 
@@ -61,8 +62,33 @@ def _catalog() -> Catalog:
     return build_catalog(sort_table.load())
 
 
+def _evidence_text() -> str:
+    """The committed ``ctdl-validate`` report, read rather than reproduced.
+
+    It is written by ``scripts/validate_evidence.py`` and held byte-for-byte to a fresh
+    ``ctdl-validate`` run by ``make validate`` and ``tests/test_ctdl_validate_evidence.py``,
+    which is why it sits in :data:`PUBLISHED_BY_ANOTHER_GATE` rather than being built here.
+    The dataset descriptor still has to state its size and digest, so it is read from the
+    committed copy, always from ``site/`` and not from a caller's ``--output-dir``, because
+    the committed file is the one that gate holds.
+
+    A missing report stops the build. A descriptor that quietly described two downloads
+    where the site publishes three would be well-formed, would carry correct digests for
+    the two it did describe, and would pass ``chalkline check`` against a fresh build that
+    also described two.
+    """
+    path = SITE_DIR / dataset_module.EVIDENCE_FILENAME
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"{path} is missing; it is one of the three artifacts the dataset descriptor "
+            "describes, and a descriptor naming fewer downloads than the site publishes "
+            "would assert a smaller dataset than the one that exists. Run `make validate`."
+        )
+    return path.read_text(encoding="utf-8")
+
+
 def _artifacts(catalog: Catalog) -> dict[str, str]:
-    """The three published files, as text, without writing anything."""
+    """The four published files, as text, without writing anything."""
     index = leaflets_module.load_index()
     attachments = attach(
         catalog, leaflets_module.index_by_title(index.leaflets), published=index.leaflets
@@ -80,11 +106,33 @@ def _artifacts(catalog: Catalog) -> dict[str, str]:
     export_module.check_coverage(
         statement, document, catalog, attachments, index, vendored, verdicts
     )
+    graph_text = export_module.serialize(document)
+    coverage_text = export_module.serialize(statement)
+    # The descriptor measures the artifacts, so it is built after them and before the page
+    # that embeds it. It describes the three downloads and never itself or index.html:
+    # index.html is the landing page a reader arrives at, not a distribution, and a
+    # descriptor that hashed the page embedding it could not be written at all.
+    descriptor = dataset_module.descriptor(
+        site_url=SITE_URL,
+        title=TITLE,
+        artifacts={
+            export_module.GRAPH_FILENAME: graph_text,
+            export_module.COVERAGE_FILENAME: coverage_text,
+            dataset_module.EVIDENCE_FILENAME: _evidence_text(),
+        },
+        retrieved=statement["source"]["retrieved"],
+    )
+    dataset_text = export_module.serialize(descriptor)
     return {
-        export_module.GRAPH_FILENAME: export_module.serialize(document),
-        export_module.COVERAGE_FILENAME: export_module.serialize(statement),
+        export_module.GRAPH_FILENAME: graph_text,
+        export_module.COVERAGE_FILENAME: coverage_text,
+        dataset_module.DATASET_FILENAME: dataset_text,
         PAGE_FILENAME: render(
-            catalog, ctids, attachments, links_module.page_note(document, verdicts)
+            catalog,
+            ctids,
+            attachments,
+            links_module.page_note(document, verdicts),
+            dataset_jsonld=dataset_text,
         ),
     }
 

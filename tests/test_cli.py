@@ -12,11 +12,12 @@ from chalkline import cli
 from chalkline import ctid as ctid_module
 
 
-def test_build_writes_three_files(tmp_path: Path) -> None:
+def test_build_writes_four_files(tmp_path: Path) -> None:
     assert cli.build(tmp_path) == 0
     assert sorted(p.name for p in tmp_path.iterdir()) == [
         "coverage.json",
         "credentials.jsonld",
+        "dataset.jsonld",
         "index.html",
     ]
 
