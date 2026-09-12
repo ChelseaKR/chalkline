@@ -58,14 +58,47 @@ jobs:
         run: |
           set -uo pipefail
           expected_sha="$(git rev-parse HEAD)"
-          python3 scripts/verify_live_site.py
-          verify_rc="$?"
-          # A deploy for a newer commit may have landed while this ran, in which case
-          # the live surface differing from THIS commit is the deploy working. Only
-          # that exact case is excused, and only by re-reading the remote afterwards.
-          remote_sha="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
+
+          # This step declares no `shell:`, so it runs under GitHub's default for a
+          # `run` block on Linux -- `bash -e {0}` -- and `set -uo pipefail` cannot turn
+          # errexit off. A bare `python3 scripts/verify_live_site.py` line therefore
+          # ENDED THE STEP the moment the sentinel reported a difference, before
+          # `verify_rc` was ever assigned. Everything below it, including the
+          # deploy-race excuse this step exists to apply, was unreachable in exactly
+          # the case it was written for. Measured by running the step body under
+          # `bash` and under `bash -e` with both commands stubbed; the two shells
+          # disagree on every row, and only one of them is what ships.
+          #
+          # A command in an `if` condition is exempt from errexit by language rule, so
+          # this is what makes the exit code readable at all.
+          if python3 scripts/verify_live_site.py; then
+            verify_rc=0
+          else
+            verify_rc="$?"
+          fi
+
+          # No difference to excuse: the remote read is not a decision input here, so
+          # do not take it. Under the old body a blip on that read failed a run whose
+          # verdict was already green (measured: exit 128).
+          if [ "$verify_rc" -eq 0 ]; then
+            exit 0
+          fi
+
+          # The sentinel says the live surface differs. One thing excuses that: a
+          # deploy for a newer commit landed while this ran. Establish it, or report
+          # the verdict. "main moved" and "I could not ask" must not arrive as the
+          # same answer -- under plain `bash` they did, and the only trace was a
+          # warning with nothing between "moved to" and "while this ran".
+          if ! remote_sha="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"; then
+            echo "::error::the live surface differs from ${expected_sha}, and origin/main could not be read to establish whether a newer deploy landed while this ran; reporting the sentinel's verdict (${verify_rc})"
+            exit "$verify_rc"
+          fi
+          if [ -z "${remote_sha}" ]; then
+            echo "::error::git ls-remote named no sha for refs/heads/main; reporting the sentinel's verdict (${verify_rc})"
+            exit "$verify_rc"
+          fi
           if [ "$remote_sha" != "$expected_sha" ]; then
-            echo "::warning::main moved to ${remote_sha} while this ran; re-run once its deploy finishes"
+            echo "::warning::main moved from ${expected_sha} to ${remote_sha} while this ran; re-run once its deploy finishes"
             exit 0
           fi
           exit "$verify_rc"
