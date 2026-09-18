@@ -2,10 +2,18 @@
 
 Every node in `site/credentials.jsonld` that carries a CTID also carries an `@id` under
 `https://chalkline.chelseakr.com/ctdl/resources/`. **That host does not resolve.** Nothing has
-been registered, deployed, or published, and nothing in this document does any of those
-things. It sets out what an `@id` is for, what the unresolved host actually costs, the three
-options, and a recommendation. Choosing among them is the repository owner's call, because
-two of the three amount to publishing.
+been registered there, and the namespace is not served anywhere. This document sets out what
+an `@id` is for, what the unresolved host actually costs, the three options, and a
+recommendation. Choosing among them is the repository owner's call, because two of the three
+amount to publishing.
+
+**The project itself is published, and that part is decided.** On 2026-09-18 the owner
+confirmed that the GitHub Pages site at `https://chelseakr.github.io/chalkline/`, which
+`.github/workflows/pages.yml` deploys from `site/`, is the publication
+([ADR 0005](adr/0005-the-pages-site-is-the-publication.md), issue #65). This document was
+first written when nothing had been deployed, and the sections below have been corrected
+where they reasoned from that premise. The site is served at a host that is neither this
+namespace nor ctc.ca.gov, so publishing it did not make any `@id` resolve.
 
 ## What is checkable here, and what is not
 
@@ -60,8 +68,9 @@ Registry serves it.
 Two consequences matter for this repository:
 
 1. **The unresolved host is not a barrier to publishing.** If these records were ever
-   published, the Registry's URI would become the identifier that resolves. The `@id` here is
-   a pre-publication placeholder for records that are deliberately not published.
+   published to the Registry, the Registry's URI would become the identifier that resolves.
+   The `@id` here is a placeholder for records that are published on GitHub Pages and
+   deliberately not published to any registry.
 2. **The CTIDs are already doing their job.** They are spec-conformant, ledger-stable, and
    the thing a registry would key on. `src/chalkline/ctid.py` argues this at length: a
    publisher can hold stable identifiers for its own inventory before it publishes, which is
@@ -96,13 +105,13 @@ and it is bounded.
 
 ### 1. Leave it unresolved, and say so in the document
 
-Add a note to the graph and the README that the `@id` namespace is a pre-publication
-identifier for records deliberately not published, and that the resolving description of each
+Add a note to the graph and the README that the `@id` namespace is an identifier nothing
+serves, for records not published to any registry, and that the resolving description of each
 credential is the `ceterms:subjectWebpage` on ctc.ca.gov.
 
-- **For.** No infrastructure, no cost, no domain to keep renewed, and nothing published. It is
-  the honest state of affairs: these records are not published, so their identifiers do not
-  resolve, and pretending otherwise would be the thing this project keeps refusing to do.
+- **For.** No infrastructure, no cost, and no domain to keep renewed. It is the honest state
+  of affairs: nothing serves the namespace, so its identifiers do not resolve, and pretending
+  otherwise would be the thing this project keeps refusing to do.
 - **Against.** A reader has to read the note to know it is deliberate. Without one it looks
   like an oversight, and an oversight is exactly what a reviewer of this project is scanning
   for.
@@ -116,7 +125,8 @@ something about that credential.
   already generated, already deterministic, and already self-contained.
 - **Against.** It is publishing. A public page of California credential data, unofficial but
   looking authoritative to anyone who lands on it mid-scroll, is a different act from a
-  private repository, and it is not this project's to decide. It also adds a standing
+  private repository, and it was not this project's to decide. (The owner has since decided
+  it for the GitHub Pages site, in ADR 0005; the `@id` host is a separate host.) It also adds a standing
   obligation: a DNS name to keep, a host to keep serving, and stale data to keep an eye on,
   because an `@id` that resolves to a page describing an authorization the Commission has
   since changed is worse than one that resolves to nothing. And it needs a per-CTID route to
@@ -144,6 +154,16 @@ demonstrate.
 
 **Take option 1 now, and hold option 2 for the moment the owner decides to publish.**
 
+*Status, 2026-09-18:* option 1 was taken ([ADR 0004](adr/0004-leave-the-id-namespace-unresolved.md)).
+The owner has now decided to publish, on GitHub Pages rather than at the `@id` host
+([ADR 0005](adr/0005-the-pages-site-is-the-publication.md)). Of the three conditions below,
+the published pages meet the second: every page that quotes the Commission carries the
+unofficial statement above the fold and links the source it quotes. The third is met where a
+page quotes rows: the main page and every per-subject page show the 2026-08-07 retrieval
+date. The first, per-CTID routes, is not built and is tracked in issue #77, so no `@id`
+resolves yet. The reasoning that follows is
+kept as written on 2026-08-07.
+
 The reason is that the host resolving and the records being published are the same decision,
 not two. An `@id` that resolves is a page that exists, and a page that exists is publication.
 This project has been careful throughout not to publish anything to anyone's registry and not
@@ -167,6 +187,6 @@ retrofittable cheaply afterwards:
 3. **A visible retrieval date on every page**, so a reader can see how old the underlying
    Commission data is without opening the coverage statement.
 
-Until then the identifiers are names, held stably, for records nobody has published. That is a
-defensible thing for them to be, and it is worth saying out loud rather than leaving a reader
-to discover a 404.
+Until then the identifiers are names, held stably, for records no registry holds and no host
+serves under that namespace. That is a defensible thing for them to be, and it is worth saying
+out loud rather than leaving a reader to discover a 404.
