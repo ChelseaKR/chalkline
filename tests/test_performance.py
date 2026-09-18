@@ -122,7 +122,7 @@ list and must not be added without qualification: ``rel="alternate stylesheet"``
 stylesheet.
 """
 
-FIXED_OVERHEAD_BUDGET: Final = 21_700
+FIXED_OVERHEAD_BUDGET: Final = 21_900
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
 head, the disclaimer, the counts, the prose, the exclusions table, the footer. It was 8,690
 against a budget of 12,000 (1.38x headroom). The stylesheet is 2,797 of it, the head metadata
@@ -141,9 +141,9 @@ The subject pages (#87) added one sentence linking them from the page, taking it
 
 The dataset descriptor (#88) is embedded in the head as an inline
 ``<script type="application/ld+json">`` data block carrying ``site/dataset.jsonld`` verbatim:
-6,072 bytes with its tags. The budget was raised by 6,100 for it and not by a byte more, the
-same discipline the GA4 raise followed, so the page's overhead is 18,732 and the headroom
-left for everything else is 2,968 bytes (1.16x), as it was before. It is fixed overhead by
+6,282 bytes with its tags. The budget was raised by 6,300 for it and not by a byte more, the
+same discipline the GA4 raise followed, so the page's overhead is 18,942 and the headroom
+left for everything else is 2,958 bytes (1.16x), as it was before. It is fixed overhead by
 definition: it describes the three downloads and does not grow when the Commission
 publishes more rows. Embedding it is what makes it harvestable: dataset search engines read
 structured data from a page's head, and a descriptor in a file nothing links from the page

@@ -89,6 +89,18 @@ All notable changes to this project are documented here. The format follows
   is well-formed, the digests it does carry are correct, and `chalkline check` holds it to a
   fresh build that also describes two. `dataset.descriptor` refuses a missing artifact and
   `cli._evidence_text` refuses a missing `ctdl-validate.json`.
+- **The descriptor is validated against the specifications it names (CQ-49).**
+  `scripts/validate_descriptor.py` (`make validate-dataset`, in `make verify` and so in CI)
+  reads `site/dataset.jsonld` and the copy embedded in `index.html` as a JSON-LD consumer
+  does, with `rdflib`, and checks every class and property against schema.org 30.1, DCAT 3,
+  DCMI Metadata Terms and SPDX 2.3, vendored under `data/vocab/` with sidecars and
+  PROVENANCE.md rows; schema.org's `domainIncludes` and `rangeIncludes`; DCAT's
+  `rdfs:domain`; and literal against resource by `rdfs:range`. Because a JSON-LD processor
+  drops a term it cannot expand silently, the statements in the JSON are counted against
+  the triples it read. `tests/test_descriptor_validates.py` holds each rule to a negative
+  control on the real descriptor, fifteen in all. Its first run found a real defect:
+  `dcat:mediaType` was a string, where DCAT 3's range is `dct:MediaType`, a class. It is now
+  the IANA registry's IRI for the type; `schema:encodingFormat` keeps the text.
 
 ### Changed
 
@@ -101,12 +113,12 @@ All notable changes to this project are documented here. The format follows
   at any type, and no bare, empty, `module` or parameterized type. Eight refusal shapes are
   asserted directly rather than inferred from the real page carrying none of them. The GA4
   loader stays the one script that runs code, matched by its whole text.
-- **The page's fixed-overhead budget is raised by 6,100 bytes, from 15,600 to 21,700**,
+- **The page's fixed-overhead budget is raised by 6,300 bytes, from 15,600 to 21,900**,
   deliberately and with the measurement in the test's docstring. The embedded descriptor is
-  6,072 bytes with its tags, and it is fixed overhead by definition because it does not grow
+  6,282 bytes with its tags, and it is fixed overhead by definition because it does not grow
   when the Commission publishes more rows. The raise is the descriptor's bytes and not one
   more, the same discipline the GA4 raise followed, so the headroom left for everything else
-  is what it was (2,968 bytes against a measured 18,732).
+  is what it was (2,958 bytes against a measured 18,942).
 - **The accessibility and performance gates now walk the built page, not a re-rendered
   one.** Both fixtures rendered the page from `site.render` with the arguments the test
   happened to have, which produced a page that was nearly the published one. The difference

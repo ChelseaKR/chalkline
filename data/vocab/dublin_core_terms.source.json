@@ -1,0 +1,9 @@
+{
+  "file": "dublin_core_terms.ttl",
+  "source_url": "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl",
+  "retrieved": "2026-09-18",
+  "bytes": 47834,
+  "sha256": "13df401072dd7015bf9d75162f3e41c8138075304b7b9cc1aa1e9c16db976797",
+  "publisher": "DCMI (Dublin Core Metadata Initiative)",
+  "purpose": "The DCMI Metadata Terms vocabulary. scripts/validate_descriptor.py checks every dct: property site/dataset.jsonld uses against it, as for DCAT."
+}

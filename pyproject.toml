@@ -37,6 +37,11 @@ dev = [
   # opinion on the published graph. Pinned rather than floated: a new rule appearing in a
   # patch release is a fact about CTDL worth reviewing in a diff, not absorbing silently.
   "ctdl-validate==0.2.1",
+  # Test-only, and a validator rather than a producer: an independent JSON-LD 1.1 and
+  # Turtle/RDF-XML parser that scripts/validate_descriptor.py uses to read site/dataset.jsonld
+  # and the vendored schema.org, DCAT, DCMI and SPDX vocabularies it is checked against
+  # (CQ-49). Pinned for the same reason as ctdl-validate.
+  "rdflib==7.6.0",
 ]
 
 [tool.hatch.build.targets.wheel]

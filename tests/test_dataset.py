@@ -20,6 +20,7 @@ deterministic build, and a catalog would believe it.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import re
 from pathlib import Path
@@ -185,7 +186,9 @@ def test_every_distribution_is_typed_for_both_vocabularies() -> None:
         assert node["@type"] == ["schema:DataDownload", "dcat:Distribution"]
         assert node["schema:contentUrl"] == node["@id"]
         assert node["dcat:downloadURL"] == {"@id": node["@id"]}
-        assert node["schema:encodingFormat"] == node["dcat:mediaType"]
+        assert node["dcat:mediaType"] == {
+            "@id": dataset.IANA_MEDIA_TYPES + node["schema:encodingFormat"]
+        }
 
 
 # --- what the descriptor may and may not claim ----------------------------------------
@@ -195,6 +198,7 @@ def test_the_description_is_the_unofficial_notice_in_full() -> None:
     """A catalog card is where a stranger meets this project with no page around it."""
     document = build()
     assert document["schema:description"] == DISCLAIMER
+    assert document["dct:description"] == DISCLAIMER
     assert "not published by, affiliated with, or endorsed by" in document["schema:description"]
     assert "Nothing here has been published to the Credential Registry" in DISCLAIMER
 
@@ -294,6 +298,27 @@ def test_the_committed_page_embeds_the_committed_descriptor_verbatim() -> None:
     assert _dataset_block(descriptor_text) in page, (
         "site/index.html does not carry site/dataset.jsonld byte for byte"
     )
+
+
+def test_the_committed_description_is_the_notice_the_page_shows_verbatim() -> None:
+    """Owner decision 2026-09-18: the description is the unofficial notice, word for word.
+
+    Held against the committed file, the copy embedded in the page, and the notice the page
+    itself shows above the fold, so a catalog card and the page it links to say the same
+    thing in the same words.
+    """
+    descriptor_text = (SITE / dataset.DATASET_FILENAME).read_text(encoding="utf-8")
+    page = (SITE / "index.html").read_text(encoding="utf-8")
+    shown = re.search(r'<p class="notice">(.*?)</p>', page, re.DOTALL)
+    assert shown is not None, "the page shows no unofficial notice"
+    notice = " ".join(html.unescape(re.sub(r"<[^>]+>", "", shown.group(1))).split())
+    assert notice == DISCLAIMER
+    embedded = re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.DOTALL)
+    for text in (descriptor_text, *embedded):
+        document = json.loads(text)
+        assert document["schema:description"] == notice
+        assert document["dct:description"] == notice
+    assert len(embedded) == 1
 
 
 def test_the_committed_descriptor_names_this_project_and_this_site() -> None:

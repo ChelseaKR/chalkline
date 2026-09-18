@@ -16,6 +16,14 @@ to the Credential Registry, in production or in a sandbox.
 | `data/source/credential-leaflets.html` | <https://www.ctc.ca.gov/credentials/leaflets/> | 2026-08-07 | 115,673 | `d062aee5…56fefae` |
 | `src/chalkline/ctdl/ctdl-context.json` | <https://credreg.net/ctdl/schema/context/json> | 2026-08-07 | 29,201 | `ddb6b458…4bf40db5` |
 | `src/chalkline/ctdl/ctdl-schema.json` | <https://credreg.net/ctdl/schema/encoding/json> | 2026-08-07 | 1,052,234 | `a2dd28cb…cc538776` |
+| `data/vocab/schemaorg-current-https.ttl` | <https://schema.org/version/latest/schemaorg-current-https.ttl> (release 30.1) | 2026-09-18 | 1,088,235 | `7f15ca89…91b7ae2f` |
+| `data/vocab/dcat3.ttl` | <https://www.w3.org/ns/dcat3.ttl> | 2026-09-18 | 200,345 | `d1624d3b…7d02b62f` |
+| `data/vocab/dublin_core_terms.ttl` | <https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl> | 2026-09-18 | 47,834 | `13df4010…db976797` |
+| `data/vocab/spdx-terms.xml` | <https://spdx.org/rdf/terms/spdx-ontology.owl.xml> (SPDX 2.3) | 2026-09-18 | 195,564 | `c42c200b…1eb9cb6c` |
+
+The four files under `data/vocab/` are not sources of anything the project publishes. They are
+the specifications `scripts/validate_descriptor.py` (`make validate-dataset`) checks
+`site/dataset.jsonld` against: every term it uses, schema.org domains and ranges, and DCAT's.
 
 Plus nineteen leaflet pages under `data/source/leaflets/`, each retrieved from
 `https://www.ctc.ca.gov/credentials/leaflets/<code>/`. Both titles are recorded because both

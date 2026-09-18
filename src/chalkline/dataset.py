@@ -97,6 +97,14 @@ MEDIA_TYPES: Final = {
     EVIDENCE_FILENAME: "application/json",
 }
 
+IANA_MEDIA_TYPES: Final = "https://www.iana.org/assignments/media-types/"
+"""Where IANA registers each media type, which is how DCAT 3 wants one named.
+
+``schema:encodingFormat`` takes the media type as text. ``dcat:mediaType`` does not: its
+range is ``dct:MediaType``, a class, so a string there is a literal where DCAT specifies a
+resource, and DCAT 3 says to use the IANA registry's IRI for it.
+``scripts/validate_descriptor.py`` found the literal against the vendored DCAT 3 vocabulary."""
+
 #: Ordered, because a descriptor whose distributions reordered between builds would fail
 #: ``chalkline check`` for a difference that means nothing. This is also the order the
 #: README lists them in.
@@ -125,7 +133,8 @@ def _distribution(site_url: str, filename: str, text: str) -> dict[str, Any]:
     """One artifact, described once for both vocabularies.
 
     ``schema:contentSize`` is text and ``dcat:byteSize`` is a number, which is what each
-    vocabulary specifies; both are the same measurement of the same bytes. The checksum is
+    vocabulary specifies; both are the same measurement of the same bytes. The media type is
+    text for schema.org and the IANA registry's IRI for DCAT, for the same reason. The checksum is
     given twice for the same reason the node is typed twice: ``schema:sha256`` is what a
     schema.org consumer looks for, ``spdx:checksum`` is what DCAT specifies, and a consumer
     should not have to guess which one this project meant.
@@ -141,7 +150,7 @@ def _distribution(site_url: str, filename: str, text: str) -> dict[str, Any]:
         "schema:contentUrl": url,
         "dcat:downloadURL": {"@id": url},
         "schema:encodingFormat": MEDIA_TYPES[filename],
-        "dcat:mediaType": MEDIA_TYPES[filename],
+        "dcat:mediaType": {"@id": IANA_MEDIA_TYPES + MEDIA_TYPES[filename]},
         "schema:contentSize": str(size),
         "dcat:byteSize": size,
         "schema:sha256": digest,

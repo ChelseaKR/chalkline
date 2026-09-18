@@ -1,0 +1,10 @@
+{
+  "file": "spdx-terms.xml",
+  "source_url": "https://spdx.org/rdf/terms/spdx-ontology.owl.xml",
+  "retrieved": "2026-09-18",
+  "bytes": 195564,
+  "sha256": "c42c200b06004631fc1fb0754b8d45003952b2779d795b0df27200fd1eb9cb6c",
+  "version": "2.3",
+  "publisher": "The Linux Foundation (SPDX 2.3 ontology, RDF/XML)",
+  "purpose": "The SPDX 2.3 ontology, whose spdx:checksum DCAT 3 reuses for a distribution's digest. scripts/validate_descriptor.py checks that every spdx: class, property and named individual site/dataset.jsonld uses is defined here, as for DCAT."
+}

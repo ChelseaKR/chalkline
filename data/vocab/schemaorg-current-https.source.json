@@ -1,0 +1,11 @@
+{
+  "file": "schemaorg-current-https.ttl",
+  "source_url": "https://schema.org/version/latest/schemaorg-current-https.ttl",
+  "retrieved": "2026-09-18",
+  "bytes": 1088235,
+  "sha256": "7f15ca89398c4f235f478a4b3b8d1f975d63c5a860b77c8a8fce01f791b7ae2f",
+  "release": "30.1",
+  "release_url": "https://schema.org/version/30.1/schemaorg-current-https.ttl",
+  "publisher": "schema.org (schema.org Steering Group)",
+  "purpose": "The schema.org vocabulary, release 30.1 (byte-identical to the versioned release file named in release_url). scripts/validate_descriptor.py checks every schema.org class and property site/dataset.jsonld uses against it: that each is defined here, that each property's schema:domainIncludes admits a type the subject carries, and that each value fits the property's schema:rangeIncludes."
+}
