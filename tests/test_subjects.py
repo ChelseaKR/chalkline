@@ -228,6 +228,17 @@ class TestThePagesAreWhatTheyClaim:
         for name, page in rendered.items():
             assert DISCLAIMER_LEAD in page, name
 
+    def test_every_page_links_the_source_it_quotes(self, rendered: dict[str, str]) -> None:
+        """The publication decision (ADR 0005) keeps the source link on every page.
+
+        A page that quotes the Commission's rows without pointing at them asks the reader to
+        take this project's word for what the Commission published.
+        """
+        from chalkline.sources.sort_table import SOURCE_URL
+
+        for name, page in rendered.items():
+            assert f'href="{SOURCE_URL}"' in page, name
+
     def test_no_page_composes_an_assignment_judgment(self, rendered: dict[str, str]) -> None:
         """MODELING.md refuses grade-level interpretation and assignment advice.
 

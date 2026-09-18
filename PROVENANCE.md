@@ -488,5 +488,7 @@ asserts that.
 That namespace, `chalkline.chelseakr.com`, does not resolve. What CTDL and linked-data
 practice expect of an `@id`, what breaks while the host stays unresolved, and the options for
 changing it are laid out in [docs/IDENTIFIERS.md](docs/IDENTIFIERS.md). Nothing has been
-registered, deployed, or published; that document is a recommendation for the owner to decide
-on.
+registered at that host and nothing serves it. The project is published on GitHub Pages at
+`https://chelseakr.github.io/chalkline/`, which the owner confirmed on 2026-09-18 is the
+publication ([ADR 0005](docs/adr/0005-the-pages-site-is-the-publication.md)); that host is not
+the `@id` namespace, so no `@id` resolves until per-CTID routes (issue #77) are built.

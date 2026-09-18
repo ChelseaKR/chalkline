@@ -22,6 +22,14 @@ All notable changes to this project are documented here. The format follows
   spends. The README, `docs/METRICS-LEDGER.md` and `docs/RESPONSIBLE-TECH-AUDITS.md` no longer
   say the page runs no script and no analytics. `tests/test_analytics.py` executes the loader
   in Node and deletes each guard as a negative control.
+- **ADR 0005: the GitHub Pages site is the publication.** Owner decision 2026-09-18, closing
+  issue #65: what `pages.yml` serves at `https://chelseakr.github.io/chalkline/` is
+  published on purpose. `docs/IDENTIFIERS.md`, `PROVENANCE.md` and the README no longer
+  reason from the premise that nothing has been deployed or published. ADR 0004 and the
+  `@id` namespace are unchanged, per-CTID routes are still unbuilt (issue #77), and nothing
+  is published to the Credential Registry. `tests/test_subjects.py` now holds every subject
+  page to linking the Commission source it quotes, beside the unofficial notice it already
+  checked.
 
 ### Fixed
 
