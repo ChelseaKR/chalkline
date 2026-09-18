@@ -38,7 +38,7 @@ distinction turns on government-conferred authority.
 `ceterms:CertificateOfCompletion` was considered for the single entry titled "Certificate of
 Completion of Staff Development" and rejected: the table lists it as something the
 Commission authorizes, alongside the credentials and permits, so it is modeled like its
-neighbours rather than singled out on the strength of its title.
+neighbors rather than singled out on the strength of its title.
 
 ## Consequences
 

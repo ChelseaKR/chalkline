@@ -43,7 +43,7 @@
     "pages_published": 325
   },
   "leaflets": {
-    "rule": "a leaflet is attached only where one of the Commission's own published strings equals the authorization's: a title the leaflet index gives the leaflet, a title the leaflet page gives itself, or a document code the leaflet's title names, each after case and punctuation normalization and each also tried with one trailing parenthesised qualifier removed from the authorization's title; and its prose is read only where the leaflet page's own heading states the code it was asked for and a title that identified this authorization",
+    "rule": "a leaflet is attached only where one of the Commission's own published strings equals the authorization's: a title the leaflet index gives the leaflet, a title the leaflet page gives itself, or a document code the leaflet's title names, each after case and punctuation normalization and each also tried with one trailing parenthesized qualifier removed from the authorization's title; and its prose is read only where the leaflet page's own heading states the code it was asked for and a title that identified this authorization",
     "leaflets_in_the_commission_index": 81,
     "index_rows_redirecting_a_retired_document_code": 8,
     "leaflet_pages_vendored": 19,
@@ -123,9 +123,9 @@
     "the sort table states that the subjects are indicated on the issued document, so the scope is not published in any machine-readable source this project reads": 2
   },
   "not_modeled": {
-    "ceterms:occupationType": "the sort table publishes no occupation codes, and aligning a credential to an SOC occupation would be this project's judgement rather than the Commission's statement",
+    "ceterms:occupationType": "the sort table publishes no occupation codes, and aligning a credential to an SOC occupation would be this project's judgment rather than the Commission's statement",
     "ceterms:audienceLevelType": "grade ranges appear as prose in the Notes column; mapping that prose onto CTDL's audience level concept scheme would be an interpretation the Commission has not published",
     "competency_framework": "the sort table publishes subject names, not competency statements, and CTDL's targetCompetency is not in the domain of ceterms:License; modeling subjects as competencies would require writing skill statements the Commission never wrote",
-    "leaflet_sections_this_project_cannot_classify": "a leaflet section whose heading is not one of the kinds this project recognises is never read, and reading stops entirely at the first heading that names another document, so a leaflet describing several credentials contributes only the part it is titled for"
+    "leaflet_sections_this_project_cannot_classify": "a leaflet section whose heading is not one of the kinds this project recognizes is never read, and reading stops entirely at the first heading that names another document, so a leaflet describing several credentials contributes only the part it is titled for"
   }
 }

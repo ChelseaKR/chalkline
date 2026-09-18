@@ -9,13 +9,13 @@ Two of those equalities are between titles:
 1. **Exact title.** A published title of the leaflet and the authorization's published title
    are the same string after case folding and punctuation normalization.
 2. **Named family.** The authorization's published title is a leaflet title followed by a
-   parenthesised qualifier, and the part before the qualifier equals that leaflet's title
+   parenthesized qualifier, and the part before the qualifier equals that leaflet's title
    under the same normalization. ``Short-Term Staff Permit (Single Subject)`` and
    ``Short-Term Staff Permit (Special Education)`` are two of the Commission's variants of
    one named permit, and the Commission publishes exactly one leaflet titled
    ``Short-Term Staff Permit``.
 
-Rule 2 is an equality too: the qualifier is removed as a whole parenthesised unit and the
+Rule 2 is an equality too: the qualifier is removed as a whole parenthesized unit and the
 remainder must match character for character after normalization. It is not a prefix rule.
 ``Education Specialist Instruction Credential Requirements for Teachers Prepared Outside of
 California`` still matches nothing, because dropping a trailing parenthetical is not what
@@ -81,10 +81,10 @@ _TAG_RE: Final = re.compile(r"<[^>]+>")
 _SPACE_RE: Final = re.compile(r"\s+")
 _NON_ALNUM_RE: Final = re.compile(r"[^a-z0-9]+")
 _QUALIFIED_RE: Final = re.compile(r"^(?P<base>.+?)\s*\((?P<qualifier>[^()]+)\)$")
-"""An authorization title ending in one parenthesised qualifier, and the title without it."""
+"""An authorization title ending in one parenthesized qualifier, and the title without it."""
 
-_PARENTHESISED_RE: Final = re.compile(r"\(([^()]+)\)")
-"""Every parenthesised run in a title. Used to look for a document code, not to strip."""
+_PARENTHESIZED_RE: Final = re.compile(r"\(([^()]+)\)")
+"""Every parenthesized run in a title. Used to look for a document code, not to strip."""
 
 MATCH_EXACT_TITLE: Final = "exact title"
 MATCH_NAMED_FAMILY: Final = "named family, qualifier in parentheses"
@@ -113,7 +113,7 @@ class Match:
     leaflet: Leaflet
     rule: str
     qualifier: str | None = None
-    """The parenthesised text rule 2 set aside, kept so the match can be re-read later."""
+    """The parenthesized text rule 2 set aside, kept so the match can be re-read later."""
 
     published_by: str = FROM_INDEX
     """Which of the Commission's published strings the equality was against.
@@ -182,7 +182,7 @@ def _rows(markup: str) -> list[tuple[str, str, str]]:
 
     The index is a three-column table: the linked title, the Commission's document code, and
     a category. Only the first two are read. A row's cells are taken from the row itself, so
-    a code can never be read off a neighbour.
+    a code can never be read off a neighbor.
     """
     found: list[tuple[str, str, str]] = []
     for row in _ROW_RE.findall(markup):
@@ -306,7 +306,7 @@ def index_by_document_code(
     """Document code to the one leaflet whose published title names it in parentheses.
 
     ``published_codes`` is the set of Document Title cells the sort table actually publishes.
-    A parenthesised run that is not one of them is not a code and is ignored, which is what
+    A parenthesized run that is not one of them is not a code and is ignored, which is what
     keeps "(Single Subjects)", "(Audiology, Orientation and Mobility)" and "(Formerly:
     Development Center Permits)" out: the rule is an equality against the Commission's own
     key, so anything that is not in that key simply fails it.
@@ -316,13 +316,13 @@ def index_by_document_code(
     """
     counts: dict[str, int] = {}
     for leaflet in leaflets:
-        for code in _PARENTHESISED_RE.findall(leaflet.title):
+        for code in _PARENTHESIZED_RE.findall(leaflet.title):
             if code.strip() in published_codes:
                 counts[code.strip()] = counts.get(code.strip(), 0) + 1
     return {
         code.strip(): leaflet
         for leaflet in leaflets
-        for code in _PARENTHESISED_RE.findall(leaflet.title)
+        for code in _PARENTHESIZED_RE.findall(leaflet.title)
         if code.strip() in published_codes and counts[code.strip()] == 1
     }
 

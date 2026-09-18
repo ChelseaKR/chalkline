@@ -57,7 +57,7 @@ government-conferred authority, and that is the side these documents fall on.
 `ceterms:CertificateOfCompletion` was considered for the single entry titled "Certificate of
 Completion of Staff Development" (`SA17` / `S17A`). It is listed in the Authorization Sort
 Table as something the Commission authorizes, alongside the credentials and permits, so it
-is modeled the same way as its neighbours rather than singled out on the strength of its
+is modeled the same way as its neighbors rather than singled out on the strength of its
 name. This is flagged here as the one class choice a reviewer might reasonably reopen.
 
 ### `ceterms:CredentialOrganization` for the Commission
@@ -112,7 +112,7 @@ The same test rules out three things that were considered:
   be assigned to teach, which is the gap named at the end of this document. CTDL has no
   property for it, so the prose rides `ceterms:description`, which is honestly what it is: an
   "account of the entity". It is not decomposed into anything.
-- **Sections under headings this project does not recognise.** They are skipped rather than
+- **Sections under headings this project does not recognize.** They are skipped rather than
   guessed at. `cl-858`'s "Single Subject:" and "Education Specialist:" are almost certainly
   the per-variant requirements for the Single Subject and Special Education Short-Term Staff
   Permits, and "almost certainly" is the whole problem. See `PROVENANCE.md`.
@@ -154,7 +154,7 @@ rather than against a memory of one.
 ## What is deliberately not modeled
 
 **`ceterms:occupationType`.** The sort table publishes no occupation codes. Aligning a
-teaching credential to an SOC occupation would be this project's judgement, not the
+teaching credential to an SOC occupation would be this project's judgment, not the
 Commission's statement.
 
 **`ceterms:audienceLevelType`.** Grade ranges do appear, as prose in the Notes column

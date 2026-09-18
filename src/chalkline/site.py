@@ -1,7 +1,12 @@
 """Render the modeled credentials as one self-contained, browsable HTML page.
 
-No external stylesheet, script, font, or image: the page is one file and works offline,
-which is the same discipline the rest of this project applies to its data. Every number on
+No external stylesheet, font, or image: the page is one file, renders completely without
+fetching anything, and works offline, which is the same discipline the rest of this project
+applies to its data. Its one script is the Google Analytics 4 loader from
+:mod:`chalkline.analytics` (owner decision 2026-09-17), which does nothing off the production
+host and, on it, appends Google's gtag.js asynchronously after the page is already there
+unless the browser sends Global Privacy Control or Do Not Track or the visitor opted out.
+``privacy.html`` is rendered here too and says what that loader does. Every number on
 the page is counted from the catalog at render time rather than written into the template,
 so the page cannot claim a total the data does not support.
 
@@ -16,6 +21,7 @@ import html
 from collections.abc import Mapping
 from typing import Final
 
+from chalkline import analytics
 from chalkline import links as links_module
 from chalkline.attachment import Attachment
 from chalkline.ctdl.export import DISCLAIMER_BODY, DISCLAIMER_LEAD, description_of
@@ -117,6 +123,8 @@ th { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.78rem;
   text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   font-size: 0.85rem; color: var(--muted); }
+.link-button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0;
+  text-decoration: underline; cursor: pointer; }
 """
 
 
@@ -183,7 +191,7 @@ def _conditions_block(attachment: Attachment | None) -> str:
             f"none under &ldquo;{_e(unstated)}&rdquo;, the qualifier the Commission publishes "
             "in this authorization's own title. Only the requirements it states for the "
             "permit as a whole are shown; matching this variant to a differently worded "
-            "heading would be this project's judgement rather than the Commission's.</p>"
+            "heading would be this project's judgment rather than the Commission's.</p>"
         )
     return "".join(parts)
 
@@ -307,6 +315,7 @@ def render(
     ctids: Mapping[str, str],
     attachments: Mapping[str, Attachment],
     link_note: str = links_module.NOT_CHECKED_NOTE,
+    ga4_id: str | None = analytics.GA4_MEASUREMENT_ID,
 ) -> str:
     """The whole page, as one HTML document."""
     blocks: list[str] = []
@@ -341,7 +350,7 @@ def render(
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="{_e(CARD_URL)}">
 <meta name="twitter:image:alt" content="{_e(CARD_ALT)}">
-<style>{STYLE}</style>
+{analytics.head_snippet(ga4_id)}<style>{STYLE}</style>
 </head>
 <body>
 <main>
@@ -378,6 +387,88 @@ this project cannot read, so they are recorded here rather than guessed at.</p>
 <p>Chalkline is an independent demonstration by Chelsea Kelly-Reif. It is not affiliated
 with, endorsed by, or published by the California Commission on Teacher Credentialing or
 Credential Engine. Nothing here has been published to the Credential Registry.</p>
+{analytics.footer_note(ga4_id)}
+</footer>
+</main>
+</body>
+</html>
+"""
+
+
+PRIVACY_FILENAME: Final = "privacy.html"
+PRIVACY_TITLE: Final = "Chalkline: privacy"
+PRIVACY_DESCRIPTION: Final = "What this site collects about visitors, and how to opt out."
+
+_HOSTING: Final = (
+    "<h2>Hosting</h2>\n"
+    "<p>GitHub Pages serves this site. Like any web host, GitHub receives each request, "
+    "including your IP address; see the "
+    '<a href="https://docs.github.com/en/site-policy/privacy-policies/'
+    'github-general-privacy-statement">GitHub General Privacy Statement</a>.</p>'
+)
+
+
+def _privacy_body(ga4_id: str | None) -> str:
+    """What the privacy page says, which depends on whether the build has an ID."""
+    if analytics.measurement_id(ga4_id) is None:
+        return (
+            "<p>This site runs no analytics, loads no third-party script and sets no "
+            f"cookies.</p>\n{_HOSTING}"
+        )
+    return f"""<p>This site, the credentials page and this page, counts visits with Google
+Analytics 4, a service of Google LLC in the United States. Nothing else on it tracks you,
+and the data files it publishes (<a href="credentials.jsonld">credentials.jsonld</a> and
+<a href="coverage.json">coverage.json</a>) carry no tracking of any kind.</p>
+<h2>What Google Analytics records</h2>
+<p>For each page you open: the page address and the page you came from, the time, your
+browser, device and screen size, your language, and a rough location that Google works out
+from your IP address. Google Analytics 4 does not store the IP address itself. By default it
+also records scrolling and clicks on links that leave this site.</p>
+<h2>Cookies</h2>
+<p>Outside the places listed below, Google Analytics sets two cookies on
+chelseakr.github.io, named <code>_ga</code> and <code>_ga_</code> followed by an ID. They let
+it tell a returning browser from a new one, and last up to two years. In the European
+Economic Area, the United Kingdom and Switzerland it sets no analytics cookies. There,
+Google still receives a cookieless ping for each page.</p>
+<h2>Advertising features are off</h2>
+<p>Google signals and ad personalization are both turned off, and the advertising storage,
+ad user data and ad personalization consent signals are denied everywhere. Google keeps the
+event data for {_e(analytics.GA4_DATA_RETENTION)}. See
+<a href="https://policies.google.com/privacy">Google's privacy policy</a>.</p>
+<h2 id="opt-out">Opting out</h2>
+<ul>
+<li><strong>On this device:</strong> use &ldquo;Opt out of analytics&rdquo; at the bottom of
+any page. It stores <code>{_e(analytics.GA4_OPT_OUT_KEY)}</code> in this browser's local
+storage and sends it nowhere. From then on this site does not load Google Analytics in this
+browser. The same button then reads &ldquo;Opt back in&rdquo;, which removes the
+setting.</li>
+<li><strong>In any browser:</strong> turn on Global Privacy Control or Do Not Track. This
+site then never loads Google Analytics at all.</li>
+<li>Or install <a href="https://tools.google.com/dlpage/gaoptout">Google's Analytics opt-out
+browser add-on</a>.</li>
+</ul>
+{_HOSTING}"""
+
+
+def render_privacy(ga4_id: str | None = analytics.GA4_MEASUREMENT_ID) -> str:
+    """``privacy.html``: what this site collects, true for the build it is in."""
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{_e(PRIVACY_TITLE)}</title>
+<meta name="description" content="{_e(PRIVACY_DESCRIPTION)}">
+<link rel="canonical" href="{_e(SITE_URL + PRIVACY_FILENAME)}">
+{analytics.head_snippet(ga4_id)}<style>{STYLE}</style>
+</head>
+<body>
+<main>
+<h1>Privacy</h1>
+{_privacy_body(ga4_id)}
+<p><a href="./">Back to the credentials page</a>.</p>
+<footer>
+{analytics.footer_note(ga4_id)}
 </footer>
 </main>
 </body>

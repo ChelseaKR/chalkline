@@ -1,6 +1,6 @@
 """The inverse view: which credentials authorize a subject.
 
-``site/index.html`` is organised by authorization, which answers the question a
+``site/index.html`` is organized by authorization, which answers the question a
 credential holder asks. An assignment clerk asks the other one: which credentials
 authorize teaching Biological Sciences (Specialized)? The 1,014 subject alignments
 already carry the answer and the Commission does not publish it in that shape.
@@ -10,7 +10,7 @@ only where the sort table publishes it on that authorization's own rows, or wher
 cross-reference this project can follow supplies it, and where it arrived that way the
 page says so and names the credential it came from. The row notes are reproduced as the
 Commission published them. Nothing here is composed by this project, and no page states
-what a holder "may be assigned": that is a judgement, and quoting rows is not.
+what a holder "may be assigned": that is a judgment, and quoting rows is not.
 
 Three kinds of page, all self-contained on the same inline stylesheet as the main page:
 
@@ -56,13 +56,13 @@ NOT_SUBJECT_CODED_FILENAME: Final = f"{DIRECTORY}/not-subject-coded.html"
 #: publishes today is short and alphanumeric. Rather than trust that, the shape is asserted
 #: and a code outside it stops the build: a code carrying a dot, a slash or a space would
 #: otherwise write outside the directory, collide with a sibling, or produce a link no
-#: browser resolves. Refusing is the honest failure; sanitising would publish a page under
+#: browser resolves. Refusing is the honest failure; sanitizing would publish a page under
 #: a name the Commission never used.
 CODE_SHAPE: Final = re.compile(r"[A-Z0-9]{1,16}")
 
 
 class UnpublishableCode(ValueError):
-    """A subject code that cannot become a filename, named rather than sanitised."""
+    """A subject code that cannot become a filename, named rather than sanitized."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,7 +229,7 @@ def render_subject(subject: Subject) -> str:
         f"{_sort_table_link()}, retrieved 2026-08-07.{crossed} Nothing on this page is "
         "inferred: an authorization appears only where a published row, or a cross-reference "
         "this project can follow, puts the code on it. Which assignments a credential "
-        "permits is a judgement, and this project makes none: it quotes rows.</p>"
+        "permits is a judgment, and this project makes none: it quotes rows.</p>"
         f"{_names_sentence(subject)}"
         f'<p class="meta"><a href="index.html">All subject codes</a> &middot; '
         '<a href="../index.html">Modeled credentials</a></p>'
@@ -267,7 +267,7 @@ def render_index(subjects: tuple[Subject, ...], uncoded: int) -> str:
         )
     )
     body = (
-        "<p>The main page is organised by credential. This is the inverse: for each subject "
+        "<p>The main page is organized by credential. This is the inverse: for each subject "
         "code the Commission publishes in its "
         f"{_sort_table_link()}, the credentials that authorize it. Every figure here is "
         "counted from the same catalog the graph is built from.</p>"

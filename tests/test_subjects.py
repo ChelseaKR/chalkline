@@ -228,7 +228,7 @@ class TestThePagesAreWhatTheyClaim:
         for name, page in rendered.items():
             assert DISCLAIMER_LEAD in page, name
 
-    def test_no_page_composes_an_assignment_judgement(self, rendered: dict[str, str]) -> None:
+    def test_no_page_composes_an_assignment_judgment(self, rendered: dict[str, str]) -> None:
         """MODELING.md refuses grade-level interpretation and assignment advice.
 
         These pages are the surface where "which credentials authorize this?" is one
@@ -344,7 +344,7 @@ class TestTheCensusIsTheData:
 
 
 class TestACodeThatCannotBeAFilenameIsRefused:
-    """Sanitising would publish a page under a name the Commission never used."""
+    """Sanitizing would publish a page under a name the Commission never used."""
 
     @pytest.mark.parametrize("code", ["A/B", "..", "a b", "", "x" * 17, "Mixed"])
     def test_a_code_outside_the_shape_stops_the_build(

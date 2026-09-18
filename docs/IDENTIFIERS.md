@@ -22,8 +22,8 @@ below can be:
   publisher holds; it is not a location.
 
 What is **not** checkable from anything vendored here is the Credential Registry's own
-behaviour on ingest: what it does to an `@id` a publisher submits, and what URI it serves a
-hosted record under. That behaviour is documented on credreg.net and observable in the
+behavior on ingest: what it does to an `@id` a publisher submits, and what URI it serves a
+hosted record under. That behavior is documented on credreg.net and observable in the
 Registry itself, and this repository has fetched neither. The paragraphs below that describe
 it are stated from Credential Engine's published documentation and are marked as such. If this
 decision is ever taken to Credential Engine, that is the first thing to confirm with them
@@ -79,7 +79,7 @@ Counted, not asserted:
 
 - **134 `@id` values do not dereference** (133 licenses and one organization). Nested profiles
   carry no `@id` at all, so they are not affected.
-- **The host appears in one other place: `ceterms:ownedBy`.** Every one of the 133 licences
+- **The host appears in one other place: `ceterms:ownedBy`.** Every one of the 133 licenses
   names the organization by its `@id`, so the host is emitted 267 times, not 134. That is an
   internal node reference rather than a second external dependency, and it does not
   dereference for the same reason the `@id` values do not. Every value pointing *outward*

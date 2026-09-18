@@ -149,7 +149,7 @@ def load(path: Path | None = None) -> tuple[SortTableRow, ...]:
     returns `()` because that is what it read.
 
     Nothing downstream then objects. `build_catalog` yields a catalog of nothing, the export
-    emits a graph holding the Commission and no licences, `validate.check` passes because
+    emits a graph holding the Commission and no licenses, `validate.check` passes because
     that graph is not empty, the coverage statement counts zero of everything and publishes
     it as measured fact, the page renders nine count tiles reading zero, and `chalkline
     build` prints "0 authorizations modeled, 0 excluded" and exits 0. `leaflets.load` was
