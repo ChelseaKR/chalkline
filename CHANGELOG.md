@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Google Analytics 4 on the published pages, and a privacy page.** Owner decision
+  2026-09-17: GA4 on every public site, with privacy copy changed to match.
+  `src/chalkline/analytics.py` holds the measurement ID (`GA4_MEASUREMENT_ID`,
+  `G-40XD8ZXCGR`) and the loader; `chalkline build` now writes `site/privacy.html` beside
+  the page, and both carry the loader and a footer "Opt out of analytics" control
+  (localStorage `chalkline:analytics-opt-out`). An empty ID removes all of it. The loader
+  does nothing off `chelseakr.github.io` under `/chalkline/`, under Global Privacy Control or
+  Do Not Track, or after an opt-out; Google signals and ad personalisation are off, and
+  Consent Mode v2 denies the ad signals everywhere and analytics storage in the EEA, the UK
+  and Switzerland. `tests/test_performance.py` now allows exactly that one inline script,
+  matched by its whole text, and its fixed-overhead budget rose by the 3,600 bytes the change
+  spends. The README, `docs/METRICS-LEDGER.md` and `docs/RESPONSIBLE-TECH-AUDITS.md` no longer
+  say the page runs no script and no analytics. `tests/test_analytics.py` executes the loader
+  in Node and deletes each guard as a negative control.
+
 ### Fixed
 
 - **A verdict dated in the future could never expire.** The verdict file is a cache keyed
