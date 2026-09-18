@@ -47,7 +47,7 @@ SITE = REPO_ROOT / "site"
 GRAPH = SITE / "credentials.jsonld"
 
 #: Hand-counted, from the fixture below, by reading the six statements it makes:
-#: the licence's type, its CTID, its name, its link to one subject; and that subject's type
+#: the license's type, its CTID, its name, its link to one subject; and that subject's type
 #: and its name. Six triples, two subjects, one of them anonymous.
 FIXTURE_TRIPLES = 6
 
@@ -437,9 +437,9 @@ def test_rdflib_reads_the_published_turtle_and_ntriples_as_the_same_statements(
     """The same question against the real graph, with a cheaper answer.
 
     Full isomorphism over 10,008 triples and ~1,600 blank nodes takes minutes, so this
-    compares what does not depend on blank node labelling: every fully-grounded triple, and
+    compares what does not depend on blank node labeling: every fully-grounded triple, and
     the multiset of statements each blank node participates in. A lost triple, a mangled
-    literal or a mis-shortened IRI fails this; only a relabelling survives it.
+    literal or a mis-shortened IRI fails this; only a relabeling survives it.
     """
     import rdflib
 
@@ -464,7 +464,7 @@ def _grounded(graph: Any) -> set[tuple[str, str, str]]:
 
 
 def _shapes(graph: Any) -> dict[tuple[str, str], int]:
-    """How often each (predicate, object-or-anonymous) pair occurs, blank nodes anonymised."""
+    """How often each (predicate, object-or-anonymous) pair occurs, blank nodes anonymized."""
     import rdflib
 
     counts: dict[tuple[str, str], int] = {}

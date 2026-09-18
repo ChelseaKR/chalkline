@@ -281,7 +281,7 @@ def turtle(
 ) -> str:
     """Turtle, grouped by subject, with only the prefixes the graph actually uses.
 
-    Blank nodes are written as labelled nodes (``_:c14n7``) rather than inlined in ``[ ]``.
+    Blank nodes are written as labeled nodes (``_:c14n7``) rather than inlined in ``[ ]``.
     Inlining reads better and is what rdflib does; it is also what makes rdflib's output
     depend on dictionary order. A label that came out of URDNA2015 is stable, so this keeps
     the labels and stays byte-identical between runs.
