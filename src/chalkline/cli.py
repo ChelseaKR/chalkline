@@ -29,7 +29,7 @@ from chalkline.attachment import attach
 from chalkline.ctdl import export as export_module
 from chalkline.ctdl import validate as validate_module
 from chalkline.model import Catalog, build_catalog
-from chalkline.site import render
+from chalkline.site import PRIVACY_FILENAME, render, render_privacy
 from chalkline.sources import leaflet_pages, sort_table
 from chalkline.sources import leaflets as leaflets_module
 
@@ -62,7 +62,7 @@ def _catalog() -> Catalog:
 
 
 def _artifacts(catalog: Catalog) -> dict[str, str]:
-    """The three published files, as text, without writing anything."""
+    """The four published files, as text, without writing anything."""
     index = leaflets_module.load_index()
     attachments = attach(
         catalog, leaflets_module.index_by_title(index.leaflets), published=index.leaflets
@@ -86,6 +86,7 @@ def _artifacts(catalog: Catalog) -> dict[str, str]:
         PAGE_FILENAME: render(
             catalog, ctids, attachments, links_module.page_note(document, verdicts)
         ),
+        PRIVACY_FILENAME: render_privacy(),
     }
 
 

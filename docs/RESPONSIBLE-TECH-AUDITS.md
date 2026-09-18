@@ -140,20 +140,27 @@ does not render one as the other.
 
 ## C. Privacy and data protection
 
-**N/A, with the reason stated rather than assumed.**
+**Applies to the published pages; N/A to the data, with the reason stated rather than
+assumed.**
 
 There is no personal data in this repository. The inputs are two categories of public page
 published by a California state agency: a table of credential authorizations and a set of
 leaflets describing document types. Neither is about an identified or identifiable person.
-Nothing is collected from a reader of the published page either: there is no server, no
-account, no cookie, no analytics, and no telemetry.
 
-That last claim is the one worth making mechanically rather than promising, because it is the
-one a reader cannot check by reading the source. `tests/test_performance.py` asserts that the
-published page fetches nothing at all to render: no script, stylesheet, font, image, or
-frame, and no `@import` or `url()` in the inline stylesheet. A tracking pixel or an analytics
-snippet is a subresource, so the check that keeps the page self-contained is the same check
-that keeps it from observing anybody.
+The published pages do observe their readers, since 2026-09-17: the owner decided to run
+Google Analytics 4 on every public site, with privacy copy changed to match. What it records,
+its cookies, its retention, and the three ways to opt out are on `site/privacy.html`, linked
+from both footers. There is still no server, no account and no telemetry, and the data files
+carry no tracking.
+
+What is worth making mechanical here is the part a reader cannot check by reading the page:
+when that analytics runs. `tests/test_performance.py` refuses every script but the GA4
+loader, matched by its whole text, so a second tracker is a failing check rather than a
+review note. `tests/test_analytics.py` executes that loader in Node and holds it to loading
+nothing off the production host, under Global Privacy Control or Do Not Track, or after the
+footer opt-out, with Google signals and ad personalisation off and analytics cookies denied
+in the EEA, the UK and Switzerland. Each guard has a negative control that deletes it,
+asserts the deletion landed, and asserts GA then loads.
 
 The one piece of personal information in the repository is the author's own name, in
 `LICENSE`, `CITATION.cff`, and the ADR deciders line, given deliberately.
