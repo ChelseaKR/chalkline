@@ -112,7 +112,7 @@ def test_the_page_describes_itself(real_catalog: Catalog) -> None:
 
 def test_the_page_names_a_share_image(real_catalog: Catalog) -> None:
     # The head described the page in words and named no picture, so a shared
-    # link rendered as a grey box: a preview with no og:image falls back to a
+    # link rendered as a gray box: a preview with no og:image falls back to a
     # placeholder, not to anything on the page. That is invisible from inside a
     # browser, which loads the page rather than the card, so it is checked here.
     head = head_of(render(real_catalog, ctid_module.load_ledger(), {}))
@@ -299,7 +299,7 @@ def test_leaflet_prose_and_conditions_are_shown() -> None:
                 heading="Requirements",
                 level=2,
                 kind=leaflet_pages.REQUIREMENTS,
-                blocks=("Hold a licence.",),
+                blocks=("Hold a license.",),
             ),
             leaflet_pages.Section(
                 heading="Term of the Credential",

@@ -33,7 +33,7 @@ def test_a_page_is_read_into_a_lead_and_classified_sections() -> None:
         page(
             "School Nurse Services Credential (CL-380)",
             "<p>What it is.</p>"
-            "<h2>Requirements</h2><p>Hold a licence.</p><ul><li>And a degree.</li></ul>"
+            "<h2>Requirements</h2><p>Hold a license.</p><ul><li>And a degree.</li></ul>"
             "<h2>Term of the Credential</h2><p>Five years.</p>",
         ),
         "cl-380",
@@ -44,7 +44,7 @@ def test_a_page_is_read_into_a_lead_and_classified_sections() -> None:
         ("Requirements", leaflet_pages.REQUIREMENTS),
         ("Term of the Credential", leaflet_pages.VALIDITY),
     ]
-    assert parsed.sections[0].blocks == ("Hold a licence.", "And a degree.")
+    assert parsed.sections[0].blocks == ("Hold a license.", "And a degree.")
     assert parsed.stopped_at is None
 
 

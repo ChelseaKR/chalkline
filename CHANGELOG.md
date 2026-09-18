@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Google Analytics 4 on the published pages, and a privacy page.** Owner decision
+  2026-09-17: GA4 on every public site, with privacy copy changed to match.
+  `src/chalkline/analytics.py` holds the measurement ID (`GA4_MEASUREMENT_ID`,
+  `G-40XD8ZXCGR`) and the loader; `chalkline build` now writes `site/privacy.html` beside
+  the page, and both carry the loader and a footer "Opt out of analytics" control
+  (localStorage `chalkline:analytics-opt-out`). An empty ID removes all of it. The loader
+  does nothing off `chelseakr.github.io` under `/chalkline/`, under Global Privacy Control or
+  Do Not Track, or after an opt-out; Google signals and ad personalization are off, and
+  Consent Mode v2 denies the ad signals everywhere and analytics storage in the EEA, the UK
+  and Switzerland. `tests/test_performance.py` now allows exactly that one inline script,
+  matched by its whole text, and its fixed-overhead budget rose by the 3,600 bytes the change
+  spends. The README, `docs/METRICS-LEDGER.md` and `docs/RESPONSIBLE-TECH-AUDITS.md` no longer
+  say the page runs no script and no analytics. `tests/test_analytics.py` executes the loader
+  in Node and deletes each guard as a negative control.
+- **ADR 0005: the GitHub Pages site is the publication.** Owner decision 2026-09-18, closing
+  issue #65: what `pages.yml` serves at `https://chelseakr.github.io/chalkline/` is
+  published on purpose. `docs/IDENTIFIERS.md`, `PROVENANCE.md` and the README no longer
+  reason from the premise that nothing has been deployed or published. ADR 0004 and the
+  `@id` namespace are unchanged, per-CTID routes are still unbuilt (issue #77), and nothing
+  is published to the Credential Registry. `tests/test_subjects.py` now holds every subject
+  page to linking the Commission source it quotes, beside the unofficial notice it already
+  checked.
+
 ### Fixed
 
 - **A verdict dated in the future could never expire.** The verdict file is a cache keyed
@@ -40,6 +65,47 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`site/subjects/`, the inverse view: which credentials authorize a subject.** The
+  published page is organized by authorization, which answers what a credential authorizes.
+  An assignment clerk asks the other question, and the Commission does not publish it in
+  that shape. The build now writes one page per subject code, 323 of them, plus an index
+  and a page for the authorizations the Commission publishes `NONE` against. Each subject
+  page lists every modeled authorization the graph aligns to that code, reproduces the
+  Commission's row notes as published, and, where the alignment arrived through a followed
+  cross-reference, says so and names the credential whose rows supplied it.
+- **Nothing on them is inferred, and nothing is composed.** A subject appears against an
+  authorization only where a published row or a followable cross-reference puts it there.
+  No page states which assignments a credential permits, which is a judgment rather than a
+  quotation; `tests/test_subjects.py` refuses that wording on every page. A row with no note
+  says the Commission published none, rather than rendering an empty space that reads as
+  one.
+- **A published `NONE` and an unpublished scope are kept apart.** The 66 authorizations the
+  Commission marks `NONE` get a page of their own, and it says in terms that they are not
+  the authorizations whose scope this project could not read, which are excluded and listed
+  with their reasons on the main page. Reading that page off an empty subject list rather
+  than off the published flag changes nothing at all on today's catalog, which is why the
+  test for it is a constructed case rather than a control applied to the real data.
+- **A code carrying two published names keeps both.** The sort table spells `THTR` as both
+  `Theater` and `Introductory Theater`; choosing between them would be this project deciding
+  which of the Commission's strings is the real one. `coverage.json` counts how many codes
+  are in that state.
+- **`coverage.json` gains a counted `subjects` block**, derived from the same catalog the
+  pages are rendered from, so the statement and the pages cannot disagree. Its figures
+  cross-check against ones already published: `alignments` equals the
+  `ceterms:CredentialAlignmentObject` count, and
+  `alignments_reached_by_cross_reference` equals
+  `subject_alignments_from_a_cross_reference`.
+- **A subject code that cannot be a filename stops the build**, named rather than
+  sanitized. A path assembled from source data is a path the Commission decides; publishing
+  a page under a name it never used would be worse than refusing.
+- **The two gates that cover the published page now cover the new page class too.**
+  `tests/test_accessibility.py` runs all nine conditions over the index, the
+  not-subject-coded page and three subject pages chosen by shape, with a breakage control
+  for every check, and records which checks have nothing to look at on which page class in
+  both directions rather than letting a `> 0` pass over a page that has no subject for it.
+  `tests/test_performance.py` gives the pages their own weight formula, held against the
+  heaviest page rather than the mean, because averaged over 323 pages one page that grew by
+  ten kilobytes would move the figure by thirty bytes.
 - **`chalkline export`, and the graph as RDF.** `credentials.jsonld` is JSON-LD, and
   JSON-LD is only RDF once a processor has read it against a context. The verb runs the
   committed graph through `pyld` 3.3.0 -- a JSON-LD 1.1 processor written elsewhere, on the
@@ -80,7 +146,6 @@ All notable changes to this project are documented here. The format follows
   undeclared on purpose. Removing it leaves the canonical N-Quads byte-identical, so it
   carries no triple, and a test asserts exactly that -- the allowance cannot outlive its
   reason.
-
 - **`make check-links`, and the difference between "checked and fine" and "never
   checked".** The graph publishes 1,205 references to 14 distinct `www.ctc.ca.gov`
   URLs, and the Commission moves pages. `scripts/check_links.py` requests each distinct
@@ -267,7 +332,7 @@ All notable changes to this project are documented here. The format follows
   unclassified heading containing "credential", "permit", "certificate", "certification" or
   "authorization", which is a purely lexical test and cannot tell a second Commission
   document from an aside, an add-on or an alternate pathway. Fourteen of the nineteen
-  vendored pages stopped early and twelve stopped before a heading `classify()` recognises.
+  vendored pages stopped early and twelve stopped before a heading `classify()` recognizes.
   The three Speech-Language Pathology Services Credential licenses carried no
   `ceterms:requires` at all, because `cl-879` ended at "Special Class Authorization" and its
   own four "Requirements for ..." sections sat behind that; both Teaching Permit for
@@ -341,9 +406,9 @@ All notable changes to this project are documented here. The format follows
 - `LeafletPage.set_aside` and `Attachment.set_aside`, with
   `authorizations_whose_leaflet_set_a_subject_aside` and
   `headings_set_aside_as_another_subject` in `site/coverage.json`. The stop and the aside are
-  two judgements of different strength and they are published separately: a wrong stop costs
+  two judgments of different strength and they are published separately: a wrong stop costs
   a page and a wrong aside costs a paragraph, so every set-aside heading is listed with a
-  count rather than summarised, and a reader can check each call. The two stop counts fell
+  count rather than summarized, and a reader can check each call. The two stop counts fell
   from 16 and 15 to 6 and 6 with the fix above, which is less dropped rather than less
   disclosed.
 
@@ -488,7 +553,7 @@ All notable changes to this project are documented here. The format follows
   the parser walks the headings past a stop without reading a word of them to take it. It is
   an upper bound on what a corrected stop rule could recover and not a claim that any of it
   was wrongly dropped: where the stop was right the headings belong to another Commission
-  document. Issue #36, the judgement about which is which, stays open.
+  document. Issue #36, the judgment about which is which, stays open.
 
 ### Fixed
 
@@ -576,14 +641,14 @@ All notable changes to this project are documented here. The format follows
   the index as "The Teaching Permit for Statutory Leave (TPSL)", which matches nothing, and
   titles itself "Teaching Permit for Statutory Leave", which is exactly the named-family base
   of `Teaching Permit for Statutory Leave (Multiple Subject)` and `(Single Subject)`.
-- A third attachment rule: a parenthesised run in a leaflet's published title that is,
+- A third attachment rule: a parenthesized run in a leaflet's published title that is,
   character for character, a whole Document Title cell in the sort table. `CL-898` names
   `MILS` that way, and the sort table publishes `MILS` as the Document Title of exactly one
   credential. A code is not a title, so this rule attaches the Commission's link and never
   any prose. The cell must match whole: `TC1, TC2` lists two documents, and a leaflet naming
   one of them says nothing about a row carrying both.
 - Variant requirements. Where a leaflet matched by the named-family rule breaks its
-  requirements out under a sub-heading equal to the parenthesised qualifier the Commission
+  requirements out under a sub-heading equal to the parenthesized qualifier the Commission
   wrote in the authorization's own title, those requirements are read for that authorization
   alone. The nesting is read from the Commission's outline by heading level, so the same
   words under a validity heading are not requirements. Six authorizations gain their own
@@ -627,7 +692,7 @@ All notable changes to this project are documented here. The format follows
   published strings and therefore independent of the order the Commission prints the rows in.
   No match changes: none of the six recovered titles equals an authorization's under any
   rule. The count of 81 leaflets is now 81 leaflets with names rather than 75 with names and
-  six labelled with a notice about something else, and the 8 redirection rows are counted
+  six labeled with a notice about something else, and the 8 redirection rows are counted
   separately.
 - `headings_read_past_but_not_classified` counted a heading against every authorization the
   leaflet served, including the one that read it. "Single Subject:" is unclassified on
@@ -663,7 +728,7 @@ All notable changes to this project are documented here. The format follows
   Commission's six headers and lost every row under them. That page satisfies all four of
   the parser's structural refusals (one `<table>`, at least one `<tr>`, the expected
   headers, full-width rows), so nothing objected, and the empty read propagated as fact:
-  a catalog of nothing, a graph holding the Commission and no licences, a `validate.check`
+  a catalog of nothing, a graph holding the Commission and no licenses, a `validate.check`
   that passed because that graph is not empty, a coverage statement counting zero of
   everything, a page of nine zeroed tiles, and `chalkline build` printing
   "0 authorizations modeled, 0 excluded" and exiting 0. This is the same refusal
@@ -703,7 +768,7 @@ All notable changes to this project are documented here. The format follows
   (`cl-812`, `cl-824`, `cl-879`, `cl-909`). The prefixes and byte counts were right, so the
   rows looked correct; the suffixes belonged to no file in the repository.
 - `docs/IDENTIFIERS.md` claimed under "Counted, not asserted" that no emitted value other
-  than `@id` uses the unresolved host. `ceterms:ownedBy` uses it on all 133 licences, so the
+  than `@id` uses the unresolved host. `ceterms:ownedBy` uses it on all 133 licenses, so the
   host appears 267 times rather than 134.
 - `docs/MODELING.md` still said the class is uniform across "125 modeled authorizations";
   cross-reference resolution took that to 133, as the same document says twice elsewhere.
@@ -714,7 +779,7 @@ All notable changes to this project are documented here. The format follows
   `install`, `lock`, and `lock-check` are `uv` invocations in their own right.
 - The validator passed a language map with no language tags and any property present with
   an empty list. `all()` over no entries and `for` over no items are both true of nothing,
-  so `ceterms:name: {}` on every licence validated clean: a graph in which no credential has
+  so `ceterms:name: {}` on every license validated clean: a graph in which no credential has
   a name would have shipped. Both shapes are findings now.
 - `chalkline.sources.leaflets.load` returned `()` when the index linked no leaflet pages,
   where `sort_table.load` refuses. `_LINK_RE` needs a path-relative href, so a CMS switching
@@ -767,7 +832,7 @@ All notable changes to this project are documented here. The format follows
 - Attachment policy (`chalkline.attachment`) deciding which leaflet describes which
   authorization and what may be read from it, with every refusal recorded.
 - A second leaflet matching rule: an authorization title that is a leaflet title plus one
-  trailing parenthesised qualifier. Six more authorizations matched, 18 in total.
+  trailing parenthesized qualifier. Six more authorizations matched, 18 in total.
 - `ceterms:requires` and `ceterms:renewal` as `ceterms:ConditionProfile` nodes built from
   leaflet sections, on 13 and 7 licenses respectively; 22 condition profiles in all.
 - `ceterms:description` from leaflet prose where a leaflet was read, outranking the sort

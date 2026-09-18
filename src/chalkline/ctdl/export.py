@@ -3,7 +3,7 @@
 Nothing in this module is published to, drawn from, or claimed about any registry. It writes
 files to disk. Class and property choices are justified in ``docs/MODELING.md`` and enforced
 by :mod:`chalkline.ctdl.validate` against the vendored schema, so the justification and the
-behaviour cannot drift apart.
+behavior cannot drift apart.
 
 The graph
 ---------
@@ -357,7 +357,7 @@ LICENSE_PROPERTIES: Final = (
 """License properties the coverage statement counts, in emission order.
 
 Hand-kept, and therefore checked: :func:`census_problems` fails the build if the export
-emits a property on a licence that this tuple does not name, because a census that quietly
+emits a property on a license that this tuple does not name, because a census that quietly
 stops counting a property is worse than no census.
 """
 
@@ -365,7 +365,7 @@ LEAFLET_RULE: Final = (
     "a leaflet is attached only where one of the Commission's own published strings equals "
     "the authorization's: a title the leaflet index gives the leaflet, a title the leaflet "
     "page gives itself, or a document code the leaflet's title names, each after case and "
-    "punctuation normalization and each also tried with one trailing parenthesised qualifier "
+    "punctuation normalization and each also tried with one trailing parenthesized qualifier "
     "removed from the authorization's title; and its prose is read only where the leaflet "
     "page's own heading states the code it was asked for and a title that identified this "
     "authorization"
@@ -445,11 +445,11 @@ def _leaflet_coverage(
         "headings_left_unread_beyond_the_stop": _tally(
             heading for a in attached for heading in a.classified_beyond_the_stop
         ),
-        # The weaker of the two judgements, and separated from the stop because it is weaker.
+        # The weaker of the two judgments, and separated from the stop because it is weaker.
         # An unclassified heading naming a document that has no sub-headings under it is read
         # past rather than read: its own prose is not attributed to this authorization, and
         # the page after it is. Listing the headings rather than only counting them is what
-        # lets a reader check the call, which matters because this is the judgement most
+        # lets a reader check the call, which matters because this is the judgment most
         # likely to be wrong.
         "authorizations_whose_leaflet_set_a_subject_aside": sum(1 for a in attached if a.set_aside),
         "headings_set_aside_as_another_subject": _tally(
@@ -523,6 +523,10 @@ def coverage(
         "license_properties": {
             term: sum(1 for e in licenses if term in e) for term in LICENSE_PROPERTIES
         },
+        # Counted from the same catalog the subject pages are rendered from, so the
+        # statement and the pages cannot disagree. `coverage_problems` recomputes every
+        # key here before anything is written.
+        "subjects": _subject_census(catalog),
         "leaflets": leaflet_counts,
         # What one link-check run observed about the Commission URLs above, or, when
         # no run has been recorded, that none has. The block is always present: a
@@ -533,7 +537,7 @@ def coverage(
         "not_modeled": {
             "ceterms:occupationType": (
                 "the sort table publishes no occupation codes, and aligning a credential to "
-                "an SOC occupation would be this project's judgement rather than the "
+                "an SOC occupation would be this project's judgment rather than the "
                 "Commission's statement"
             ),
             "ceterms:audienceLevelType": (
@@ -549,12 +553,25 @@ def coverage(
             ),
             "leaflet_sections_this_project_cannot_classify": (
                 "a leaflet section whose heading is not one of the kinds this project "
-                "recognises is never read, and reading stops entirely at the first heading "
+                "recognizes is never read, and reading stops entirely at the first heading "
                 "that names another document, so a leaflet describing several credentials "
                 "contributes only the part it is titled for"
             ),
         },
     }
+
+
+def _subject_census(catalog: Catalog) -> dict[str, int]:
+    """The subject pages' own counted statement, imported where it is used.
+
+    ``chalkline.subjects`` renders those pages, so it reaches for the disclaimer and the
+    stylesheet this module and ``chalkline.site`` define. Importing it at the top of this
+    file would close that loop. The census is pure catalog arithmetic and the pages are
+    rendered from the same function, so the statement and the pages cannot disagree.
+    """
+    from chalkline import subjects as subjects_module
+
+    return subjects_module.census(catalog)
 
 
 def census_problems(document: Mapping[str, Any]) -> list[str]:

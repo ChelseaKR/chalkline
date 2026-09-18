@@ -4,7 +4,7 @@
 
 Report suspected vulnerabilities privately through GitHub's
 [private vulnerability reporting](https://github.com/ChelseaKR/chalkline/security/advisories/new).
-Please do not open a public issue for a security problem. Expect an acknowledgement within
+Please do not open a public issue for a security problem. Expect an acknowledgment within
 seven days.
 
 ## Scope
@@ -14,7 +14,7 @@ no runtime dependencies. It reads vendored files and writes files. The realistic
 is small and worth naming precisely:
 
 - **Untrusted input parsing.** The HTML parsers read vendored snapshots of public pages. A
-  malicious snapshot could in principle drive pathological regex behaviour. Snapshots are
+  malicious snapshot could in principle drive pathological regex behavior. Snapshots are
   committed and hash-checked, so a change to one is visible in review.
 - **Output escaping.** The generated page escapes all source-derived text. A test asserts
   that markup arriving through source data is escaped rather than rendered.

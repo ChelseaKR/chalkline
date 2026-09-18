@@ -35,7 +35,7 @@ def test_an_exact_title_matches_and_names_its_rule() -> None:
     assert match.qualifier is None
 
 
-def test_a_parenthesised_qualifier_matches_the_family_leaflet() -> None:
+def test_a_parenthesized_qualifier_matches_the_family_leaflet() -> None:
     index = index_of(("cl-858", "Short-Term Staff Permit"))
     match = leaflets.match_title("Short-Term Staff Permit (Special Education)", index)
     assert match is not None

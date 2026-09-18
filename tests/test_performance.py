@@ -9,10 +9,18 @@ files served from GitHub Pages, with no client-side data fetch and no runtime. *
 enforced:** no performance budget is measured and none is gated."
 
 Self-containment is the load-bearing half. It is what makes the page work from a file://
-URL, what keeps a reader's visit off any third party's logs, and what makes "no analytics on
-the published page, by design" in the Observability row a checkable statement rather than an
-intention. One ``<script src>`` or one webfont ``<link>`` would end all three at once, and
-until now nothing would have noticed.
+URL, and what makes every script on the page one that somebody decided to put there. One
+``<script src>`` or one webfont ``<link>`` would end both at once, and until now nothing would
+have noticed.
+
+The page does run one script, and it is the second exception this gate makes, also by name:
+the Google Analytics 4 loader from :mod:`chalkline.analytics` (owner decision 2026-09-17).
+It is matched by its whole text, so an inline script that differs from it by one byte is
+refused like any other. It fetches nothing to render: off the production host it returns
+without doing anything, and on it, unless the browser sends Global Privacy Control or Do Not
+Track or the visitor opted out, it appends Google's gtag.js as an async script after the page
+is already there. That fetch is the one this gate knowingly allows, and
+``tests/test_analytics.py`` holds exactly when it happens.
 
 The page does carry one ``<link>``, the ``rel="canonical"`` added with the head metadata,
 and it is the single exception this gate makes. It is an exception by name rather than by
@@ -44,7 +52,9 @@ from typing import Final
 
 import pytest
 
+from chalkline import analytics
 from chalkline import ctid as ctid_module
+from chalkline import subjects as subjects_module
 from chalkline.attachment import Attachment
 from chalkline.model import Catalog
 from chalkline.site import SITE_URL, STYLE, render
@@ -65,9 +75,17 @@ SUBRESOURCE_TAGS: Final = {
     "input": "src",
 }
 """Every element that makes the browser fetch something while rendering the page, and the
-attribute that names what. ``script`` is listed without qualification: an inline
-``<script>`` fetches nothing but still means the page runs code, and the page's claim is
-that it does not. ``link`` is qualified by :data:`METADATA_LINK_RELS` and by nothing else."""
+attribute that names what. ``script`` is listed with one qualification: an inline
+``<script>`` fetches nothing but still means the page runs code, so the only one allowed is
+the GA4 loader, matched by its whole text against :data:`GA4_LOADER`. ``link`` is qualified
+by :data:`METADATA_LINK_RELS` and by nothing else."""
+
+GA4_LOADER: Final = (
+    analytics.head_snippet(analytics.GA4_MEASUREMENT_ID)
+    .removeprefix("<script>")
+    .removesuffix("</script>\n")
+)
+"""The body of the one inline script the page may carry, exactly as the build writes it."""
 
 METADATA_LINK_RELS: Final = frozenset({"canonical"})
 """The only ``rel`` values a ``<link>`` on this page may carry.
@@ -84,13 +102,22 @@ list and must not be added without qualification: ``rel="alternate stylesheet"``
 stylesheet.
 """
 
-FIXED_OVERHEAD_BUDGET: Final = 12_000
+FIXED_OVERHEAD_BUDGET: Final = 15_600
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
-head, the disclaimer, the counts, the prose, the exclusions table, the footer. It is 8,690
-today, so this is 1.38x headroom. The stylesheet is 2,797 of it, the head metadata added with
-the canonical link is 890, the share-card tags (`og:image` and its type, dimensions and alt
-text, plus `twitter:image`) are 588, and the accessibility fixes (`scope`, `role`,
-`tabindex`, the region label and its focus ring) are 206."""
+head, the disclaimer, the counts, the prose, the exclusions table, the footer. It was 8,690
+against a budget of 12,000 (1.38x headroom). The stylesheet is 2,797 of it, the head metadata
+added with the canonical link is 890, the share-card tags (`og:image` and its type,
+dimensions and alt text, plus `twitter:image`) are 588, and the accessibility fixes (`scope`,
+`role`, `tabindex`, the region label and its focus ring) are 206.
+
+Google Analytics 4 (owner decision 2026-09-17) took the overhead from 8,920 to 12,525: the
+inline loader is 3,097 bytes, the footer's privacy line and opt-out control 365, and the
+opt-out button's style the rest. The budget was raised by 3,600 for that and not by a byte
+more, so the headroom left for everything else is what it was before (3,075 bytes, against
+3,080). A heavier page for analytics was decided on purpose, here, in the diff.
+
+The subject pages (#87) added one sentence linking them from the page, taking it to 12,660:
+2,940 bytes of headroom, 1.23x."""
 
 PER_AUTHORIZATION_BUDGET: Final = 2_200
 """Bytes the page may spend per modeled authorization. The mean is 1,868 today and the
@@ -116,6 +143,9 @@ class Reference:
     rel: str = ""
     """The ``rel`` of a ``<link>``, as the page writes it. Empty for every other element."""
 
+    body: str = ""
+    """The text of an inline ``<script>``. Empty for every other element."""
+
 
 def _link_is_metadata(rel: str) -> bool:
     """Whether a ``<link>`` carrying this ``rel`` leaves the browser nothing to fetch.
@@ -133,11 +163,15 @@ class _References(HTMLParser):
         super().__init__()
         self.found: list[Reference] = []
         self.elements = 0
+        self._inline: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.elements += 1
         values = {name: value or "" for name, value in attrs}
-        if tag in SUBRESOURCE_TAGS:
+        if tag == "script" and "src" not in values:
+            # Decided at the end tag, once the whole body has been read.
+            self._inline = []
+        elif tag in SUBRESOURCE_TAGS:
             rel = values.get("rel", "") if tag == "link" else ""
             fetches = not (tag == "link" and _link_is_metadata(rel))
             self.found.append(Reference(tag, values.get(SUBRESOURCE_TAGS[tag], ""), fetches, rel))
@@ -146,6 +180,16 @@ class _References(HTMLParser):
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.handle_starttag(tag, attrs)
+
+    def handle_data(self, data: str) -> None:
+        if self._inline is not None:
+            self._inline.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "script" and self._inline is not None:
+            body = "".join(self._inline)
+            self._inline = None
+            self.found.append(Reference("script", "", body != GA4_LOADER, body=body))
 
 
 def stylesheet_fetches(style: str) -> list[str]:
@@ -174,8 +218,8 @@ def page(real_catalog: Catalog, real_attachments: dict[str, Attachment]) -> str:
     return render(real_catalog, ctid_module.load_ledger(), real_attachments)
 
 
-def test_the_page_fetches_nothing_and_runs_nothing_to_render(page: str) -> None:
-    """No script, stylesheet, font, image or frame. The page is one file.
+def test_the_page_fetches_nothing_to_render_and_runs_only_the_ga4_loader(page: str) -> None:
+    """No stylesheet, font, image or frame, and no script but the GA4 loader.
 
     The element count is asserted too. A parser that read nothing would report no
     subresources just as convincingly as a page that has none.
@@ -256,8 +300,28 @@ def test_the_committed_page_is_the_page_this_budget_measured(real_catalog: Catal
     assert len(committed) <= budget, f"site/index.html is {len(committed):,} bytes, over {budget:,}"
 
 
+def test_the_only_script_is_the_ga4_loader(page: str) -> None:
+    """The script exemption is named, not assumed, the same way the ``<link>`` one is."""
+    found, _ = references(page)
+    scripts = [reference for reference in found if reference.tag == "script"]
+    assert [(s.target, s.body, s.subresource) for s in scripts] == [("", GA4_LOADER, False)]
+    assert "googletagmanager.com/gtag/js?id=" + analytics.GA4_MEASUREMENT_ID in GA4_LOADER
+
+
+def test_a_page_without_an_id_runs_nothing(
+    real_catalog: Catalog, real_attachments: dict[str, Attachment]
+) -> None:
+    """With the ID unset the page is back to running no code at all."""
+    bare = render(real_catalog, ctid_module.load_ledger(), real_attachments, ga4_id="")
+    found, _ = references(bare)
+    assert [r for r in found if r.tag == "script"] == []
+    assert [r for r in found if r.subresource] == []
+
+
 BREAKAGES: Final = (
     ("<style>", '<script src="https://example.com/a.js"></script><style>'),
+    ("<style>", "<script>fetch('https://example.com/')</script><style>"),
+    ("allow_google_signals: false", "allow_google_signals: true"),
     ("<style>", '<link rel="stylesheet" href="https://fonts.example/x.css"><style>'),
     ("<style>", '<link rel="preload" as="font" href="https://fonts.example/i.woff2"><style>'),
     ("<style>", '<link rel="icon" href="favicon.ico"><style>'),
@@ -266,7 +330,11 @@ BREAKAGES: Final = (
     ("<main>", '<main><img src="seal.png" alt="">'),
     ("<main>", '<main><iframe src="https://example.com/"></iframe>'),
 )
-"""Eight ways to make the page fetch something, applied to the real page.
+"""Ten ways to make the page fetch or run something, applied to the real page.
+
+Two of them are scripts: a second inline script, and the GA4 loader itself with Google
+signals switched on. The loader is matched by its whole text, so an edit to it is a script
+this gate has not cleared rather than the one it has.
 
 Five of them are ``<link>`` elements, because ``<link>`` is the one element
 :data:`METADATA_LINK_RELS` lets through at all and an allowlist is worth exactly what the
@@ -281,7 +349,9 @@ because an undeclared relation is unknown, not harmless.
 @pytest.mark.parametrize(("original", "broken"), BREAKAGES, ids=lambda v: str(v)[:34])
 def test_a_page_that_fetches_something_is_caught(page: str, original: str, broken: str) -> None:
     assert original in page
-    found, _ = references(page.replace(original, broken, 1))
+    broken_page = page.replace(original, broken, 1)
+    assert broken_page != page, "the breakage did not land, so this would check the real page"
+    found, _ = references(broken_page)
     assert [r for r in found if r.subresource], f"{broken!r} was not seen as a subresource"
 
 
@@ -382,4 +452,175 @@ def test_the_documented_weight_is_the_weight_the_page_spends(
     assert _figure(_DOCUMENTED_SPEND, text) == (overhead, per_authorization), (
         "README.md says the page spends something other than what it spends. The measured "
         f"figures are {overhead:,} and {per_authorization:,}."
+    )
+
+
+# --- the subject pages, which are their own page class --------------------------------------
+
+SUBJECT_OVERHEAD_BUDGET: Final = 7_500
+"""Bytes a page under ``site/subjects/`` may spend on everything that is not a listed row.
+
+The stylesheet, the head, the disclaimer, the intro prose, the navigation and the footer.
+The heaviest is 5,493 today, so this is 1.37x headroom; the shared stylesheet's opt-out
+button style (GA4, #100) accounts for 141 of it, though these pages carry no button. It is
+the same number for all three kinds of page under that directory, because they share the
+shell that accounts for most of it.
+"""
+
+SUBJECT_PER_AUTHORIZATION_BUDGET: Final = 900
+"""Bytes a subject page may spend per authorization it lists. The heaviest is 742, which is
+1.21x headroom: enough for another sentence of provenance per authorization and not enough
+to absorb a doubling."""
+
+SUBJECT_ROW_BUDGET: Final = 140
+"""Bytes a table row may cost on the subject index and the not-subject-coded page. The
+heaviest is 108."""
+
+
+def _spent(page: str, pattern: str) -> tuple[int, int, int]:
+    """(total bytes, bytes in the repeating unit, count of units)."""
+    units = re.findall(pattern, page, re.DOTALL)
+    return len(page.encode("utf-8")), sum(len(u.encode("utf-8")) for u in units), len(units)
+
+
+@pytest.fixture(scope="module")
+def subject_pages(real_catalog: Catalog) -> dict[str, str]:
+    return subjects_module.pages(real_catalog)
+
+
+def test_the_subject_pages_fetch_nothing_to_render(subject_pages: dict[str, str]) -> None:
+    """One file each, on the same inline stylesheet. Same rule as the main page.
+
+    A second page class is the easiest way to publish a stylesheet link that the gate on
+    the first page class would have refused.
+    """
+    assert len(subject_pages) > 100, "the subject pages did not render, so this checks nothing"
+    for name, page in subject_pages.items():
+        found, elements = references(page)
+        assert elements > 10, f"{name}: the scan walked {elements} elements"
+        fetches = [f"<{r.tag}> fetches {r.target!r}" for r in found if r.subresource]
+        assert fetches == [], f"{name} is not self-contained: {fetches}"
+
+
+def test_every_subject_page_stays_within_its_weight_budget(
+    subject_pages: dict[str, str], real_catalog: Catalog
+) -> None:
+    """Held against the heaviest page, not the mean.
+
+    Averaged over 323 pages, one page that had grown by ten kilobytes would move the figure
+    by thirty bytes and pass. The budget is about markup per unit, and the unit is a page.
+    """
+    reaches = {
+        subject.code: len(subject.reaches) for subject in subjects_module.group(real_catalog)
+    }
+    checked = 0
+    for name, page in subject_pages.items():
+        if name in (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME):
+            continue
+        code = name.split("/")[1].removesuffix(".html")
+        total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+        assert blocks == reaches[code], (
+            f"{name} renders {blocks} blocks for {reaches[code]} authorizations, so the "
+            "split this budget assumes is not the page's shape"
+        )
+        overhead = total - in_blocks
+        assert overhead <= SUBJECT_OVERHEAD_BUDGET, (
+            f"{name} spends {overhead:,} bytes outside its listed authorizations, over "
+            f"the {SUBJECT_OVERHEAD_BUDGET:,} budget"
+        )
+        assert in_blocks / blocks <= SUBJECT_PER_AUTHORIZATION_BUDGET, (
+            f"{name} spends {in_blocks / blocks:,.0f} bytes per authorization it lists, "
+            f"over the {SUBJECT_PER_AUTHORIZATION_BUDGET:,} budget"
+        )
+        checked += 1
+    assert checked == len(reaches), "a subject page went unmeasured"
+
+
+@pytest.mark.parametrize(
+    "name", [subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME]
+)
+def test_the_two_table_pages_stay_within_their_row_budget(
+    subject_pages: dict[str, str], name: str
+) -> None:
+    page = subject_pages[name]
+    total, in_rows, rows = _spent(page, r"<tr>.*?</tr>")
+    assert rows > 1, f"{name} renders no data rows"
+    body = rows - 1  # the header row is overhead, not a row of data
+    overhead = total - in_rows
+    assert overhead <= SUBJECT_OVERHEAD_BUDGET, (
+        f"{name} spends {overhead:,} bytes outside its rows, over {SUBJECT_OVERHEAD_BUDGET:,}"
+    )
+    assert in_rows / rows <= SUBJECT_ROW_BUDGET, (
+        f"{name} spends {in_rows / rows:,.0f} bytes per row across {body} rows, over "
+        f"the {SUBJECT_ROW_BUDGET:,} budget"
+    )
+
+
+def test_a_heavier_subject_page_is_caught(subject_pages: dict[str, str]) -> None:
+    """The control, in both directions, as the main page's budget has.
+
+    Growth in the markup per authorization must fail; the Commission aligning more
+    authorizations to one subject at today's weight each must not, or the budget becomes a
+    cap on how much of the table this project may publish.
+    """
+    fixed = (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME)
+    name, page = max(
+        ((n, p) for n, p in subject_pages.items() if n not in fixed),
+        key=lambda pair: len(pair[1]),
+    )
+    _total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+    assert blocks > 1, f"{name} lists one authorization, so doubling it proves less"
+    assert in_blocks * 2 / blocks > SUBJECT_PER_AUTHORIZATION_BUDGET, (
+        "doubling the markup per listed authorization would pass"
+    )
+    assert in_blocks * 2 / (blocks * 2) <= SUBJECT_PER_AUTHORIZATION_BUDGET, (
+        "twice as many authorizations at today's weight each would fail, which would make "
+        "this a cap on the Commission's table rather than on this project's markup"
+    )
+
+
+def test_the_committed_subject_pages_are_the_pages_this_budget_measured(
+    subject_pages: dict[str, str],
+) -> None:
+    """The budget is about the files that are served, so it is checked against them too."""
+    for name in subject_pages:
+        committed = SITE / name
+        assert committed.is_file(), f"{name} is not committed under site/"
+        assert len(committed.read_bytes()) <= (
+            SUBJECT_OVERHEAD_BUDGET
+            + SUBJECT_PER_AUTHORIZATION_BUDGET * len(re.findall(r"<h3>", subject_pages[name]))
+            + SUBJECT_ROW_BUDGET * len(re.findall(r"<tr>", subject_pages[name]))
+        ), f"{name} is over its budget as committed"
+
+
+_DOCUMENTED_SUBJECT_BUDGET = re.compile(
+    r"a subject page's budget is ([\d,]+) bytes of fixed overhead plus ([\d,]+) per "
+    r"authorization it lists, and the two table pages get ([\d,]+) plus ([\d,]+) per row"
+)
+_DOCUMENTED_SUBJECT_SPEND = re.compile(
+    r"Today the heaviest subject page spends ([\d,]+) and ([\d,]+)"
+)
+
+
+def test_the_documented_subject_budget_is_the_one_held(subject_pages: dict[str, str]) -> None:
+    """The README's subject-page figures, bound the same way the main page's are."""
+    text = " ".join(README.read_text(encoding="utf-8").split())
+    assert _figure(_DOCUMENTED_SUBJECT_BUDGET, text) == (
+        SUBJECT_OVERHEAD_BUDGET,
+        SUBJECT_PER_AUTHORIZATION_BUDGET,
+        SUBJECT_OVERHEAD_BUDGET,
+        SUBJECT_ROW_BUDGET,
+    ), "README.md publishes a subject-page budget this module does not hold the pages to"
+
+    worst_overhead = 0
+    worst_per = 0
+    for name, page in subject_pages.items():
+        if name in (subjects_module.INDEX_FILENAME, subjects_module.NOT_SUBJECT_CODED_FILENAME):
+            continue
+        total, in_blocks, blocks = _spent(page, r'<article class="cred">.*?</article>')
+        worst_overhead = max(worst_overhead, total - in_blocks)
+        worst_per = max(worst_per, round(in_blocks / blocks))
+    assert _figure(_DOCUMENTED_SUBJECT_SPEND, text) == (worst_overhead, worst_per), (
+        "README.md says the heaviest subject page spends something other than what it "
+        f"spends. The measured figures are {worst_overhead:,} and {worst_per:,}."
     )
