@@ -42,6 +42,8 @@ from typing import Final
 import pytest
 
 import chalkline.site
+from chalkline import subjects as subjects_module
+from chalkline.model import Catalog
 
 
 def stylesheet() -> str:
@@ -51,7 +53,7 @@ def stylesheet() -> str:
 
 TEXT_CONTRAST: Final = 4.5
 """WCAG 1.4.3 Contrast (Minimum), level AA, for text below 18.66px bold or 24px regular.
-Every colour pair this page makes is small text, so the large-text allowance never applies."""
+Every color pair this page makes is small text, so the large-text allowance never applies."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,7 +147,7 @@ def unmarkered_classes(style: str) -> set[str]:
 def check_list_semantics(page: str, report: Report) -> None:
     """A list whose markers CSS removes is no longer announced as a list in Safari.
 
-    This is browser behaviour rather than a WCAG success criterion in its own right: WebKit
+    This is browser behavior rather than a WCAG success criterion in its own right: WebKit
     treats ``list-style: none`` as a signal that the author did not mean a list, and drops
     the role. ``role="list"`` says otherwise. The effect it prevents is the one 1.3.1 is
     about, a relationship visible in the markup that does not reach the reader.
@@ -241,7 +243,7 @@ PAIRS: Final = (
     ("accent", "panel", "a inside .notice, which sets background: var(--panel)"),
 )
 """Every foreground/background pairing the stylesheet actually makes, with the rule that
-makes it. Hand-kept, and guarded below: a colour token that appears in no pairing and is not
+makes it. Hand-kept, and guarded below: a color token that appears in no pairing and is not
 recorded as decorative fails, so a new token cannot be added without being placed."""
 
 DECORATIVE: Final = {
@@ -257,19 +259,19 @@ def palette(name: str, pattern: str, style: str) -> dict[str, str]:
     block = re.search(pattern, style, re.DOTALL)
     assert block is not None, f"the stylesheet declares no {name} palette"
     found = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", block.group(1)))
-    assert found, f"the {name} palette declares no colour tokens"
+    assert found, f"the {name} palette declares no color tokens"
     return found
 
 
-def relative_luminance(colour: str) -> float:
-    """WCAG's relative luminance of an sRGB colour."""
-    channels = [int(colour[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+def relative_luminance(color: str) -> float:
+    """WCAG's relative luminance of an sRGB color."""
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
     linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
 def contrast(foreground: str, background: str) -> float:
-    """WCAG's contrast ratio between two sRGB colours."""
+    """WCAG's contrast ratio between two sRGB colors."""
     luminances = sorted((relative_luminance(foreground), relative_luminance(background)))
     return (luminances[1] + 0.05) / (luminances[0] + 0.05)
 
@@ -397,6 +399,158 @@ every check in :data:`CHECKS` appears in it: a check nothing can break is a chec
 cannot fail, which is the failure mode this whole module exists to avoid."""
 
 
+SUBJECT_SAMPLE: Final = 3
+"""How many subject pages the parametrized checks run over, beyond the two fixed ones.
+
+Every subject page comes out of one renderer, so running all 323 through nine checks would
+be the same assertion 2,900 times. Three are sampled by shape rather than at random: the
+first code alphabetically, the code with the most authorizations on it, and one reached
+exactly once, which are the three the renderer's branches differ on. The index and the
+not-subject-coded page are always included, being their own renderers.
+"""
+
+
+def subject_pages(catalog: Catalog) -> dict[str, str]:
+    """The pages this gate covers, keyed by their path under ``site/``."""
+    rendered = subjects_module.pages(catalog)
+    grouped = subjects_module.group(catalog)
+    busiest = max(grouped, key=lambda subject: len(subject.reaches))
+    chosen = {grouped[0].code, busiest.code}
+    thinnest = min(
+        (subject for subject in grouped if subject.code not in chosen),
+        key=lambda subject: len(subject.reaches),
+    )
+    sampled = [grouped[0].filename, busiest.filename, thinnest.filename]
+    assert len(set(sampled)) == SUBJECT_SAMPLE, (
+        "the three sampled subject pages collapsed onto fewer than three files, so this "
+        "gate is covering less than it says"
+    )
+    wanted = {
+        subjects_module.INDEX_FILENAME,
+        subjects_module.NOT_SUBJECT_CODED_FILENAME,
+        *sampled,
+    }
+    return {name: rendered[name] for name in sorted(wanted)}
+
+
+@pytest.fixture(scope="module")
+def subject_page_set(real_catalog: Catalog) -> dict[str, str]:
+    return subject_pages(real_catalog)
+
+
+def test_the_gate_covers_more_than_one_subject_page(subject_page_set: dict[str, str]) -> None:
+    """The denominator. A sample that had shrunk to nothing would pass every check below."""
+    assert len(subject_page_set) == SUBJECT_SAMPLE + 2
+
+
+def test_every_subject_page_passes_every_check(subject_page_set: dict[str, str]) -> None:
+    """The pages published under site/subjects/ are held to the same nine conditions.
+
+    They arrived after this gate was written, on their own renderer and their own markup,
+    which is exactly how a new page class gets published outside the gate that covers the
+    old one.
+    """
+    for name, page in subject_page_set.items():
+        assert review(page).problems == [], name
+
+
+SUBJECT_EXPECTED: Final = {"lang": 1, "title": 1, "img-alt": 0, "zoom": 1, "contrast": 12}
+"""What each check must find on any subject page. Same reasoning as EXPECTED_SUBJECTS."""
+
+STRUCTURE_PRESENT: Final = {
+    "subjects/index.html": ("heading-order", "th-scope", "list-semantics", "scroll-focusable"),
+    "subjects/not-subject-coded.html": ("heading-order", "th-scope", "scroll-focusable"),
+}
+"""Which structural checks have something to look at on each of the two fixed pages.
+
+Both directions are asserted below, and that is the point of writing it out. The subject
+index carries a table, a marker-stripped list and a scrolling region; the not-subject-coded
+page carries a table in a scrolling region and no such list; a per-code page carries none of
+the three, because its content is headings and prose. A check that examined nothing reports
+exactly what a check that found nothing wrong reports, so a page class where a check has no
+subject says so here rather than being quietly waved through by a ``> 0`` that only ever
+ran on a page that had one.
+"""
+
+STRUCTURAL: Final = ("heading-order", "th-scope", "list-semantics", "scroll-focusable")
+
+
+def test_every_check_looked_at_something_on_a_subject_page(
+    subject_page_set: dict[str, str],
+) -> None:
+    for name, page in subject_page_set.items():
+        examined = review(page).examined
+        for code, count in SUBJECT_EXPECTED.items():
+            assert examined[code] == count, f"{name}: {code} examined {examined[code]}"
+        present = STRUCTURE_PRESENT.get(name, ("heading-order",))
+        for code in STRUCTURAL:
+            if code in present:
+                assert examined[code] > 0, f"{name}: {code} found nothing to check"
+            else:
+                assert examined[code] == 0, (
+                    f"{name}: {code} examined {examined[code]}, and this page class is "
+                    "recorded above as carrying nothing for it. Add it to STRUCTURE_PRESENT."
+                )
+
+
+def test_the_two_fixed_pages_are_the_ones_the_structure_table_names(
+    subject_page_set: dict[str, str],
+) -> None:
+    """A key that named no page would make its expectations unreachable."""
+    assert set(STRUCTURE_PRESENT) <= set(subject_page_set)
+
+
+SUBJECT_BREAKAGES: Final = (
+    ("lang", '<html lang="en">', "<html>"),
+    ("title", "<title>Subjects", "<title></title><s>Subjects"),
+    ("heading-order", "</h1>", "</h1><h4>Skipped</h4>"),
+    ("th-scope", '<th scope="col">Code</th>', "<th>Code</th>"),
+    ("list-semantics", '<ul class="counts" role="list">', '<ul class="counts">'),
+    ("scroll-focusable", ' tabindex="0"><table>', "><table>"),
+    ("scroll-focusable", ' aria-label="Subject codes"', ""),
+    ("img-alt", "<main>", '<main><img src="seal.png">'),
+    ("zoom", "initial-scale=1", "initial-scale=1, user-scalable=no"),
+)
+"""One deliberate break per check, applied to the real subject index.
+
+The index is the page that carries a table, a marker-stripped list and a scrolling region
+at once, so every check has something on it to break. A check with no breakage here would
+be a check that cannot fail on this page class, which is the failure this module exists to
+avoid and which a second page class is the easiest way to reintroduce.
+"""
+
+
+@pytest.mark.parametrize(
+    ("code", "original", "broken"), SUBJECT_BREAKAGES, ids=lambda v: str(v)[:28]
+)
+def test_each_check_rejects_a_subject_page_that_breaks_it(
+    subject_page_set: dict[str, str], code: str, original: str, broken: str
+) -> None:
+    page = subject_page_set[subjects_module.INDEX_FILENAME]
+    assert original in page, f"the subject index no longer contains {original!r}"
+    problems = review(page.replace(original, broken, 1)).problems
+    assert any(problem.startswith(f"{code}:") for problem in problems), (
+        f"{broken!r} did not make {code} fail; it reported {problems}"
+    )
+
+
+def test_every_check_is_covered_by_a_subject_breakage() -> None:
+    """The same rule the main page's list is held to, for the new page class.
+
+    ``contrast`` is proven by :func:`test_the_contrast_check_rejects_a_palette_it_should`
+    rather than by a breakage, exactly as it is for the main page: both page classes carry
+    the same inline stylesheet, so the palette is what that check reads and a per-page
+    breakage would be a second copy of the same fact.
+    """
+    codes = {check.code for check in CHECKS}
+    proven = {code for code, _, _ in SUBJECT_BREAKAGES} | {"contrast"}
+    assert sorted(codes - proven) == [], (
+        f"these checks have no subject-page breakage proving they can fail: "
+        f"{sorted(codes - proven)}"
+    )
+    assert sorted(proven - codes) == [], f"these breakages name no check: {sorted(proven - codes)}"
+
+
 @pytest.mark.parametrize(("code", "original", "broken"), BREAKAGES, ids=lambda v: str(v)[:28])
 def test_each_check_rejects_a_page_that_breaks_it(
     page: str, code: str, original: str, broken: str
@@ -428,7 +582,7 @@ def test_the_contrast_check_rejects_a_palette_it_should(
     """The contrast check reads the stylesheet, so it is broken there rather than in the page.
 
     The last case is the denominator working: renaming a token leaves the palette declaring
-    a colour that no pairing in PAIRS and no entry in DECORATIVE accounts for, and a check
+    a color that no pairing in PAIRS and no entry in DECORATIVE accounts for, and a check
     that quietly ignored it would be checking less than it says it does.
     """
     assert original in stylesheet(), f"the stylesheet no longer declares {original!r}"

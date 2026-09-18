@@ -47,7 +47,7 @@ publishes identify this authorization".
 Variant sections
 ----------------
 
-A leaflet matched by the named-family rule was matched by dropping a parenthesised qualifier
+A leaflet matched by the named-family rule was matched by dropping a parenthesized qualifier
 the Commission wrote in the authorization's title. Where the leaflet's own requirements
 contain a sub-section headed with that same qualifier, that sub-section states the
 requirements for that variant, and the equality is the same normalized one the matcher uses.
@@ -211,7 +211,7 @@ class Attachment:
 
     @property
     def classified_beyond_the_stop(self) -> tuple[str, ...]:
-        """Headings this project's own classifier recognises that the stop left unread.
+        """Headings this project's own classifier recognizes that the stop left unread.
 
         The size of the omission :attr:`stopped_at` discloses. An empty tuple means the stop
         cost this authorization nothing a heading would have offered, which is a different

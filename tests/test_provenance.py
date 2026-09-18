@@ -42,7 +42,7 @@ SIDECAR_SUFFIX = ".source.json"
 #: vendored artifact, and a tuple where the directory holds this project's own code too:
 #: `src/chalkline/ctdl/` is a Python package whose vendored content is the two JSON
 #: specification documents, so a `.py` there is authored, not captured. Stating it as data
-#: keeps the judgement reviewable instead of buried in a filename test.
+#: keeps the judgment reviewable instead of buried in a filename test.
 VENDORED_ROOTS: tuple[tuple[Path, tuple[str, ...] | None], ...] = (
     (REPO_ROOT / "data" / "source", None),
     (REPO_ROOT / "src" / "chalkline" / "ctdl", (".json",)),

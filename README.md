@@ -56,6 +56,8 @@ credential leaflets, retrieved 2026-08-07 and 2026-08-19:
 | Excluded, each with a recorded reason | 3 |
 | Subject alignments emitted | 1,014 |
 | Of those, supplied by following a published cross-reference | 538 |
+| Distinct subject codes across those alignments | 323 |
+| Subject pages published, one per code plus an index and the not-subject-coded page | 325 |
 | Authorizations carrying `ceterms:description` | 53 |
 | Authorizations carrying requirements or renewal terms | 18 |
 | `ceterms:ConditionProfile` nodes emitted | 57 |
@@ -67,9 +69,20 @@ Output lives in [`site/`](site/): [`credentials.jsonld`](site/credentials.jsonld
 graph, [`coverage.json`](site/coverage.json) is a coverage statement counted from that graph
 at build time, [`dataset.jsonld`](site/dataset.jsonld) describes all three published
 artifacts for dataset catalogs and is embedded in the page's head, and
-[`index.html`](site/index.html) is the browsable page. All four are
-committed, and `chalkline check` fails if they are not byte-for-byte what the current code
+[`index.html`](site/index.html) is the browsable page.
+[`site/subjects/`](site/subjects/) reads the same alignments the other way round, one page
+per subject code listing the credentials that authorize it, plus an index and a page for the
+authorizations the Commission publishes `NONE` against. Everything under `site/` is
+committed, and `chalkline check` fails if it is not byte-for-byte what the current code
 produces from the current sources.
+
+The subject pages are the inverse of the main one. `index.html` answers what a credential
+authorizes; an assignment clerk asks which credentials authorize a subject, and the
+Commission does not publish that view. Nothing on them is inferred: a subject appears
+against an authorization only where a published row, or a cross-reference this project can
+follow, puts it there, and where it arrived that way the page says so and names the
+credential the rows belong to. No page states which assignments a credential permits,
+which is a judgment rather than a quotation.
 
 ## The model, in one paragraph
 
@@ -88,7 +101,9 @@ terms under a heading this project can classify, they ride `ceterms:requires` an
 Every class choice, every rejected alternative, and one apparent gap in CTDL itself are
 written up in [docs/MODELING.md](docs/MODELING.md). The `@id` host does not resolve, and
 [docs/IDENTIFIERS.md](docs/IDENTIFIERS.md) lays out what that costs and what the options are;
-nothing has been registered, and the `@id` namespace itself is not served anywhere.
+nothing has been registered, and the `@id` namespace itself is not served anywhere. The
+GitHub Pages site is the publication, by owner decision on 2026-09-18
+([ADR 0005](docs/adr/0005-the-pages-site-is-the-publication.md)).
 
 The decisions themselves are recorded as numbered, superseded-not-edited records in
 [docs/adr/](docs/adr/), which cite those two documents rather than restating them.
@@ -150,7 +165,7 @@ nothing at all. No authorization is excluded for want of a name.
 
 Only 22 of the 133 authorizations have a Commission leaflet attached, and that is the point.
 A leaflet is attached on an equality with a string the Commission published, and on nothing
-else. Three rules: an exact title match, a title match with one trailing parenthesised
+else. Three rules: an exact title match, a title match with one trailing parenthesized
 qualifier removed, and a document code the leaflet's own title names in parentheses that is
 character-for-character a whole Document Title cell in the sort table.
 
@@ -169,7 +184,7 @@ both keep their link and lose their prose. Ten leaflet pages were read; eighteen
 authorizations carry prose from one.
 
 Where a leaflet breaks its requirements out by variant, and heads that breakdown with the
-same parenthesised qualifier the Commission put in the authorization's own title, those
+same parenthesized qualifier the Commission put in the authorization's own title, those
 requirements are read for that authorization. Six authorizations gain their own variant's
 requirements this way. Two do not: their leaflets head that section "Education Specialist:"
 where the authorization says "(Special Education)", and deciding those name the same thing
@@ -311,6 +326,26 @@ network (the PyPI advisory API): everything decidable from the committed tree al
 first, and a contributor who runs `make verify` locally sees exactly what CI requires to merge,
 which is the whole reason `verify` exists as a single target rather than a suggested order.
 
+## Analytics on the published pages
+
+The page and [`privacy.html`](https://chelseakr.github.io/chalkline/privacy.html) run Google
+Analytics 4 (owner decision 2026-09-17: GA4 on every public site, with privacy copy changed
+to match). The measurement ID lives in `src/chalkline/analytics.py` as `GA4_MEASUREMENT_ID`;
+setting it to `""` and running `make build` removes the loader, the footer's opt-out control
+and every reference to Google from both pages, and the footer and privacy page then say the
+site runs no analytics. `credentials.jsonld` and `coverage.json` never carry any of it.
+
+The loader loads nothing unless the page is served from `chelseakr.github.io` under
+`/chalkline/`, so a local build, CI, or any other copy never reports to the property. It also
+loads nothing when the browser sends Global Privacy Control or Do Not Track, or after the
+visitor uses the footer's "Opt out of analytics" button, remembered in this browser's local
+storage under `chalkline:analytics-opt-out` (a key that names this project, because every
+`chelseakr.github.io` site shares one origin). Google signals and ad personalization are off,
+the advertising consent signals are denied everywhere, and analytics cookies are denied in
+the EEA, the UK and Switzerland, where Google receives cookieless pings instead.
+`tests/test_analytics.py` runs the committed loader in Node against each of those cases and
+deletes each guard in turn to prove the test notices.
+
 ## Provenance
 
 Every source, retrieval date, byte count, and sha256 is in [PROVENANCE.md](PROVENANCE.md),
@@ -331,15 +366,15 @@ result says so instead of being left out.
 | Security & Supply-Chain | Applies | [SECURITY.md](SECURITY.md) names the confidential reporting channel and the real risk surface. CI runs gitleaks over full history, Semgrep, and `pip-audit --strict`. There are no runtime dependencies; dev dependencies are locked in `uv.lock` and updated by Dependabot with a cooldown, and every GitHub Action is pinned to a full commit SHA. |
 | CI/CD | Applies | `.github/workflows/ci.yml` runs `make verify` byte for byte with the local target, plus separate audit, secret-scan, and SAST jobs; `pages.yml` republishes only when the committed `site/` still matches what the code produces. Every workflow declares a top-level least-privilege `permissions:` block. |
 | Release & Versioning | Applies: no tag has been cut, so nothing has been released and the version in `pyproject.toml` has never been published anywhere. | [CHANGELOG.md](CHANGELOG.md) is kept current under an `[Unreleased]` heading, and [CITATION.cff](CITATION.cff) deliberately carries no `date-released` until a release exists. None of that is transcribed: `tests/test_release_claims.py` reads `git tag --list` and fails if the declared version is neither tagged nor disclosed here as untagged, if any other file restates a different version, or if `date-released` appears without a tag. |
-| Observability | Applies: the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime, no telemetry, and no analytics on the published page, by design. | `Makefile` (`make check`), `.github/workflows/pages.yml`, and `tests/test_performance.py`, which is what makes "no analytics on the published page" a checkable statement rather than an intention: the page loads no third-party resource at all. |
-| Performance | Applies. The published output is four static files served from GitHub Pages, with no client-side data fetch and no runtime, and `tests/test_performance.py` now holds the page to both halves of that. Self-containment is asserted: nothing is fetched to render, and the inline stylesheet makes no `@import` or `url()` call. `<script>` is refused by default and admitted only for `application/ld+json`, which HTML defines as an inert data block rather than code, and only without a `src`. The weight budget is a formula, 20,000 bytes of fixed overhead plus 2,200 per modeled authorization, so markup growth fails the gate and the Commission publishing more credentials does not. Today the page spends 14,992 and 1,868, and `test_the_documented_weight_is_the_weight_the_page_spends` binds both figures and both budgets to the rendered page so neither can drift. **Deliberately not budgeted:** `credentials.jsonld` and `coverage.json` are downloads a reader chooses, not page-load cost, and capping them would cap how much of the Commission's table this project may model. | `tests/test_performance.py`, [`site/`](site/) |
-| Accessibility | Applies. The published page is human-facing, so it is in scope. The generated page was reviewed on 2026-08-27 and three defects were found and fixed: table header cells carrying no `scope`, two lists whose CSS-removed markers took their list semantics with them in Safari, and a horizontally scrolling region a keyboard could not reach. `tests/test_accessibility.py` is now the gate, and `make verify` runs it. **What it does not cover:** it is a check against a named list of nine conditions, not an audit. No assistive technology is driven, no browser lays the page out, and reading order and comprehension are not assessed, so this row is a floor rather than a clean bill. | `tests/test_accessibility.py`. Every one of the nine checks is exercised against a deliberately broken copy of the real page, and a check with no such breakage fails the suite. |
+| Observability | Applies: the build is the observable surface. `chalkline check` fails when the committed `site/` is not byte for byte what the current code produces from the current sources, so drift between sources, code, and published output surfaces at gate time. There is no hosted runtime and no telemetry. The published pages run Google Analytics 4 (owner decision 2026-09-17), and nothing else observes a reader: see "Analytics on the published pages" below. | `Makefile` (`make check`), `.github/workflows/pages.yml`, `tests/test_performance.py`, which refuses every script but the GA4 loader, matched by its whole text, and `tests/test_analytics.py`, which executes that loader. |
+| Performance | Applies. The published output is static files served from GitHub Pages, with no client-side data fetch, and `tests/test_performance.py` holds the pages to that. Self-containment is asserted: no script, stylesheet, font, image or frame is fetched to render, the inline stylesheet makes no `@import` or `url()` call, and the one script the page runs is the inline GA4 loader, which appends Google's gtag.js asynchronously on the production host after the page is already there. The one other `<script>` is the dataset descriptor, an `application/ld+json` data block that HTML never evaluates, admitted by `type` and only without a `src`. The weight budget is a formula, 21,700 bytes of fixed overhead plus 2,200 per modeled authorization, so markup growth fails the gate and the Commission publishing more credentials does not. Today the page spends 18,732 and 1,868, and `test_the_documented_weight_is_the_weight_the_page_spends` binds both figures and both budgets to the rendered page so neither can drift. The subject pages carry the same formula in their own shape: a subject page's budget is 7,500 bytes of fixed overhead plus 900 per authorization it lists, and the two table pages get 7,500 plus 140 per row. Both are held against the heaviest page rather than the average, so one long page cannot hide behind 322 short ones. Today the heaviest subject page spends 5,493 and 742. They run no script at all. **Deliberately not budgeted:** `credentials.jsonld` and `coverage.json` are downloads a reader chooses, not page-load cost, and capping them would cap how much of the Commission's table this project may model. | `tests/test_performance.py`, [`site/`](site/) |
+| Accessibility | Applies. The published page is human-facing, so it is in scope. The generated page was reviewed on 2026-08-27 and three defects were found and fixed: table header cells carrying no `scope`, two lists whose CSS-removed markers took their list semantics with them in Safari, and a horizontally scrolling region a keyboard could not reach. `tests/test_accessibility.py` is now the gate, and `make verify` runs it. Every subject page is held to the same nine conditions, and to a breakage control on each, so a new page class cannot arrive outside the gate. **What it does not cover:** it is a check against a named list of nine conditions, not an audit. No assistive technology is driven, no browser lays the page out, and reading order and comprehension are not assessed, so this row is a floor rather than a clean bill. | `tests/test_accessibility.py`. Every one of the nine checks is exercised against a deliberately broken copy of the real page, and a check with no such breakage fails the suite. |
 | Internationalization | Applies: English only today. The source material is the Commission's English-language publications and credential names are quoted verbatim rather than translated. The scope declaration is now written: [docs/I18N.md](docs/I18N.md) splits the page's strings into this project's own words, which a catalog may touch, the Commission's words, which no edition translates because a translated credential name is one no reader could look up and one the leaflet-matching equalities would no longer find, and this project's own words that travel in the artifacts as data, which is the part a catalog has to solve before it can be built. **Still not built:** no catalog and no EN/ES parity check. | [docs/I18N.md](docs/I18N.md). The catalog and the parity gate are tracked in issue #63; a Spanish edition is blocked on a reviewed translation, not on code. |
-| AI Evaluation | N/A: deterministic parsing and CTDL modelling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
-| Documentation | Applies | This README, [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CITATION.cff](CITATION.cff), [PROVENANCE.md](PROVENANCE.md), the modelling notes in `docs/MODELING.md` and `docs/IDENTIFIERS.md`, the standards artifacts in [docs/RESPONSIBLE-TECH-AUDITS.md](docs/RESPONSIBLE-TECH-AUDITS.md), [docs/METRICS-LEDGER.md](docs/METRICS-LEDGER.md) and [docs/I18N.md](docs/I18N.md), and five ADRs in [docs/adr/](docs/adr/). |
+| AI Evaluation | N/A: deterministic parsing and CTDL modeling. No model, prompt, retrieval, embedding, or generation runs at build time or is shipped in the output. | Zero runtime dependencies makes the no-model claim mechanically checkable. |
+| Documentation | Applies | This README, [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [SECURITY.md](SECURITY.md), [CITATION.cff](CITATION.cff), [PROVENANCE.md](PROVENANCE.md), the modeling notes in `docs/MODELING.md` and `docs/IDENTIFIERS.md`, the standards artifacts in [docs/RESPONSIBLE-TECH-AUDITS.md](docs/RESPONSIBLE-TECH-AUDITS.md), [docs/METRICS-LEDGER.md](docs/METRICS-LEDGER.md) and [docs/I18N.md](docs/I18N.md), and six ADRs in [docs/adr/](docs/adr/). |
 | Quality & Metrics | Applies: the merge-blocking gate is `make verify` with a 97% coverage floor, and the coverage statement the build publishes is counted from the graph at build time rather than asserted by hand. [docs/METRICS-LEDGER.md](docs/METRICS-LEDGER.md) is the ledger: every metric with its target, what measures it, and whether it is AUTO, REVIEW, or N/A with a reason, including the rows that are open and the ones that do not apply to a project with no server and no model. It publishes no measured values, because nothing here recomputes them; it quotes one number, the coverage floor, which `tests/test_documented_floors.py` reads out of `pyproject.toml` in this file, `CONTRIBUTING.md`, and the ledger alike. | [docs/METRICS-LEDGER.md](docs/METRICS-LEDGER.md), `pyproject.toml`, [`site/coverage.json`](site/coverage.json) |
 | AI Development Measurement | Applies: no AI-development baseline is recorded in this repository, and no activity counter (sessions, tokens, lines changed, percent AI-generated) is tracked or gated. The gates that do exist are outcome-side: `make verify` on every change. | `Makefile`, `.github/workflows/ci.yml` |
-| Incident Response | Applies: the confidential reporting channel and a seven-day acknowledgement expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
+| Incident Response | Applies: the confidential reporting channel and a seven-day acknowledgment expectation are in [SECURITY.md](SECURITY.md), along with what this project will not do. Scope is a static published page and a data repository with no accounts, no server, and no user data. No incident has been recorded, so there is no `docs/incidents/` directory yet. | [SECURITY.md](SECURITY.md) |
 | Data Governance | Applies: every input is public information published by a California state agency, and there is no personal data anywhere in this repository. Source snapshots are committed and hash-checked, so a change to one is visible in review. | [PROVENANCE.md](PROVENANCE.md) records each source URL, retrieval date, byte count, and sha256; CTIDs come from a committed ledger rather than being minted per build ([ADR 0003](docs/adr/0003-uuidv4-ctids-from-a-committed-ledger.md)). |
 
 ## License

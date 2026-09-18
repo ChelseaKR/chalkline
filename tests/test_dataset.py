@@ -210,7 +210,7 @@ def test_the_descriptor_never_names_the_ctdl_resource_namespace() -> None:
     assert "credentialengineregistry.org" not in text
 
 
-def test_the_declared_licence_is_the_licence_the_repository_carries() -> None:
+def test_the_declared_license_is_the_license_the_repository_carries() -> None:
     declared = PYPROJECT.read_text(encoding="utf-8")
     assert 'license = "Apache-2.0"' in declared
     assert dataset.LICENSE_URL == "https://www.apache.org/licenses/LICENSE-2.0"

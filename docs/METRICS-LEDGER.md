@@ -64,6 +64,7 @@ is now one of the documents it reads.
 | Metric | Target | Measured by | Gate |
 |---|---|---|---|
 | Subresources fetched to render | none: no script, stylesheet, font, image, or frame, and no `@import` or `url()` in the inline stylesheet | `tests/test_performance.py` | AUTO |
+| Scripts the page runs | exactly one, the inline Google Analytics 4 loader, matched by its whole text; it loads gtag.js only on the production host and never under Global Privacy Control, Do Not Track or the footer opt-out | `tests/test_performance.py`, `tests/test_analytics.py` (executed in Node, with a negative control per guard) | AUTO |
 | Page weight | the formula in `tests/test_performance.py`: `FIXED_OVERHEAD_BUDGET` plus `PER_AUTHORIZATION_BUDGET` for each modeled authorization, so markup growth fails and the Commission publishing more credentials does not | `tests/test_performance.py`, which also binds the figures the README publishes to the page it measured | AUTO |
 | Relative links on the page | every one resolves | `tests/test_performance.py` | AUTO |
 | Escaping of source-derived text | markup arriving through source data is escaped, not rendered | `tests/test_site.py` | AUTO |
@@ -101,15 +102,15 @@ identical from outside the repository, so each one is written down.
 
 | Metric the standard names | Why it does not apply here |
 |---|---|
-| p95 server response, first-token latency, load-test budgets | There is no server and no runtime. The published output is static files served from GitHub Pages with no client-side fetch, and the page weight budget above is what replaces a latency budget for that shape |
-| Lighthouse performance score, critical-path JS budget | The page ships no JavaScript at all, which the subresource check enforces |
-| Structured logs, OTel spans, `/livez` and `/readyz`, SLOs, burn-rate alerts | Nothing runs. The observable surface is the build, and `chalkline check` is what surfaces drift between sources, code, and published output |
+| p95 server response, first-token latency, load-test budgets | There is no server and no runtime. The published output is static files served from GitHub Pages with no client-side data fetch, and the page weight budget above is what replaces a latency budget for that shape |
+| Lighthouse performance score, critical-path JS budget | The only JavaScript is the inline GA4 loader, which blocks nothing: it appends gtag.js as an async script, and the page renders completely without it. The script check above holds it to exactly that loader |
+| Structured logs, OTel spans, `/livez` and `/readyz`, SLOs, burn-rate alerts | Nothing runs server-side. The observable surface is the build, and `chalkline check` is what surfaces drift between sources, code, and published output. Google Analytics 4 counts page visits; it is not an operational signal and nothing is gated on it |
 | RAG faithfulness, hallucination rate, red-team suites, judge calibration | No model, prompt, retrieval, embedding, or generation runs at build time or ships in the output |
-| Cross-browser matrix, container build, IaC plan | No container, no infrastructure, and one static page with no scripted behaviour to differ across engines |
-| Retention schedules, subject-access and deletion paths, no-PII-in-logs | There is no personal data and there are no logs. The inputs are a state agency's published pages about document types |
+| Cross-browser matrix, container build, IaC plan | No container, no infrastructure, and one static page whose only script is the GA4 loader and its opt-out button, which `tests/test_analytics.py` executes in Node rather than across browser engines |
+| Retention schedules, subject-access and deletion paths, no-PII-in-logs | This repository holds no personal data and keeps no logs. The inputs are a state agency's published pages about document types. Visit data from the pages goes to Google Analytics 4, not here; its retention is the property's 14-month setting, and `site/privacy.html` says so |
 | DORA delivery metrics | A portfolio-level signal collected across repositories, not a per-repository gate, and not measured here |
 | AI-development activity counters: sessions, tokens, lines changed, percent AI-generated | Not tracked and not gated, deliberately. The gates in this repository are outcome-side: `make verify` on every change, and the merge is blocked by what the change does rather than by how it was written |
-| Incident metrics: MTTR, change fail rate | No incident has been recorded, so there is nothing to measure. `SECURITY.md` carries the reporting channel and the seven-day acknowledgement expectation, and there is no `docs/incidents/` directory yet |
+| Incident metrics: MTTR, change fail rate | No incident has been recorded, so there is nothing to measure. `SECURITY.md` carries the reporting channel and the seven-day acknowledgment expectation, and there is no `docs/incidents/` directory yet |
 
 ## How this file stays true
 

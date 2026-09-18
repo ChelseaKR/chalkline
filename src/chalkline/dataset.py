@@ -65,7 +65,7 @@ LICENSE_URL: Final = "https://www.apache.org/licenses/LICENSE-2.0"
 """Apache-2.0, matching ``pyproject.toml``'s ``license`` field and the committed ``LICENSE``.
 
 ``tests/test_dataset.py`` holds this to the declared license rather than letting the
-descriptor state a licence the repository does not carry."""
+descriptor state a license the repository does not carry."""
 
 CONTEXT: Final = {
     "schema": "https://schema.org/",
