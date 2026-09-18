@@ -93,7 +93,7 @@ def fetch(url: str, destination: Path) -> int:
     """Retrieve one source and report what to write into its provenance sidecar.
 
     The scheme is re-checked here, immediately before the request, rather than relying on
-    the check in :func:`main`. ``urllib`` honours ``file://``, so a URL that reached this
+    the check in :func:`main`. ``urllib`` honors ``file://``, so a URL that reached this
     function by some other path could otherwise read a local file and write it into
     ``data/source/`` as though a public site had served it.
     """

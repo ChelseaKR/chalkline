@@ -8,7 +8,7 @@ Thanks for looking. A few things are specific to this repository.
    single test record. This repository writes files to disk. Registry publication is not a
    contribution this project accepts.
 2. **Model only what the source publishes.** If the Commission's page does not say it, it
-   does not go in the graph. A property that would require a judgement call is left out and
+   does not go in the graph. A property that would require a judgment call is left out and
    the omission is recorded in `PROVENANCE.md` with a reason. Absence is a valid answer.
 3. **Check CTDL against the vendored schema, not against memory.** Every class and property
    is validated by `src/chalkline/ctdl/validate.py` before anything is written. If you need

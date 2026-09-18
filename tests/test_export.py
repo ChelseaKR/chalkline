@@ -448,11 +448,11 @@ def test_the_coverage_statement_names_what_was_set_aside_rather_than_read(
     real_index: leaflets_module.Index,
     vendored_pages: tuple[str, ...],
 ) -> None:
-    """The weaker judgement is published in full, because it is the weaker judgement.
+    """The weaker judgment is published in full, because it is the weaker judgment.
 
     A heading naming a document that the Commission gave no sub-headings is read past rather
     than read: its prose is not attributed to this authorization, and the page after it is.
-    Every such heading is listed with a count rather than summarised, so a reader can check
+    Every such heading is listed with a count rather than summarized, so a reader can check
     the call on each one. "TPSL Authorizations" is the case to check: it is an overview of
     what the Teaching Permit for Statutory Leave's own variants authorize, on that permit's
     own leaflet, and reading it as another document is what used to cost both TPSL entries

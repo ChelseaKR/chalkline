@@ -110,7 +110,7 @@ identical from outside the repository, so each one is written down.
 | Retention schedules, subject-access and deletion paths, no-PII-in-logs | This repository holds no personal data and keeps no logs. The inputs are a state agency's published pages about document types. Visit data from the pages goes to Google Analytics 4, not here; its retention is the property's 14-month setting, and `site/privacy.html` says so |
 | DORA delivery metrics | A portfolio-level signal collected across repositories, not a per-repository gate, and not measured here |
 | AI-development activity counters: sessions, tokens, lines changed, percent AI-generated | Not tracked and not gated, deliberately. The gates in this repository are outcome-side: `make verify` on every change, and the merge is blocked by what the change does rather than by how it was written |
-| Incident metrics: MTTR, change fail rate | No incident has been recorded, so there is nothing to measure. `SECURITY.md` carries the reporting channel and the seven-day acknowledgement expectation, and there is no `docs/incidents/` directory yet |
+| Incident metrics: MTTR, change fail rate | No incident has been recorded, so there is nothing to measure. `SECURITY.md` carries the reporting channel and the seven-day acknowledgment expectation, and there is no `docs/incidents/` directory yet |
 
 ## How this file stays true
 

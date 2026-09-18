@@ -221,7 +221,7 @@ def test_a_reference_to_rows_that_publish_only_none_stays_excluded() -> None:
     assert "publishes no subject codes under the referenced rows" in exclusion.reason
 
 
-def test_an_unrecognised_note_is_not_treated_as_a_cross_reference() -> None:
+def test_an_unrecognized_note_is_not_treated_as_a_cross_reference() -> None:
     catalog = catalog_from(
         row(subject_code="", subject="", notes=("See the Special Education Assignment Chart",))
     )

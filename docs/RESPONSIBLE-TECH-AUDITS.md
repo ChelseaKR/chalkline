@@ -115,7 +115,7 @@ Nothing here ranks, scores, recommends, or classifies a person, and no attribute
 person is stored or inferred. The framework's allocational harms have no surface to attach
 to. Two representational ones do:
 
-- **Unevenness read as judgement.** Only some of the modeled authorizations carry a
+- **Unevenness read as judgment.** Only some of the modeled authorizations carry a
   description, and fewer carry requirements or renewal terms. That distribution follows what
   the Commission published and which leaflet titles matched, not the importance of the
   credential. A reader skimming the page could take a sparse entry for a lesser credential.
@@ -129,7 +129,7 @@ to. Two representational ones do:
   standard asks for is not built. That is an open obligation, tracked in issue #63, and it is
   recorded here as unmet rather than argued away.
 
-**Enforcement.** REVIEW for the representational reading, which is a judgement about framing
+**Enforcement.** REVIEW for the representational reading, which is a judgment about framing
 and is what this section is. AUTO for the part that is mechanical: the sentences above are
 rendered from the catalog for every authorization that lacks the thing they describe, and
 `tests/test_site.py` holds the branch that decides which of them a credential gets, including
@@ -158,7 +158,7 @@ when that analytics runs. `tests/test_performance.py` refuses every script but t
 loader, matched by its whole text, so a second tracker is a failing check rather than a
 review note. `tests/test_analytics.py` executes that loader in Node and holds it to loading
 nothing off the production host, under Global Privacy Control or Do Not Track, or after the
-footer opt-out, with Google signals and ad personalisation off and analytics cookies denied
+footer opt-out, with Google signals and ad personalization off and analytics cookies denied
 in the EEA, the UK and Switzerland. Each guard has a negative control that deletes it,
 asserts the deletion landed, and asserts GA then loads.
 
@@ -234,7 +234,7 @@ and the README says so in the same words.
 
 **Applies, on a small surface, and the surface is named rather than waved at.**
 
-`SECURITY.md` carries the confidential reporting channel, a seven-day acknowledgement
+`SECURITY.md` carries the confidential reporting channel, a seven-day acknowledgment
 expectation, and the real risk surface: untrusted input parsing over vendored HTML snapshots,
 output escaping on the generated page, and the supply chain. There is no server, no database,
 no authentication, and no runtime dependency.

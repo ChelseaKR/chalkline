@@ -191,7 +191,7 @@ def _conditions_block(attachment: Attachment | None) -> str:
             f"none under &ldquo;{_e(unstated)}&rdquo;, the qualifier the Commission publishes "
             "in this authorization's own title. Only the requirements it states for the "
             "permit as a whole are shown; matching this variant to a differently worded "
-            "heading would be this project's judgement rather than the Commission's.</p>"
+            "heading would be this project's judgment rather than the Commission's.</p>"
         )
     return "".join(parts)
 
@@ -429,8 +429,8 @@ it tell a returning browser from a new one, and last up to two years. In the Eur
 Economic Area, the United Kingdom and Switzerland it sets no analytics cookies. There,
 Google still receives a cookieless ping for each page.</p>
 <h2>Advertising features are off</h2>
-<p>Google signals and ad personalisation are both turned off, and the advertising storage,
-ad user data and ad personalisation consent signals are denied everywhere. Google keeps the
+<p>Google signals and ad personalization are both turned off, and the advertising storage,
+ad user data and ad personalization consent signals are denied everywhere. Google keeps the
 event data for {_e(analytics.GA4_DATA_RETENTION)}. See
 <a href="https://policies.google.com/privacy">Google's privacy policy</a>.</p>
 <h2 id="opt-out">Opting out</h2>

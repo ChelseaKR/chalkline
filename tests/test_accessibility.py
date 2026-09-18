@@ -55,7 +55,7 @@ def stylesheet() -> str:
 
 TEXT_CONTRAST: Final = 4.5
 """WCAG 1.4.3 Contrast (Minimum), level AA, for text below 18.66px bold or 24px regular.
-Every colour pair this page makes is small text, so the large-text allowance never applies."""
+Every color pair this page makes is small text, so the large-text allowance never applies."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,7 +149,7 @@ def unmarkered_classes(style: str) -> set[str]:
 def check_list_semantics(page: str, report: Report) -> None:
     """A list whose markers CSS removes is no longer announced as a list in Safari.
 
-    This is browser behaviour rather than a WCAG success criterion in its own right: WebKit
+    This is browser behavior rather than a WCAG success criterion in its own right: WebKit
     treats ``list-style: none`` as a signal that the author did not mean a list, and drops
     the role. ``role="list"`` says otherwise. The effect it prevents is the one 1.3.1 is
     about, a relationship visible in the markup that does not reach the reader.
@@ -245,7 +245,7 @@ PAIRS: Final = (
     ("accent", "panel", "a inside .notice, which sets background: var(--panel)"),
 )
 """Every foreground/background pairing the stylesheet actually makes, with the rule that
-makes it. Hand-kept, and guarded below: a colour token that appears in no pairing and is not
+makes it. Hand-kept, and guarded below: a color token that appears in no pairing and is not
 recorded as decorative fails, so a new token cannot be added without being placed."""
 
 DECORATIVE: Final = {
@@ -261,19 +261,19 @@ def palette(name: str, pattern: str, style: str) -> dict[str, str]:
     block = re.search(pattern, style, re.DOTALL)
     assert block is not None, f"the stylesheet declares no {name} palette"
     found = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", block.group(1)))
-    assert found, f"the {name} palette declares no colour tokens"
+    assert found, f"the {name} palette declares no color tokens"
     return found
 
 
-def relative_luminance(colour: str) -> float:
-    """WCAG's relative luminance of an sRGB colour."""
-    channels = [int(colour[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+def relative_luminance(color: str) -> float:
+    """WCAG's relative luminance of an sRGB color."""
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
     linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
 def contrast(foreground: str, background: str) -> float:
-    """WCAG's contrast ratio between two sRGB colours."""
+    """WCAG's contrast ratio between two sRGB colors."""
     luminances = sorted((relative_luminance(foreground), relative_luminance(background)))
     return (luminances[1] + 0.05) / (luminances[0] + 0.05)
 
@@ -428,7 +428,7 @@ def test_the_contrast_check_rejects_a_palette_it_should(
     """The contrast check reads the stylesheet, so it is broken there rather than in the page.
 
     The last case is the denominator working: renaming a token leaves the palette declaring
-    a colour that no pairing in PAIRS and no entry in DECORATIVE accounts for, and a check
+    a color that no pairing in PAIRS and no entry in DECORATIVE accounts for, and a check
     that quietly ignored it would be checking less than it says it does.
     """
     assert original in stylesheet(), f"the stylesheet no longer declares {original!r}"

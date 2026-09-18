@@ -33,7 +33,7 @@ two new `site/coverage.json` keys sizing what a truncated leaflet read left unre
 correction to PROVENANCE's "Where reading stops". Refactors `_sections()` to walk headings
 past the stop without reading them.
 
-- **Correctness: good.** The `_sections()` rewrite is behaviour preserving. The old code set
+- **Correctness: good.** The `_sections()` rewrite is behavior preserving. The old code set
   `stopped_at` then `break`, then closed the open section after the loop; the new code closes
   the open section immediately before the stop test and skips the tail close when a stop
   happened. Same sections, same order. That `credentials.jsonld` and `index.html` are
@@ -179,7 +179,7 @@ proposes would not stop at `cl-380`, the single case the stop rule was written f
 Teaching Authorization in Health" appears nowhere in the sort table or the leaflet index, so
 an equality grounded rule would read straight past it and attach that document's requirements
 to the School Nurse Services Credential. #41 publishes the size of the gap and leaves the
-judgement open, which is the right split. (Evidence taken **on trust** from the PR body; the
+judgment open, which is the right split. (Evidence taken **on trust** from the PR body; the
 `coverage.json` figure that sizes it is verified.)
 
 ## Safe order of operations
@@ -207,7 +207,7 @@ Each step below makes every later branch `BEHIND` and forces an update and a ful
 
 No identifier renumbering is needed: no ADR, migration, or rule identifier is added by any
 open PR, and `CHANGELOG.md` has no released section, so no hunk can land inside one. The
-changelog hazard here is the neighbouring one described under #39 and #41: a heading inserted
+changelog hazard here is the neighboring one described under #39 and #41: a heading inserted
 next to a bullet it does not own.
 
 ## Defects on `main` that no open pull request addresses

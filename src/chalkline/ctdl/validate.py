@@ -14,7 +14,7 @@ Four checks, in the order a reader would ask them:
    against the context it references.
 3. **Domain admits the pairing.** The enclosing node's ``@type`` appears in the property's
    ``schema:domainIncludes``. This is the check that catches the plausible-looking mistake:
-   ``ceterms:codedNotation`` reads like it belongs on a licence, and the schema does not put
+   ``ceterms:codedNotation`` reads like it belongs on a license, and the schema does not put
    it there.
 4. **Range admits the value.** A property whose range is CTDL classes takes either a nested
    node of one of those classes or a string IRI referencing one. A property whose range is a
