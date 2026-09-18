@@ -39,7 +39,7 @@ Several leaflets state one set of requirements for a named permit and then break
 variant: CL-858 heads "Requirements for Issuance" and then "Single Subject:", "Multiple
 Subject:" and "Education Specialist:". Those sub-headings are not section kinds, so this
 module does not classify them; it records which classified section each one sits inside, and
-the policy layer matches a variant heading against the parenthesised qualifier the
+the policy layer matches a variant heading against the parenthesized qualifier the
 Commission put in the authorization's own title.
 
 What is in scope, and where reading stops
@@ -174,7 +174,7 @@ class LeafletPage:
     """
 
     classified_beyond_the_stop: tuple[str, ...]
-    """Headings after :attr:`stopped_at` that :func:`classify` recognises, in page order.
+    """Headings after :attr:`stopped_at` that :func:`classify` recognizes, in page order.
 
     The size of what a stop leaves behind, and nothing more. It is not a claim that any of it
     was wrongly dropped: past a stop the page is describing another Commission document, and
@@ -204,7 +204,7 @@ class LeafletPage:
     describing.
 
     Listed rather than counted so that a reader can see what was set aside and disagree. The
-    judgement is this module's and it is the weakest one it makes: unlike a stop it does not
+    judgment is this module's and it is the weakest one it makes: unlike a stop it does not
     end the page, so a wrong call here reads one paragraph less rather than a page less.
     """
 
@@ -241,7 +241,7 @@ def _normalize_heading(heading: str) -> str:
 def classify(heading: str) -> str:
     """Which kind of statement a heading introduces, or :data:`UNCLASSIFIED`.
 
-    The vocabulary is small on purpose. A heading this function does not recognise is never
+    The vocabulary is small on purpose. A heading this function does not recognize is never
     read, so widening it is the only way to publish more, and each widening is a claim that
     the wording means what the CTDL property says.
     """
@@ -511,7 +511,7 @@ def _read_heading(reading: _Reading, blocks: list[_Block], index: int) -> None:
     and CL-562's "National Board for Professional Teaching Standards Certification" are all
     that shape, and treating them as the end of the page dropped four "Requirements for ..."
     sections, a "Period of Validity" and a "Terms and Definitions:" that this project's own
-    classifier recognises and that plainly belong to the leaflet's own subject.
+    classifier recognizes and that plainly belong to the leaflet's own subject.
 
     Everything else opens a section.
     """

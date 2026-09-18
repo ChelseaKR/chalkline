@@ -224,7 +224,7 @@ def cross_reference(rows: list[SortTableRow]) -> tuple[str, str, bool] | None:
     """The note, the credential it names, and whether it defers the codes too.
 
     ``None`` when the Commission published no cross-reference on any of these rows. Only
-    the two published forms are recognised; a note this project has not seen before is not
+    the two published forms are recognized; a note this project has not seen before is not
     guessed at, so a new wording upstream leaves the authorization excluded rather than
     resolved against the wrong rows.
     """

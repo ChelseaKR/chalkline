@@ -225,7 +225,7 @@ None of the eight fell into any of those, and `tests/test_model.py` exercises ea
 
 | Property | Why not |
 |---|---|
-| `ceterms:occupationType` | The sort table publishes no occupation codes. Aligning a teaching credential to an SOC occupation would be this project's judgement, not the Commission's statement. |
+| `ceterms:occupationType` | The sort table publishes no occupation codes. Aligning a teaching credential to an SOC occupation would be this project's judgment, not the Commission's statement. |
 | `ceterms:audienceLevelType` | Grade ranges appear as prose in the Notes column. Mapping that prose onto CTDL's audience level concept scheme would be an interpretation the Commission has not published. The prose is carried verbatim on the subject alignment instead. |
 | Competency framework | The sort table publishes subject names, not competency statements, and `ceterms:targetCompetency` is not in the domain of `ceterms:License`. See [docs/MODELING.md](docs/MODELING.md). |
 | `ceterms:description` on 80 of 133 licenses | No leaflet is matched to them and the Commission published no Notes that apply to the whole authorization. Absence, not a placeholder. |
@@ -242,12 +242,12 @@ published, and on nothing else. Three rules, tried in this order:
 
 1. **Exact title**, after case and punctuation normalization. 12 authorizations.
 2. **Named family**: the authorization's title is a leaflet's title followed by one trailing
-   parenthesised qualifier, and the part before it equals that leaflet's title under the same
+   parenthesized qualifier, and the part before it equals that leaflet's title under the same
    normalization. 8 authorizations: the three Short-Term Staff Permit variants (`cl-858`), the
    three Provisional Internship Permit variants (`cl-856`), and the two Teaching Permit for
    Statutory Leave variants (`cl-902`). Rule 1 is tried first, so an authorization with a
    leaflet of its own is never rolled up into a family one.
-3. **Document code**: a parenthesised run in the leaflet's own published title is, character
+3. **Document code**: a parenthesized run in the leaflet's own published title is, character
    for character, a whole Document Title cell in the sort table. 2 authorizations, both of
    them the Mathematics Instructional Leadership Specialist, whose leaflet `cl-898` is titled
    "… Specialist Credential (MILS) and … Added Authorization (MIAA)" and whose Document Title
@@ -307,7 +307,7 @@ A row that publishes no title is not a title, so a leaflet's title is now taken 
 whose code column names the code its own link path names. None of the six changes a match:
 none of the recovered titles equals an authorization's under any of the three rules. What it
 changes is that the count of 81 leaflets is 81 leaflets with names, rather than 75 with names
-and 6 labelled with a notice about something else. The 8 redirection rows are counted
+and 6 labeled with a notice about something else. The 8 redirection rows are counted
 separately in `site/coverage.json`.
 
 ### Reading
@@ -340,7 +340,7 @@ authorizations carrying leaflet prose.
 
 ### Variant sections
 
-A leaflet matched by the named-family rule was matched by setting aside a parenthesised
+A leaflet matched by the named-family rule was matched by setting aside a parenthesized
 qualifier the Commission wrote in the authorization's own title. Where that leaflet's
 requirements contain a sub-section headed with that same qualifier, the Commission has stated
 the requirements for that variant, and this project reads them for that authorization only.
@@ -399,18 +399,18 @@ to the same Teacher Librarian Services Credential; and `cl-537` ended at its own
 publishing nothing. That was issue #36, and the fix is the outline test above. Six pages stop
 now, `cl-380` among them and at the same heading it always stopped at.
 
-Both judgements are published, and separately, because they are not equally strong:
+Both judgments are published, and separately, because they are not equally strong:
 
 - `authorizations_with_a_leaflet_reading_stopped_before_the_end`, the reads that stopped;
 - `reading_stopped_at_heading`, the heading each stopped at;
 - `authorizations_whose_stop_left_a_classified_heading_unread`, the reads that stopped
-  before something this project's own vocabulary recognises;
+  before something this project's own vocabulary recognizes;
 - `headings_left_unread_beyond_the_stop`, which headings those were. They belong to the
   other document the leaflet moved on to, so not reading them is the point, and the count is
   what lets a reader tell that from a leaflet that was read whole and said nothing more.
 - `authorizations_whose_leaflet_set_a_subject_aside` and
   `headings_set_aside_as_another_subject`, the weaker call. Every set-aside heading is
-  listed with a count rather than summarised, because this is the judgement most likely to
+  listed with a count rather than summarized, because this is the judgment most likely to
   be wrong, and unlike a stop it costs one paragraph rather than a page.
 
 Within the readable range, only sections whose heading classifies contribute anything. The
