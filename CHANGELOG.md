@@ -65,6 +65,66 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- **`site/dataset.jsonld`, a dataset descriptor for the three published artifacts.** The
+  artifacts were findable only by reading the README. Dataset search engines and open-data
+  catalogs harvest schema.org from a page's head and DCAT from a descriptor, so the
+  descriptor is written to `site/` and embedded verbatim in `index.html`'s head. Each of
+  `credentials.jsonld`, `coverage.json` and `ctdl-validate.json` gets a distribution
+  carrying its byte size and its sha256, measured from the bytes at build time.
+- **One node, both vocabularies, so the two cannot disagree.** The descriptor is typed as
+  both `schema:Dataset` and `dcat:Dataset` and carries both vocabularies' properties on the
+  same subject, with DCAT reaching the distributions by `@id` reference rather than as a
+  second copy. Two parallel descriptions of one dataset would be two things that can drift
+  with nothing to say which one a harvester believed; a test asserts the correspondence
+  property by property.
+- **The `description` is the unofficial notice in full.** A catalog card is the one surface
+  where a stranger meets this project with no page around it, and a card that read as an
+  official California credential dataset is the worst outcome this project can produce.
+- **`dateModified` is the Commission's retrieval date, never a build clock.** A test walks
+  the whole document and fails on anything shaped like a timestamp, and on any number that
+  is not a byte size: counts live in `coverage.json`, counted from the graph, and a third
+  copy that nothing derives is a figure that goes stale in silence.
+- **A descriptor cannot describe fewer artifacts than the site publishes.** Two
+  distributions where three files are served is the failure with no symptom: the document
+  is well-formed, the digests it does carry are correct, and `chalkline check` holds it to a
+  fresh build that also describes two. `dataset.descriptor` refuses a missing artifact and
+  `cli._evidence_text` refuses a missing `ctdl-validate.json`.
+- **The descriptor is validated against the specifications it names (CQ-49).**
+  `scripts/validate_descriptor.py` (`make validate-dataset`, in `make verify` and so in CI)
+  reads `site/dataset.jsonld` and the copy embedded in `index.html` as a JSON-LD consumer
+  does, with `rdflib`, and checks every class and property against schema.org 30.1, DCAT 3,
+  DCMI Metadata Terms and SPDX 2.3, vendored under `data/vocab/` with sidecars and
+  PROVENANCE.md rows; schema.org's `domainIncludes` and `rangeIncludes`; DCAT's
+  `rdfs:domain`; and literal against resource by `rdfs:range`. Because a JSON-LD processor
+  drops a term it cannot expand silently, the statements in the JSON are counted against
+  the triples it read. `tests/test_descriptor_validates.py` holds each rule to a negative
+  control on the real descriptor, fifteen in all. Its first run found a real defect:
+  `dcat:mediaType` was a string, where DCAT 3's range is `dct:MediaType`, a class. It is now
+  the IANA registry's IRI for the type; `schema:encodingFormat` keeps the text.
+
+### Changed
+
+- **The self-containment gate refuses `<script>` by `type` instead of outright.** `script`
+  was denied without qualification on the reasoning that an inline script still means the
+  page runs code. That is right about JavaScript and wrong about one case: HTML defines a
+  `script` whose `type` is not a JavaScript MIME type as an inert **data block**, which is
+  how a page carries structured data. The exemption is now named, in the same
+  deny-by-default shape `link` and `rel` already used: `application/ld+json` only, no `src`
+  at any type, and no bare, empty, `module` or parameterized type. Eight refusal shapes are
+  asserted directly rather than inferred from the real page carrying none of them. The GA4
+  loader stays the one script that runs code, matched by its whole text.
+- **The page's fixed-overhead budget is raised by 6,300 bytes, from 15,600 to 21,900**,
+  deliberately and with the measurement in the test's docstring. The embedded descriptor is
+  6,282 bytes with its tags, and it is fixed overhead by definition because it does not grow
+  when the Commission publishes more rows. The raise is the descriptor's bytes and not one
+  more, the same discipline the GA4 raise followed, so the headroom left for everything else
+  is what it was (2,958 bytes against a measured 18,942).
+- **The accessibility and performance gates now walk the built page, not a re-rendered
+  one.** Both fixtures rendered the page from `site.render` with the arguments the test
+  happened to have, which produced a page that was nearly the published one. The difference
+  was silent and is exactly the kind that matters: the descriptor is supplied by
+  `cli._artifacts`, so both gates would have measured a page 6 KB lighter than the file
+  actually served.
 - **`site/subjects/`, the inverse view: which credentials authorize a subject.** The
   published page is organized by authorization, which answers what a credential authorizes.
   An assignment clerk asks the other question, and the Commission does not publish it in

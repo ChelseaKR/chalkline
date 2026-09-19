@@ -220,7 +220,11 @@ def test_each_committed_page_carries_one_loader_with_the_committed_id() -> None:
     for page in PAGES:
         source = page.read_text(encoding="utf-8")
         body = source.split("</head>", 1)[1]
-        assert source.count("<script") == 1, page.name
+        # index.html also carries the dataset descriptor as an inert application/ld+json
+        # data block, which tests/test_performance.py holds byte for byte. It runs nothing,
+        # so it is not a second loader; every other <script> is.
+        data_blocks = source.count('<script type="application/ld+json">')
+        assert source.count("<script") - data_blocks == 1, page.name
         assert "<script" not in body, page.name
         script = loader(page)
         assert json.dumps(ID) in script

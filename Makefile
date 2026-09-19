@@ -9,7 +9,7 @@
 UV := env -u VIRTUAL_ENV -u CONDA_PREFIX uv
 UVRUN := $(UV) run --locked
 
-.PHONY: install lock lock-check lint format typecheck test build check rdf validate audit no-dashes verify live-check check-links clean
+.PHONY: install lock lock-check lint format typecheck test build check rdf validate validate-dataset audit no-dashes verify live-check check-links clean
 
 install:
 	$(UV) sync --locked
@@ -50,13 +50,15 @@ typecheck:
 # em dash: editing it would make the snapshot a paraphrase and break the sha256 PROVENANCE.md
 # publishes for it. site/ is build output that `chalkline check` holds byte for byte against a
 # fresh build, so its text is the sources' and the templates', and the templates are in src/
-# where this gate does read them. The CTDL schema and context are vendored. Nothing excluded
-# here is prose this project wrote, which is the whole of what the rule is about.
+# where this gate does read them. The CTDL schema and context are vendored, and so are the
+# schema.org, DCAT, DCMI and SPDX vocabularies under data/vocab/, whose own comments carry em
+# dashes. Nothing excluded here is prose this project wrote, which is the whole of what the
+# rule is about.
 #
 # En dashes are not checked. CONTRIBUTING.md bans em dashes and says nothing about en dashes,
 # and a gate is not the place to invent a rule the project never stated.
 no-dashes:
-	@out=$$(git grep -n -P '\x{2014}' -- ':!data/source' ':!site' ':!src/chalkline/ctdl' ':!uv.lock' 2>&1); \
+	@out=$$(git grep -n -P '\x{2014}' -- ':!data/source' ':!data/vocab' ':!site' ':!src/chalkline/ctdl' ':!uv.lock' 2>&1); \
 	status=$$?; \
 	if [ $$status -eq 0 ]; then \
 	  echo 'CONTRIBUTING.md says "No em dashes." These are em dashes:'; \
@@ -112,6 +114,17 @@ rdf:
 validate:
 	$(UVRUN) python scripts/validate_evidence.py --check
 
+# The dataset descriptor, validated against the specifications it names (CQ-49).
+# `chalkline check` says site/dataset.jsonld is what the code produces; tests/test_dataset.py
+# says it describes the committed artifacts. Neither says it is valid. This reads it, and the
+# copy embedded in site/index.html, as a JSON-LD consumer does, with rdflib, and checks every
+# term, domain and range against the schema.org, DCAT 3, DCMI and SPDX vocabularies vendored
+# under data/vocab/ with their provenance. Offline: the context has to be inline, and the
+# vocabularies are read from disk. tests/test_descriptor_validates.py holds each rule to a
+# negative control.
+validate-dataset:
+	$(UVRUN) python scripts/validate_descriptor.py
+
 # pip-audit queries the PyPI advisory API, so this is the one target in `verify` that is not
 # offline. It runs last, for the same reason a network call belongs last in a chain of
 # otherwise-deterministic gates: everything decidable from the committed tree alone has
@@ -142,12 +155,12 @@ audit:
 # lock-check runs first on purpose. Every later target would otherwise be the thing that
 # repaired the lockfile it was supposed to be checked against.
 #
-# `rdf` and `validate` both run after `check`, and the order is the point: `check` proves site/ is what the
+# `rdf`, `validate` and `validate-dataset` all run after `check`, and the order is the point: `check` proves site/ is what the
 # code produces, and only then is validating those committed bytes a statement about this
 # build rather than about whatever was last committed. `audit` runs last because it is the
 # one target here that reaches the network; everything before it is decided from the
 # committed tree alone.
-verify: lock-check lint no-dashes typecheck test check rdf validate audit
+verify: lock-check lint no-dashes typecheck test check rdf validate validate-dataset audit
 	@echo "verify: ok"
 
 # The deployment sentinel, by hand. `verify` grades this checkout; this grades the origin
