@@ -1,0 +1,5 @@
+# Vendored specifications are held to the sha256 in the sidecar beside each file
+# (data/vocab/*.source.json, checked by tests/test_provenance.py), so git must store
+# their bytes as retrieved. spdx-terms.xml is published with CRLF line endings, and
+# line-ending normalization would change the bytes the sidecar and PROVENANCE.md record.
+data/vocab/** -text

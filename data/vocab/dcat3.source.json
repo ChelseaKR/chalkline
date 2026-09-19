@@ -1,0 +1,9 @@
+{
+  "file": "dcat3.ttl",
+  "source_url": "https://www.w3.org/ns/dcat3.ttl",
+  "retrieved": "2026-09-18",
+  "bytes": 200345,
+  "sha256": "d1624d3bbf364f6fc1d43b9a188bbb9e67639b1a7d46a5cb7ea3f5d47d02b62f",
+  "publisher": "W3C (Data Catalog Vocabulary, DCAT Version 3, W3C Recommendation)",
+  "purpose": "The DCAT 3 vocabulary. scripts/validate_descriptor.py checks that every dcat: class and property site/dataset.jsonld uses is defined here, and that a property whose rdfs:range is a class is never given a literal, nor one whose range is a literal given a resource."
+}

@@ -75,17 +75,37 @@ SUBRESOURCE_TAGS: Final = {
     "input": "src",
 }
 """Every element that makes the browser fetch something while rendering the page, and the
-attribute that names what. ``script`` is listed with one qualification: an inline
-``<script>`` fetches nothing but still means the page runs code, so the only one allowed is
-the GA4 loader, matched by its whole text against :data:`GA4_LOADER`. ``link`` is qualified
-by :data:`METADATA_LINK_RELS` and by nothing else."""
+attribute that names what. Two elements are qualified and the rest are refused outright:
+``link`` by :data:`METADATA_LINK_RELS`, and ``script`` in exactly two shapes, an inline data
+block whose ``type`` is on :data:`DATA_BLOCK_SCRIPT_TYPES` and the GA4 loader, matched by its
+whole text against :data:`GA4_LOADER`."""
 
 GA4_LOADER: Final = (
     analytics.head_snippet(analytics.GA4_MEASUREMENT_ID)
     .removeprefix("<script>")
     .removesuffix("</script>\n")
 )
-"""The body of the one inline script the page may carry, exactly as the build writes it."""
+"""The body of the one inline script the page may run, exactly as the build writes it."""
+
+DATA_BLOCK_SCRIPT_TYPES: Final = frozenset({"application/ld+json"})
+"""The only ``type`` values that make a ``<script>`` on this page inert data.
+
+Deny by default, with one name on the list, exactly as :data:`METADATA_LINK_RELS` works.
+
+HTML defines a ``script`` element whose ``type`` is not a JavaScript MIME type as a **data
+block**, which the parser hands to the document as inert text and never evaluates.
+``application/ld+json`` is that case, and it is how a page carries structured data for a
+harvester that will not execute anything. It is how the dataset descriptor is embedded.
+
+So the exemption is by ``type``, and it is narrow in three ways that matter. A ``<script>``
+with **no** ``type`` is JavaScript by default, and the only such script admitted is the GA4
+loader, byte for byte. A ``<script>`` with a ``src`` is refused whatever its ``type``,
+because a data block that arrives over the network is still a fetch and self-containment is
+the other half of this gate. And a ``type`` this list does not name is refused rather than
+guessed at: ``module``, ``text/javascript`` and an empty string all run code.
+
+Adding a second name here is a decision that a second type is inert, and it belongs in a
+diff with the reasoning next to it rather than in a wildcard."""
 
 METADATA_LINK_RELS: Final = frozenset({"canonical"})
 """The only ``rel`` values a ``<link>`` on this page may carry.
@@ -102,7 +122,7 @@ list and must not be added without qualification: ``rel="alternate stylesheet"``
 stylesheet.
 """
 
-FIXED_OVERHEAD_BUDGET: Final = 15_600
+FIXED_OVERHEAD_BUDGET: Final = 21_900
 """Bytes the page may spend on everything that is not a credential: the stylesheet, the
 head, the disclaimer, the counts, the prose, the exclusions table, the footer. It was 8,690
 against a budget of 12,000 (1.38x headroom). The stylesheet is 2,797 of it, the head metadata
@@ -117,7 +137,17 @@ more, so the headroom left for everything else is what it was before (3,075 byte
 3,080). A heavier page for analytics was decided on purpose, here, in the diff.
 
 The subject pages (#87) added one sentence linking them from the page, taking it to 12,660:
-2,940 bytes of headroom, 1.23x."""
+2,940 bytes of headroom, 1.23x.
+
+The dataset descriptor (#88) is embedded in the head as an inline
+``<script type="application/ld+json">`` data block carrying ``site/dataset.jsonld`` verbatim:
+6,282 bytes with its tags. The budget was raised by 6,300 for it and not by a byte more, the
+same discipline the GA4 raise followed, so the page's overhead is 18,942 and the headroom
+left for everything else is 2,958 bytes (1.16x), as it was before. It is fixed overhead by
+definition: it describes the three downloads and does not grow when the Commission
+publishes more rows. Embedding it is what makes it harvestable: dataset search engines read
+structured data from a page's head, and a descriptor in a file nothing links from the page
+is one those harvesters never see."""
 
 PER_AUTHORIZATION_BUDGET: Final = 2_200
 """Bytes the page may spend per modeled authorization. The mean is 1,868 today and the
@@ -146,6 +176,20 @@ class Reference:
     body: str = ""
     """The text of an inline ``<script>``. Empty for every other element."""
 
+    data_block: bool = False
+    """Whether an inline ``<script>`` is an inert data block by its ``type``."""
+
+
+def _script_is_a_data_block(script_type: str | None) -> bool:
+    """Whether an inline ``<script>`` of this ``type`` is inert data rather than code.
+
+    Only ever asked of a ``<script>`` with no ``src``: one with a ``src`` is a fetch whatever
+    its type, and the parser refuses it before this is reached. A ``type`` this project has
+    not cleared, including none at all, is treated as code, which is what the HTML default
+    already makes it.
+    """
+    return script_type is not None and script_type.strip().lower() in DATA_BLOCK_SCRIPT_TYPES
+
 
 def _link_is_metadata(rel: str) -> bool:
     """Whether a ``<link>`` carrying this ``rel`` leaves the browser nothing to fetch.
@@ -164,6 +208,7 @@ class _References(HTMLParser):
         self.found: list[Reference] = []
         self.elements = 0
         self._inline: list[str] | None = None
+        self._inline_type: str | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.elements += 1
@@ -171,7 +216,9 @@ class _References(HTMLParser):
         if tag == "script" and "src" not in values:
             # Decided at the end tag, once the whole body has been read.
             self._inline = []
+            self._inline_type = values.get("type")
         elif tag in SUBRESOURCE_TAGS:
+            # A <script> reaching here has a src, which is a fetch whatever its type.
             rel = values.get("rel", "") if tag == "link" else ""
             fetches = not (tag == "link" and _link_is_metadata(rel))
             self.found.append(Reference(tag, values.get(SUBRESOURCE_TAGS[tag], ""), fetches, rel))
@@ -188,8 +235,12 @@ class _References(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "script" and self._inline is not None:
             body = "".join(self._inline)
-            self._inline = None
-            self.found.append(Reference("script", "", body != GA4_LOADER, body=body))
+            inert = _script_is_a_data_block(self._inline_type)
+            self._inline, self._inline_type = None, None
+            runs_uncleared_code = not inert and body != GA4_LOADER
+            self.found.append(
+                Reference("script", "", runs_uncleared_code, body=body, data_block=inert)
+            )
 
 
 def stylesheet_fetches(style: str) -> list[str]:
@@ -213,13 +264,19 @@ def references(page: str) -> tuple[list[Reference], int]:
 
 
 @pytest.fixture(scope="module")
-def page(real_catalog: Catalog, real_attachments: dict[str, Attachment]) -> str:
-    """The page as `chalkline build` writes it, from the vendored sources."""
-    return render(real_catalog, ctid_module.load_ledger(), real_attachments)
+def page(built_artifacts: dict[str, str]) -> str:
+    """The page as `chalkline build` writes it, from the vendored sources.
+
+    Taken from the build rather than re-rendered, so the dataset descriptor the build embeds
+    is inside the page this budget measures and this gate walks.
+    """
+    return built_artifacts["index.html"]
 
 
 def test_the_page_fetches_nothing_to_render_and_runs_only_the_ga4_loader(page: str) -> None:
-    """No stylesheet, font, image or frame, and no script but the GA4 loader.
+    """No stylesheet, font, image or frame, and no code but the GA4 loader.
+
+    The one other ``<script>`` is the dataset descriptor, an inert data block.
 
     The element count is asserted too. A parser that read nothing would report no
     subresources just as convincingly as a page that has none.
@@ -300,11 +357,20 @@ def test_the_committed_page_is_the_page_this_budget_measured(real_catalog: Catal
     assert len(committed) <= budget, f"site/index.html is {len(committed):,} bytes, over {budget:,}"
 
 
-def test_the_only_script_is_the_ga4_loader(page: str) -> None:
-    """The script exemption is named, not assumed, the same way the ``<link>`` one is."""
+def test_the_only_scripts_are_the_descriptor_and_the_ga4_loader(
+    page: str, built_artifacts: dict[str, str]
+) -> None:
+    """Both script exemptions are named, not assumed, the same way the ``<link>`` one is.
+
+    The data block is held to the descriptor the build writes, byte for byte, and the code
+    to the GA4 loader, byte for byte.
+    """
     found, _ = references(page)
     scripts = [reference for reference in found if reference.tag == "script"]
-    assert [(s.target, s.body, s.subresource) for s in scripts] == [("", GA4_LOADER, False)]
+    assert [(s.target, s.body, s.data_block, s.subresource) for s in scripts] == [
+        ("", built_artifacts["dataset.jsonld"], True, False),
+        ("", GA4_LOADER, False, False),
+    ]
     assert "googletagmanager.com/gtag/js?id=" + analytics.GA4_MEASUREMENT_ID in GA4_LOADER
 
 
@@ -452,6 +518,65 @@ def test_the_documented_weight_is_the_weight_the_page_spends(
     assert _figure(_DOCUMENTED_SPEND, text) == (overhead, per_authorization), (
         "README.md says the page spends something other than what it spends. The measured "
         f"figures are {overhead:,} and {per_authorization:,}."
+    )
+
+
+# --- the <script> exemption is narrow, and these are the shapes it must still refuse ---
+
+
+@pytest.mark.parametrize(
+    ("markup", "why"),
+    [
+        ("<script>alert(1)</script>", "no type at all is JavaScript by HTML's own default"),
+        ('<script type="">x</script>', "an empty type is JavaScript by the same default"),
+        ('<script type="text/javascript">x</script>', "an explicit JavaScript type"),
+        ('<script type="module">x</script>', "a module is code"),
+        ('<script src="/a.js"></script>', "a src is a fetch whatever the type"),
+        (
+            '<script type="application/ld+json" src="/d.jsonld"></script>',
+            "a data block served from elsewhere is still a subresource",
+        ),
+        ('<script type="APPLICATION/JAVASCRIPT">x</script>', "case does not launder a type"),
+        (
+            '<script type="application/ld+json; charset=utf-8">{}</script>',
+            "a parameterized type is not the cleared one",
+        ),
+    ],
+)
+def test_the_script_exemption_refuses_everything_but_an_inline_data_block(
+    markup: str, why: str
+) -> None:
+    """Widening a deny-by-default gate is only safe if the denial still works.
+
+    ``script`` was admitted only as the GA4 loader, byte for byte, until the dataset
+    descriptor needed an inline ``application/ld+json`` data block, which HTML never
+    evaluates. Each row here is a shape
+    the widened gate must still catch, asserted directly rather than inferred from the real
+    page carrying none of them.
+    """
+    found, _ = references(f"<html><head>{markup}</head><body><p>x</p></body></html>")
+    scripts = [reference for reference in found if reference.tag == "script"]
+    assert [reference.subresource for reference in scripts] == [True], why
+
+
+def test_an_inline_ld_json_data_block_is_the_one_shape_admitted() -> None:
+    found, _ = references(
+        '<html><head><script type="application/ld+json">{"a":1}</script></head>'
+        "<body><p>x</p></body></html>"
+    )
+    scripts = [reference for reference in found if reference.tag == "script"]
+    assert [reference.subresource for reference in scripts] == [False]
+
+
+def test_the_page_script_tags_are_the_descriptor_and_the_ga4_loader(page: str) -> None:
+    """The exemption is asserted against the real page's markup, not left to the scanner.
+
+    Without this, a page that had lost its descriptor and a page that had gained a
+    ``<script>`` the scanner mis-read would both read as self-contained.
+    """
+    scripts = re.findall(r"<script\b[^>]*>", page)
+    assert scripts == ['<script type="application/ld+json">', "<script>"], (
+        f"the page's <script> elements are not the two this gate allows: {scripts}"
     )
 
 

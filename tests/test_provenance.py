@@ -45,6 +45,7 @@ SIDECAR_SUFFIX = ".source.json"
 #: keeps the judgment reviewable instead of buried in a filename test.
 VENDORED_ROOTS: tuple[tuple[Path, tuple[str, ...] | None], ...] = (
     (REPO_ROOT / "data" / "source", None),
+    (REPO_ROOT / "data" / "vocab", None),
     (REPO_ROOT / "src" / "chalkline" / "ctdl", (".json",)),
 )
 
@@ -144,7 +145,7 @@ _PROVENANCE_ROW_RE = re.compile(
 
 def _vendored_named(name: str) -> Path:
     """The artifact a PROVENANCE row names, by path or by leaflet code."""
-    if name.endswith((".html", ".json")):
+    if name.endswith((".html", ".json", ".ttl", ".xml")):
         return REPO_ROOT / name
     return REPO_ROOT / "data" / "source" / "leaflets" / f"{name}.html"
 
