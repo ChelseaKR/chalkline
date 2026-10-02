@@ -104,6 +104,16 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The portfolio-standards pin moves from `v2.0.0` to `v3.0.0`.** Upstream re-verified
+  the Code Quality, Quality & Metrics and Responsible-Tech Framework standards, which were
+  past their quarterly recheck under `v2.0.0`, and released `v3.0.0` on 2026-10-02. This
+  repository vendors the pin alone, not the documents, so `.standards-version` is the only
+  file the move changes; `tests/test_standards_pin.py` still checks its shape and its
+  docstring now names the new tag and the date the tag was confirmed by hand. The
+  release's consumer migration was checked item by item and asked for nothing else here:
+  no `continue-on-error` mutes a scanner, no Dockerfile is tracked, the committed and
+  hosted `protect-main` ruleset already carry exactly the repository-role admin bypass,
+  and `CITATION.cff` already omits `date-released` for the untagged `0.1.0`.
 - **The self-containment gate refuses `<script>` by `type` instead of outright.** `script`
   was denied without qualification on the reasoning that an inline script still means the
   page runs code. That is right about JavaScript and wrong about one case: HTML defines a
