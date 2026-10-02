@@ -104,6 +104,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The portfolio-standards pin moves from `v3.0.0` to `v3.0.1`.** Upstream's
+  `v3.0.1`, released 2026-10-02, is a patch: re-verified freshness stamps, text corrections
+  and tooling fixes, with no control, threshold or gate changed. `.standards-version` is the
+  only file the move changes; the pin test's docstring now names the new tag, confirmed by
+  hand on 2026-10-02 as a signed annotated tag with an immutable GitHub Release whose
+  archive matches its `SHA256SUMS` entry.
 - **The portfolio-standards pin moves from `v2.0.0` to `v3.0.0`.** Upstream re-verified
   the Code Quality, Quality & Metrics and Responsible-Tech Framework standards, which were
   past their quarterly recheck under `v2.0.0`, and released `v3.0.0` on 2026-10-02. This

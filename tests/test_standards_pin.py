@@ -9,9 +9,9 @@ surface this project would rather not open for a pin that a plain text file alre
 DOC-01's own "measured by" column reads "CI asserts the recorded ref matches a
 `vMAJOR.MINOR.PATCH` tag and is not `main`/a `heads/` ref". This test is that assertion: it
 is a shape check against the committed file, on purpose. Confirming the tag is *real* --
-that `v3.0.0` actually exists in ChelseaKR/portfolio-standards -- would mean a network call,
+that `v3.0.1` actually exists in ChelseaKR/portfolio-standards -- would mean a network call,
 which is the one thing this project has held every other check to not needing. That
-confirmation is done by hand each time the pin moves: for `v3.0.0`, on 2026-10-02, the tag
+confirmation is done by hand each time the pin moves: for `v3.0.1`, on 2026-10-02, the tag
 was confirmed as a signed annotated tag with an immutable GitHub Release whose archive matches
 its `SHA256SUMS` entry. DOC-02 (staying current) is a portfolio-wide job, not this
 repository's own gate.
