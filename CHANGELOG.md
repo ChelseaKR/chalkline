@@ -104,6 +104,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **The repository takes no money, on purpose.** A committed `.github/FUNDING.yml` with every
+  key empty overrides the account-wide Ko-fi default, which this repository had inherited
+  without any document saying so (owner decision 2026-10-17).
+
 - **The portfolio-standards pin moves from `v3.0.0` to `v3.0.1`.** Upstream's
   `v3.0.1`, released 2026-10-02, is a patch: re-verified freshness stamps, text corrections
   and tooling fixes, with no control, threshold or gate changed. `.standards-version` is the
